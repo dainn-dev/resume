@@ -71,7 +71,7 @@ export default function InterviewCoachPage() {
   if (!mounted) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <LoadingSpinner message={t("interviewCoach.loadingTitle")} subMessage={t("interviewCoach.loadingSubtitle")} />
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
       </main>
     );
   }

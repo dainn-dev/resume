@@ -32,7 +32,7 @@ export default function ResultsPage() {
   if (!mounted) {
     return (
       <main className="min-h-screen px-4 py-12 max-w-3xl mx-auto">
-        <LoadingSpinner message={t("common.loadingPageInit")} subMessage={t("common.preparingData")} />
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
       </main>
     );
   }

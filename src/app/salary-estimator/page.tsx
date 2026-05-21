@@ -152,7 +152,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
   if (!mounted) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <LoadingSpinner message={t("salary.loadingTitle")} subMessage={t("salary.loadingSubtitle")} />
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
       </main>
     );
   }
