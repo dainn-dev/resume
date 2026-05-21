@@ -18,7 +18,7 @@ const steps: Step[] = [
     key: "score",
     label: "CV Scoring (ATS)",
     description: "Analyze your resume with AI-powered insights",
-    href: "/",
+    href: "/dashboard",
     sessionKey: "resumeAnalysis",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -86,6 +86,18 @@ const steps: Step[] = [
       </svg>
     ),
   },
+  {
+    key: "career",
+    label: "AI Career Coach",
+    description: "Get AI-powered career strategy and roadmap",
+    href: "/career-coach",
+    sessionKey: "careerCoachResult",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+      </svg>
+    ),
+  },
 ];
 
 export default function WorkflowProgress() {
@@ -101,6 +113,7 @@ export default function WorkflowProgress() {
     if (sessionStorage.getItem("coverLetterResult")) keys.add("coverLetterResult");
     if (sessionStorage.getItem("salaryEstimatorResult")) keys.add("salaryEstimatorResult");
     if (sessionStorage.getItem("interviewCoachResult")) keys.add("interviewCoachResult");
+    if (sessionStorage.getItem("careerCoachResult")) keys.add("careerCoachResult");
     setCompleted(keys);
   }, [pathname]);
 
@@ -108,7 +121,7 @@ export default function WorkflowProgress() {
     <div className="flex justify-between gap-4 overflow-x-auto pb-4 px-2 scrollbar-hide">
       {steps.map((step) => {
         const isActive = step.href === "/"
-          ? pathname === "/" || pathname === "/results"
+          ? pathname === "/dashboard" || pathname === "/results"
           : pathname === step.href;
         const isDone = !!(step.sessionKey && completed.has(step.sessionKey));
         const isClickable = !step.comingSoon;

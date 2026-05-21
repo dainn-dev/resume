@@ -1,5 +1,6 @@
 import type { JobMatchAnalysis } from "@/types/jobMatch";
 import { callClaude, extractJson } from "./callClaude";
+import { detectLanguage, languageInstruction } from "./detectLanguage";
 
 const SYSTEM_PROMPT = `You are an expert technical recruiter and career coach. Analyze how well a candidate's resume matches a job description and return a structured JSON analysis. You must ONLY return valid JSON — no markdown, no commentary outside the JSON.`;
 
@@ -46,6 +47,8 @@ export async function analyzeJobMatch(
   resumeText: string,
   jobDescription: string,
 ): Promise<JobMatchAnalysis> {
-  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(resumeText, jobDescription), 2000);
+  const lang = detectLanguage(resumeText);
+  const prompt = SYSTEM_PROMPT + "\n" + languageInstruction(lang);
+  const raw = await callClaude(prompt, buildUserPrompt(resumeText, jobDescription), 2000);
   return JSON.parse(extractJson(raw)) as JobMatchAnalysis;
 }

@@ -14,9 +14,26 @@ import {
   setSalaryEstimatorResult,
   setSalaryEstimatorAnalysis,
   getBuilderForm,
+  getCurrentResumeId,
 } from "@/lib/pipeline";
+import { saveStepResult } from "@/lib/stepResults";
 
-const EXPERIENCE_LEVELS = ["0-2 years", "2-5 years", "5-10 years", "10-15 years", "15+ years"];
+const EXPERIENCE_KEYS = [
+  { value: "0-2 years", label: "salary.experience_0_2" },
+  { value: "2-5 years", label: "salary.experience_2_5" },
+  { value: "5-10 years", label: "salary.experience_5_10" },
+  { value: "10-15 years", label: "salary.experience_10_15" },
+  { value: "15+ years", label: "salary.experience_15_plus" },
+];
+
+const EDUCATION_KEYS = [
+  { value: "High School", label: "salary.edu_highSchool" },
+  { value: "Associate's Degree", label: "salary.edu_associate" },
+  { value: "Bachelor's Degree", label: "salary.edu_bachelor" },
+  { value: "Master's Degree", label: "salary.edu_master" },
+  { value: "PhD", label: "salary.edu_phd" },
+  { value: "Bootcamp/Certification", label: "salary.edu_bootcamp" },
+];
 
 const INITIAL_FORM: SalaryEstimatorFormData = {
   jobTitle: "",
@@ -104,6 +121,8 @@ export default function SalaryEstimatorPage() {
       setAnalysis(data.data.analysis);
       setSalaryEstimatorResult(data.data.estimate);
       setSalaryEstimatorAnalysis(data.data.analysis);
+      const rid = getCurrentResumeId();
+      if (rid) saveStepResult(rid, "salary", { minSalary: data.data.estimate.minSalary, maxSalary: data.data.estimate.maxSalary, medianSalary: data.data.estimate.medianSalary, currency: data.data.estimate.currency, confidence: data.data.estimate.confidence, analysis: data.data.analysis });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -170,7 +189,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
         ) : result ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Salary Estimate</h2>
+              <h2 className="text-sm font-semibold text-white">{t("salary.salaryEstimateHeading")}</h2>
               <button
                 onClick={() => {
                   setResult(null);
@@ -192,7 +211,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{t("salary.monthlyLabel")}</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-gray-900/50 rounded-lg p-4 text-center">
                   <p className="text-xs text-gray-400 mb-2">{t("salary.minimum")}</p>
                   <p className="text-xl font-bold text-green-400">
@@ -228,7 +247,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
               {result.alternativeCurrency && result.medianSalaryAlt && (
                 <div className="border-t border-gray-700 pt-4 mt-4">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">{t("salary.alsoIn")} {result.alternativeCurrency}</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
                     <div className="text-center">
                       <p className="text-sm font-semibold text-green-400">
                         {result.alternativeCurrency === 'USD' ? '$' : ''}
@@ -306,7 +325,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass()}>{t("salary.jobTitle")} *</label>
                 <input
@@ -329,7 +348,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass()}>{t("salary.yearsOfExperience")} *</label>
                 <select
@@ -338,9 +357,9 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                   onChange={e => updateField("experience", e.target.value)}
                   required
                 >
-                  {EXPERIENCE_LEVELS.map(level => (
-                    <option key={level} value={level}>
-                      {level}
+                  {EXPERIENCE_KEYS.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {t(label)}
                     </option>
                   ))}
                 </select>
@@ -375,12 +394,11 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                 value={form.education}
                 onChange={e => updateField("education", e.target.value)}
               >
-                <option value="High School">High School</option>
-                <option value="Associate's Degree">Associate's Degree</option>
-                <option value="Bachelor's Degree">Bachelor's Degree</option>
-                <option value="Master's Degree">Master's Degree</option>
-                <option value="PhD">PhD</option>
-                <option value="Bootcamp/Certification">Bootcamp/Certification</option>
+                {EDUCATION_KEYS.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {t(label)}
+                  </option>
+                ))}
               </select>
             </div>
 

@@ -1,5 +1,5 @@
-import { callClaude } from "./callClaude";
-import { extractJson } from "./callClaude";
+import { callClaude, extractJson } from "./callClaude";
+import { detectLanguage, languageInstruction } from "./detectLanguage";
 import type { InterviewCoachFormData, InterviewCoachResult } from "@/types/builder";
 
 export async function coachInterview(
@@ -9,7 +9,7 @@ export async function coachInterview(
   const systemPrompt1 = `You are an expert technical interviewer and career coach. Generate tailored interview preparation material. Return ONLY valid JSON — no markdown fences, no commentary outside the JSON object.`;
 
   const jobDesc = form.jobDescription.slice(0, 3000);
-  const resumeSum = form.resumeSummary.slice(0, 2000);
+  const resumeSum = form.resumeSummary.slice(0, 8000);
 
   const userPrompt1 = `Generate interview preparation material for the following:
 
@@ -48,7 +48,9 @@ Rules:
 - commonPitfalls: 3–5 items specific to this role type and interview format
 - closingQuestions: 3–5 smart, specific questions the candidate should ask the interviewer`;
 
-  const raw1 = await callClaude(systemPrompt1, userPrompt1, 2500);
+  const lang = detectLanguage(form.resumeSummary + " " + form.jobDescription);
+  const langInst = languageInstruction(lang);
+  const raw1 = await callClaude(systemPrompt1 + "\n" + langInst, userPrompt1, 2500);
   const jsonStr = extractJson(raw1);
   const result = JSON.parse(jsonStr) as InterviewCoachResult;
 
@@ -67,7 +69,7 @@ Cover:
 
 Be warm, direct, and specific. Do not use bullet points or markdown.`;
 
-  const analysis = await callClaude(systemPrompt2, userPrompt2, 1200);
+  const analysis = await callClaude(systemPrompt2 + "\n" + langInst, userPrompt2, 1200);
 
   return { result, analysis };
 }

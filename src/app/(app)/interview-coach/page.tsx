@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { InterviewCoachFormData, InterviewCoachResult } from "@/types/builder";
+import Link from "next/link";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useTranslation } from "@/components/TranslationProvider";
 import {
@@ -13,8 +14,10 @@ import {
   setInterviewCoachForm,
   setInterviewCoachResult,
   setInterviewCoachAnalysis,
+  getCurrentResumeId,
   type JobMatchContext,
 } from "@/lib/pipeline";
+import { saveStepResult } from "@/lib/stepResults";
 
 const INTERVIEW_TYPES: InterviewCoachFormData["interviewType"][] = ["behavioral", "technical", "mixed"];
 
@@ -52,7 +55,7 @@ function mergeJobContext(
     jobTitle: ctx.jobTitle || form.jobTitle,
     company: ctx.company || form.company,
     jobDescription: ctx.jobDescription || form.jobDescription,
-    resumeSummary: form.resumeSummary || resumeText.slice(0, 2000),
+    resumeSummary: form.resumeSummary || resumeText.slice(0, 8000),
   };
 }
 
@@ -130,6 +133,8 @@ export default function InterviewCoachPage() {
       setAnalysis(data.data.analysis);
       setInterviewCoachResult(data.data.result);
       setInterviewCoachAnalysis(data.data.analysis);
+      const rid = getCurrentResumeId();
+      if (rid) saveStepResult(rid, "interview", { questionCount: data.data.result.questions.length, keyStrengths: data.data.result.keyStrengths, analysis: data.data.analysis });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -290,6 +295,15 @@ export default function InterviewCoachPage() {
             <button onClick={handleCopy} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
               {copied ? t("interviewCoach.copied") : t("interviewCoach.copyReport")}
             </button>
+
+            <div className="border-t border-gray-800 pt-6 flex gap-3">
+              <Link
+                href="/career-coach"
+                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+              >
+                {t("interviewCoach.nextStep")}
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -297,7 +311,7 @@ export default function InterviewCoachPage() {
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass()}>{t("interviewCoach.jobTitle")}</label>
                 <input

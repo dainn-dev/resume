@@ -1,5 +1,6 @@
 import type { SalaryEstimatorFormData, SalaryEstimate } from "@/types/builder";
 import { callClaude, extractJson } from "./callClaude";
+import { detectLanguage, languageInstruction } from "./detectLanguage";
 
 const SYSTEM_PROMPT = `You are an expert salary analyst specializing in tech industry compensation. Provide MONTHLY salary estimates in both USD and VND for Vietnamese market. Be accurate and realistic based on actual market data. Return ONLY valid JSON — no markdown fences, no commentary outside the JSON.`;
 
@@ -53,7 +54,9 @@ Return ONLY this JSON (MONTHLY salary figures):
 }
 
 export async function estimateSalary(form: SalaryEstimatorFormData): Promise<{ estimate: SalaryEstimate; analysis: string }> {
-  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(form), 1500);
+  const lang = detectLanguage(form.jobTitle + " " + form.skills + " " + form.location);
+  const langInst = languageInstruction(lang);
+  const raw = await callClaude(SYSTEM_PROMPT + "\n" + langInst, buildUserPrompt(form), 1500);
   const estimate = JSON.parse(extractJson(raw)) as SalaryEstimate;
 
   // Generate a detailed analysis text
@@ -76,7 +79,7 @@ Write 2-3 practical paragraphs about:
 
 Be encouraging, realistic, and specific with numbers.`;
 
-  const analysisRaw = await callClaude("You are a helpful career advisor providing actionable salary guidance.", analysisPrompt, 1200);
+  const analysisRaw = await callClaude("You are a helpful career advisor providing actionable salary guidance.\n" + langInst, analysisPrompt, 1200);
 
   return {
     estimate,

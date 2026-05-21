@@ -1,5 +1,6 @@
 import type { ResumeAnalysis } from "@/types/resume";
 import { callClaude, extractJson } from "./callClaude";
+import { detectLanguage, languageInstruction } from "./detectLanguage";
 
 const SYSTEM_PROMPT = `You are an expert resume coach and hiring manager with 15+ years of experience reviewing resumes across tech, finance, and business sectors. Your role is to evaluate a resume objectively and return a structured JSON analysis. You must ONLY return valid JSON — no markdown, no commentary outside the JSON.`;
 
@@ -58,6 +59,8 @@ Rules:
 }
 
 export async function analyzeResume(resumeText: string): Promise<ResumeAnalysis> {
-  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(resumeText));
+  const lang = detectLanguage(resumeText);
+  const prompt = SYSTEM_PROMPT + "\n" + languageInstruction(lang);
+  const raw = await callClaude(prompt, buildUserPrompt(resumeText));
   return JSON.parse(extractJson(raw)) as ResumeAnalysis;
 }

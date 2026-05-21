@@ -34,7 +34,32 @@ export function extractJson(raw: string): string {
     else if (ch === "}") { if (--depth === 0) return raw.slice(start, i + 1); }
   }
 
-  throw new Error("Unmatched braces in JSON response.");
+  // Attempt to repair truncated JSON by closing open braces/brackets
+  let truncated = raw.slice(start);
+  if (inString) truncated += '"';
+  // Strip trailing incomplete values (e.g. a dangling comma or partial string)
+  truncated = truncated.replace(/,\s*$/, "");
+  // Close all open brackets/braces
+  const opens: string[] = [];
+  let rs = false;
+  let re = false;
+  for (const ch of truncated) {
+    if (re) { re = false; continue; }
+    if (ch === "\\" && rs) { re = true; continue; }
+    if (ch === '"') { rs = !rs; continue; }
+    if (rs) continue;
+    if (ch === "{") opens.push("}");
+    else if (ch === "[") opens.push("]");
+    else if (ch === "}" || ch === "]") opens.pop();
+  }
+  truncated += opens.reverse().join("");
+
+  try {
+    JSON.parse(truncated);
+    return truncated;
+  } catch {
+    throw new Error("Unmatched braces in JSON response.");
+  }
 }
 
 export async function callClaude(
@@ -51,7 +76,9 @@ export async function callClaude(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
       "Authorization": `Bearer ${process.env.ANTHROPIC_API_KEY}`,
+      "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",

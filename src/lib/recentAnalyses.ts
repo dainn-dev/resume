@@ -1,4 +1,5 @@
 import type { ResumeAnalysis } from "@/types/resume";
+import type { ResumeFormData } from "@/types/builder";
 
 export interface RecentAnalysis {
   id: string;
@@ -9,8 +10,15 @@ export interface RecentAnalysis {
   resumeText: string;
 }
 
+interface BuilderCache {
+  parsedForm: ResumeFormData;
+  builderForm?: ResumeFormData;
+  builtMarkdown?: string;
+}
+
 const KEY = "recentAnalyses";
-const MAX = 3;
+const BUILDER_CACHE_PREFIX = "builderCache_";
+const MAX = 10;
 
 export function getRecentAnalyses(): RecentAnalysis[] {
   try {
@@ -21,17 +29,42 @@ export function getRecentAnalyses(): RecentAnalysis[] {
   }
 }
 
-export function saveRecentAnalysis(entry: Omit<RecentAnalysis, "id">): void {
+export function saveRecentAnalysis(entry: Omit<RecentAnalysis, "id">, id?: string): string {
+  const entryId = id ?? `${Date.now()}`;
   try {
     const existing = getRecentAnalyses();
     const updated = [
-      { ...entry, id: `${Date.now()}` },
-      ...existing,
+      { ...entry, id: entryId },
+      ...existing.filter(e => e.id !== entryId),
     ].slice(0, MAX);
     localStorage.setItem(KEY, JSON.stringify(updated));
   } catch {
     // localStorage may be unavailable (SSR, private mode quota)
   }
+  return entryId;
+}
+
+export function getBuilderCache(resumeId: string): BuilderCache | null {
+  try {
+    const raw = localStorage.getItem(BUILDER_CACHE_PREFIX + resumeId);
+    return raw ? (JSON.parse(raw) as BuilderCache) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveBuilderCache(resumeId: string, cache: BuilderCache): void {
+  try {
+    localStorage.setItem(BUILDER_CACHE_PREFIX + resumeId, JSON.stringify(cache));
+  } catch {
+    // ignore
+  }
+}
+
+export function updateBuilderCache(resumeId: string, partial: Partial<BuilderCache>): void {
+  const existing = getBuilderCache(resumeId);
+  if (!existing) return;
+  saveBuilderCache(resumeId, { ...existing, ...partial });
 }
 
 export function formatRelativeTime(timestamp: number): string {

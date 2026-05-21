@@ -18,7 +18,7 @@ export default function ResultsPage() {
   useEffect(() => {
     const stored = getResumeAnalysis();
     if (!stored) {
-      router.replace("/");
+      router.replace("/dashboard");
       return;
     }
     setAnalysis(stored);
@@ -26,7 +26,7 @@ export default function ResultsPage() {
 
   function handleReset() {
     clearPipeline();
-    router.push("/");
+    router.push("/dashboard");
   }
 
   if (!mounted) {

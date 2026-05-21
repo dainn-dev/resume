@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import NavBar from "@/components/NavBar";
-import WorkflowProgress from "@/components/WorkflowProgress";
 import { TranslationProvider } from "@/components/TranslationProvider";
+import AuthProvider from "@/components/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,13 +20,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-gray-950 text-white min-h-screen`}>
         <TranslationProvider>
-          <NavBar />
-          <div className="border-b border-gray-800/60 bg-gray-900/30">
-            <div className="max-w-3xl mx-auto py-3">
-              <WorkflowProgress />
-            </div>
-          </div>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </TranslationProvider>
       </body>
     </html>

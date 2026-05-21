@@ -2,6 +2,7 @@
 
 import ScoreCard from "./ScoreCard";
 import ProgressRing from "./ProgressRing";
+import { useTranslation } from "@/components/TranslationProvider";
 import type { ResumeAnalysis } from "@/types/resume";
 
 interface ScoreDashboardProps {
@@ -9,6 +10,7 @@ interface ScoreDashboardProps {
 }
 
 export default function ScoreDashboard({ analysis }: ScoreDashboardProps) {
+  const { t } = useTranslation();
   const sections = Object.values(analysis.sections);
 
   return (
@@ -23,14 +25,14 @@ export default function ScoreDashboard({ analysis }: ScoreDashboardProps) {
           </div>
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Overall Score</h2>
+          <h2 className="text-xl font-semibold text-white mb-2">{t("results.overallScore")}</h2>
           <p className="text-gray-400 text-sm max-w-xl leading-relaxed">{analysis.overallSummary}</p>
         </div>
       </div>
 
       {/* Section scores grid */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Section Breakdown</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">{t("results.sectionBreakdown")}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {sections.map((section) => (
             <ScoreCard key={section.label} label={section.label} score={section.score} />

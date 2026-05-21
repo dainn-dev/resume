@@ -13,7 +13,9 @@ import {
   setJobMatchContext,
   setJobMatchInput,
   setJobMatchResult,
+  getCurrentResumeId,
 } from "@/lib/pipeline";
+import { saveStepResult } from "@/lib/stepResults";
 
 type InputMode = "url" | "paste";
 
@@ -44,10 +46,10 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-function ScoreLabel({ score }: { score: number }) {
-  if (score >= 75) return <span className="text-green-400 font-semibold">Strong Match</span>;
-  if (score >= 50) return <span className="text-amber-400 font-semibold">Moderate Match</span>;
-  return <span className="text-red-400 font-semibold">Weak Match</span>;
+function ScoreLabel({ score, t }: { score: number; t: (key: string) => string }) {
+  if (score >= 75) return <span className="text-green-400 font-semibold">{t("jobMatch.strongMatch")}</span>;
+  if (score >= 50) return <span className="text-amber-400 font-semibold">{t("jobMatch.moderateMatch")}</span>;
+  return <span className="text-red-400 font-semibold">{t("jobMatch.weakMatch")}</span>;
 }
 
 function KeywordChip({ label, matched }: { label: string; matched: boolean }) {
@@ -85,8 +87,8 @@ function ResultView({
             </div>
           )}
           <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Match Score</p>
-            <ScoreLabel score={result.matchScore} />
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t("jobMatch.matchScore")}</p>
+            <ScoreLabel score={result.matchScore} t={t} />
           </div>
           <p className="text-gray-300 text-sm leading-relaxed">{result.summary}</p>
           <button onClick={onReset} className="text-xs text-gray-500 hover:text-gray-300 underline">
@@ -253,6 +255,8 @@ export default function JobMatchPage() {
 
       setJobMatchResult(data.data);
       setResult(data.data);
+      const rid = getCurrentResumeId();
+      if (rid) saveStepResult(rid, "jobMatch", { matchScore: data.data.matchScore, summary: data.data.summary, strengths: data.data.strengths, gaps: data.data.gaps });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -270,8 +274,8 @@ export default function JobMatchPage() {
     return (
       <main className="max-w-3xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Job Match Score</h1>
-          <p className="text-gray-400 text-sm mt-1">See how well your resume fits the role.</p>
+          <h1 className="text-2xl font-bold text-white">{t("jobMatch.title")}</h1>
+          <p className="text-gray-400 text-sm mt-1">{t("jobMatch.subtitle")}</p>
         </div>
         <ResultView
           result={result}
@@ -305,12 +309,12 @@ export default function JobMatchPage() {
         <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl px-5 py-4">
           <p className="text-amber-400 text-sm font-medium">{t("jobMatch.noResumeWarning")}</p>
           <p className="text-amber-400/70 text-xs mt-1">
-            <Link href="/" className="underline hover:text-amber-300">{t("jobMatch.scoreResumeLinkText")}</Link> {t("jobMatch.noResumeHint")}
+            <Link href="/dashboard" className="underline hover:text-amber-300">{t("jobMatch.scoreResumeLinkText")}</Link> {t("jobMatch.noResumeHint")}
           </p>
           <textarea
             className="mt-3 w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
             rows={5}
-            placeholder="Paste your resume text here…"
+            placeholder={t("jobMatch.resumePastePlaceholder")}
             value={resumeText}
             onChange={e => {
               const v = e.target.value;

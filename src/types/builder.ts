@@ -1,5 +1,6 @@
 export interface WorkEntry {
   company: string;
+  projectName?: string;
   title: string;
   startDate: string;
   endDate: string;
@@ -103,5 +104,44 @@ export interface InterviewCoachResult {
 export interface InterviewCoachApiResponse {
   success: boolean;
   data?: { result: InterviewCoachResult; analysis: string };
+  error?: string;
+}
+
+export interface CareerCoachFormData {
+  careerGoal: string;
+  timeline: "1 year" | "2-3 years" | "5+ years";
+  focusAreas: string[];
+  additionalContext: string;
+  resumeSummary: string;
+  currentSkills: string;
+  experienceSummary: string;
+  jobMatchGaps: string;
+  salaryInsights: string;
+}
+
+export interface CareerMilestone {
+  timeframe: string;
+  goal: string;
+  actions: string[];
+}
+
+export interface SkillRecommendation {
+  skill: string;
+  priority: "high" | "medium" | "low";
+  reason: string;
+  resources: string[];
+}
+
+export interface CareerCoachResult {
+  careerRoadmap: CareerMilestone[];
+  skillDevelopment: SkillRecommendation[];
+  jobSearchStrategy: string[];
+  quickWins: string[];
+  industryOutlook: string;
+}
+
+export interface CareerCoachApiResponse {
+  success: boolean;
+  data?: { result: CareerCoachResult; analysis: string };
   error?: string;
 }

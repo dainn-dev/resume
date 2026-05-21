@@ -1,5 +1,5 @@
 import type { ResumeAnalysis } from "@/types/resume";
-import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate, InterviewCoachFormData, InterviewCoachResult } from "@/types/builder";
+import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate, InterviewCoachFormData, InterviewCoachResult, CareerCoachFormData, CareerCoachResult } from "@/types/builder";
 
 /**
  * Session-storage keys shared by every step of the resume pipeline.
@@ -9,6 +9,9 @@ import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, Sala
  * re-import data between steps.
  */
 export const PIPELINE_KEYS = {
+  // Active resume identifier
+  currentResumeId: "currentResumeId",
+
   // Score / upload step
   resumeAnalysis: "resumeAnalysis",
   resumeText: "resumeText",
@@ -37,6 +40,11 @@ export const PIPELINE_KEYS = {
   interviewCoachForm: "interviewCoachForm",
   interviewCoachResult: "interviewCoachResult",
   interviewCoachAnalysis: "interviewCoachAnalysis",
+
+  // Career coach step
+  careerCoachForm: "careerCoachForm",
+  careerCoachResult: "careerCoachResult",
+  careerCoachAnalysis: "careerCoachAnalysis",
 } as const;
 
 export interface JobMatchContext {
@@ -95,6 +103,16 @@ function remove(key: string): void {
   } catch {
     // ignore
   }
+}
+
+// ---------- Active resume ID ----------
+
+export function getCurrentResumeId(): string | null {
+  return readString(PIPELINE_KEYS.currentResumeId);
+}
+
+export function setCurrentResumeId(id: string): void {
+  writeString(PIPELINE_KEYS.currentResumeId, id);
 }
 
 // ---------- Score / upload ----------
@@ -233,6 +251,32 @@ export function getInterviewCoachAnalysis(): string | null {
 
 export function setInterviewCoachAnalysis(text: string): void {
   writeString(PIPELINE_KEYS.interviewCoachAnalysis, text);
+}
+
+// ---------- Career Coach ----------
+
+export function getCareerCoachForm(): CareerCoachFormData | null {
+  return readJson<CareerCoachFormData>(PIPELINE_KEYS.careerCoachForm);
+}
+
+export function setCareerCoachForm(form: CareerCoachFormData): void {
+  writeJson(PIPELINE_KEYS.careerCoachForm, form);
+}
+
+export function getCareerCoachResult(): CareerCoachResult | null {
+  return readJson<CareerCoachResult>(PIPELINE_KEYS.careerCoachResult);
+}
+
+export function setCareerCoachResult(result: CareerCoachResult): void {
+  writeJson(PIPELINE_KEYS.careerCoachResult, result);
+}
+
+export function getCareerCoachAnalysis(): string | null {
+  return readString(PIPELINE_KEYS.careerCoachAnalysis);
+}
+
+export function setCareerCoachAnalysis(text: string): void {
+  writeString(PIPELINE_KEYS.careerCoachAnalysis, text);
 }
 
 // ---------- Reset ----------

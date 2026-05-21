@@ -11,8 +11,10 @@ import {
   getJobMatchContext,
   setCoverLetterForm,
   setCoverLetterResult,
+  getCurrentResumeId,
   type JobMatchContext,
 } from "@/lib/pipeline";
+import { saveStepResult } from "@/lib/stepResults";
 
 const TONES: CoverLetterFormData["tone"][] = ["Professional", "Enthusiastic", "Concise"];
 
@@ -115,6 +117,8 @@ export default function CoverLetterPage() {
       setResult(data.data.text);
       setEdited(data.data.text);
       setCoverLetterResult(data.data.text);
+      const rid = getCurrentResumeId();
+      if (rid) saveStepResult(rid, "coverLetter", { text: data.data.text });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -190,7 +194,7 @@ export default function CoverLetterPage() {
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass()}>{t("coverLetter.jobTitle")}</label>
                 <input className={inputClass()} placeholder={t("coverLetter.jobTitlePlaceholder")} value={form.jobTitle} onChange={e => updateField("jobTitle", e.target.value)} required />

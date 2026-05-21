@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     // Truncate heavy fields on the server side for safety
     form.jobDescription = form.jobDescription.slice(0, 3000);
-    form.resumeSummary = form.resumeSummary.slice(0, 2000);
+    form.resumeSummary = form.resumeSummary.slice(0, 8000);
 
     const { result, analysis } = await coachInterview(form);
     return NextResponse.json({ success: true, data: { result, analysis } });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/components/TranslationProvider";
 import type { SectionAnalysis } from "@/types/resume";
 
 interface RecommendationListProps {
@@ -21,7 +22,7 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
-function SectionAccordion({ section }: { section: SectionAnalysis }) {
+function SectionAccordion({ section, tipsLabel, suggestedLabel }: { section: SectionAnalysis; tipsLabel: string; suggestedLabel: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,7 +34,7 @@ function SectionAccordion({ section }: { section: SectionAnalysis }) {
         <div className="flex items-center gap-3">
           <ScoreBadge score={section.score} />
           <span className="font-medium text-white">{section.label}</span>
-          <span className="text-xs text-gray-500">{section.tips.length} tips</span>
+          <span className="text-xs text-gray-500">{section.tips.length} {tipsLabel}</span>
         </div>
         <svg
           className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
@@ -57,7 +58,7 @@ function SectionAccordion({ section }: { section: SectionAnalysis }) {
               </div>
               {/* Suggestion */}
               <div className="ml-6 rounded-lg bg-green-500/5 border border-green-500/20 px-4 py-3">
-                <p className="text-xs font-semibold text-green-400 mb-1 uppercase tracking-wide">Suggested update</p>
+                <p className="text-xs font-semibold text-green-400 mb-1 uppercase tracking-wide">{suggestedLabel}</p>
                 <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{tip.suggestion}</p>
               </div>
             </div>
@@ -69,12 +70,13 @@ function SectionAccordion({ section }: { section: SectionAnalysis }) {
 }
 
 export default function RecommendationList({ sections }: RecommendationListProps) {
+  const { t } = useTranslation();
   return (
     <div>
-      <h3 className="text-lg font-semibold text-white mb-4">Improvement Tips</h3>
+      <h3 className="text-lg font-semibold text-white mb-4">{t("results.improvementTips")}</h3>
       <div className="space-y-3">
         {Object.values(sections).map((section) => (
-          <SectionAccordion key={section.label} section={section} />
+          <SectionAccordion key={section.label} section={section} tipsLabel={t("results.tipsCount")} suggestedLabel={t("results.suggestedUpdate")} />
         ))}
       </div>
     </div>

@@ -29,6 +29,7 @@ Return ONLY this JSON:
   "workEntries": [
     {
       "company": "<company name>",
+      "projectName": "<project name if mentioned, else empty string>",
       "title": "<job title>",
       "startDate": "<start month/year e.g. Jan 2022>",
       "endDate": "<end month/year or Present>",
@@ -52,6 +53,6 @@ Return ONLY this JSON:
 }
 
 export async function parseResume(resumeText: string): Promise<ResumeFormData> {
-  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(resumeText), 4000);
+  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(resumeText), 8000);
   return JSON.parse(extractJson(raw)) as ResumeFormData;
 }
