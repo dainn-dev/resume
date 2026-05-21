@@ -99,7 +99,7 @@ export default function BuildPage() {
   if (!mounted) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-10">
-        <LoadingSpinner message="Loading resume builder..." subMessage="Preparing your information" />
+        <LoadingSpinner message={t("build.loadingTitle")} subMessage={t("build.loadingSubtitle")} />
       </main>
     );
   }

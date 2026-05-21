@@ -191,7 +191,7 @@ export default function JobMatchPage() {
   if (!mounted) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <LoadingSpinner message="Loading job match analyzer..." subMessage="Preparing your resume analysis" />
+        <LoadingSpinner message={t("jobMatch.loadingTitle")} subMessage={t("jobMatch.loadingSubtitle")} />
       </main>
     );
   }

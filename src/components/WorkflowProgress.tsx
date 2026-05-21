@@ -139,7 +139,7 @@ export default function WorkflowProgress() {
             </div>
 
             {/* Label + description */}
-            <div className="text-center max-w-36">
+            <div className="text-center max-w-32">
               <h3 className={`font-semibold text-sm mb-1 transition-colors ${isActive ? "text-white" : "text-gray-500 group-hover:text-white"}`}>
                 {step.label}
                 {step.comingSoon && <span className="ml-1 text-[10px] text-gray-600 font-normal">(soon)</span>}

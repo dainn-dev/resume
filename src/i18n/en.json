@@ -11,6 +11,8 @@
   "build": {
     "title": "Build Your Resume",
     "subtitle": "Create a professional resume with AI guidance",
+    "loadingTitle": "Loading resume builder...",
+    "loadingSubtitle": "Preparing your information",
     "personalInfo": "Personal Info",
     "experience": "Experience",
     "education": "Education",
@@ -101,6 +103,8 @@
   "jobMatch": {
     "title": "Job Match Analysis",
     "subtitle": "Analyze how well you match a job opening",
+    "loadingTitle": "Loading job match analyzer...",
+    "loadingSubtitle": "Preparing your resume analysis",
     "noResumeWarning": "No resume detected.",
     "scoreResumeLinkText": "Score your resume first",
     "noResumeHint": "so we can load it here, or paste it below.",
@@ -145,6 +149,8 @@
   "salary": {
     "title": "Salary Estimator",
     "subtitle": "Get AI-powered salary insights based on your role, experience, and location.",
+    "loadingTitle": "Loading salary estimator...",
+    "loadingSubtitle": "Preparing market analysis",
     "monthlyLabel": "Monthly Salary",
     "minimum": "Minimum",
     "median": "Median (Most Likely)",
@@ -185,6 +191,8 @@
   "coverLetter": {
     "title": "Cover Letter Generator",
     "subtitle": "Describe the role and yourself — Claude writes a tailored cover letter.",
+    "loadingTitle": "Loading cover letter generator...",
+    "loadingSubtitle": "Preparing your job details",
     "jobDetailsSync": "✓ Job details synced from your match analysis — add your personal pitch below.",
     "generating": "Writing your cover letter…",
     "generatingSubtext": "Claude AI is tailoring it to the role",
@@ -216,11 +224,15 @@
     "error": "An error occurred.",
     "loading": "Loading...",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "loadingPageInit": "Initializing page...",
+    "preparingData": "Preparing your data"
   },
   "interviewCoach": {
     "title": "AI Interview Coach",
     "subtitle": "Get personalized interview questions and coaching based on your resume and target role.",
+    "loadingTitle": "Loading interview coach...",
+    "loadingSubtitle": "Preparing your coaching session",
     "syncedBanner": "✓ Job details and resume synced from your previous steps.",
     "jobTitle": "Job Title *",
     "jobTitlePlaceholder": "e.g., Senior Software Engineer",

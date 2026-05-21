@@ -11,6 +11,8 @@
   "build": {
     "title": "Xây Dựng CV của Bạn",
     "subtitle": "Tạo một CV chuyên nghiệp với hướng dẫn AI",
+    "loadingTitle": "Đang tải trình xây dựng CV...",
+    "loadingSubtitle": "Đang chuẩn bị thông tin của bạn",
     "personalInfo": "Thông Tin Cá Nhân",
     "experience": "Kinh Nghiệm Làm Việc",
     "education": "Giáo Dục",
@@ -101,6 +103,8 @@
   "jobMatch": {
     "title": "Phân Tích Kết Hợp Công Việc",
     "subtitle": "Phân tích mức độ phù hợp của bạn với một vị trí",
+    "loadingTitle": "Đang tải trình phân tích kết hợp công việc...",
+    "loadingSubtitle": "Đang chuẩn bị phân tích CV của bạn",
     "noResumeWarning": "Không phát hiện CV.",
     "scoreResumeLinkText": "Đánh giá CV của bạn trước",
     "noResumeHint": "để chúng tôi có thể tải nó ở đây, hoặc dán nó bên dưới.",
@@ -145,6 +149,8 @@
   "salary": {
     "title": "Ước Tính Lương",
     "subtitle": "Nhận những thông tin chi tiết về lương được hỗ trợ bởi AI dựa trên vị trí, kinh nghiệm và địa điểm của bạn.",
+    "loadingTitle": "Đang tải ước tính lương...",
+    "loadingSubtitle": "Đang chuẩn bị phân tích thị trường",
     "monthlyLabel": "Lương Hàng Tháng",
     "minimum": "Tối Thiểu",
     "median": "Trung Vị (Có Khả Năng Nhất)",
@@ -185,6 +191,8 @@
   "coverLetter": {
     "title": "Trình Tạo Thư Xin Việc",
     "subtitle": "Mô Tả Vị Trí Và Bản Thân Bạn — Claude Sẽ Viết Một Lá Thư Xin Việc Phù Hợp.",
+    "loadingTitle": "Đang tải trình tạo thư xin việc...",
+    "loadingSubtitle": "Đang chuẩn bị chi tiết công việc của bạn",
     "jobDetailsSync": "✓ Chi tiết công việc được đồng bộ hóa từ phân tích kết hợp của bạn — thêm sân khấu cá nhân của bạn bên dưới.",
     "generating": "Đang viết thư xin việc của bạn…",
     "generatingSubtext": "Claude AI đang điều chỉnh nó theo vị trí",
@@ -216,11 +224,15 @@
     "error": "Đã xảy ra lỗi.",
     "loading": "Đang tải...",
     "copy": "Sao Chép",
-    "copied": "Đã Sao Chép!"
+    "copied": "Đã Sao Chép!",
+    "loadingPageInit": "Đang khởi động trang...",
+    "preparingData": "Đang chuẩn bị dữ liệu của bạn"
   },
   "interviewCoach": {
     "title": "Huấn Luyện Phỏng Vấn AI",
     "subtitle": "Nhận câu hỏi phỏng vấn được cá nhân hóa và huấn luyện dựa trên CV và vị trí mục tiêu của bạn.",
+    "loadingTitle": "Đang tải huấn luyện phỏng vấn...",
+    "loadingSubtitle": "Đang chuẩn bị buổi huấn luyện của bạn",
     "syncedBanner": "✓ Chi tiết công việc và CV được đồng bộ hóa từ các bước trước đó của bạn.",
     "jobTitle": "Chức Vị Công Việc *",
     "jobTitlePlaceholder": "ví dụ: Kỹ Sư Phần Mềm Cao Cấp",
