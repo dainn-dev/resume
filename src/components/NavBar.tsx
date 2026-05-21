@@ -18,6 +18,7 @@ const tabs = [
   { label: "jobMatch", href: "/job-match" },
   { label: "coverLetter", href: "/cover-letter" },
   { label: "salaryEstimator", href: "/salary-estimator" },
+  { label: "interviewCoach", href: "/interview-coach" },
 ];
 
 export default function NavBar() {

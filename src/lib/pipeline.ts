@@ -1,10 +1,10 @@
 import type { ResumeAnalysis } from "@/types/resume";
-import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate } from "@/types/builder";
+import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate, InterviewCoachFormData, InterviewCoachResult } from "@/types/builder";
 
 /**
  * Session-storage keys shared by every step of the resume pipeline.
  *
- * The pipeline flows: Score (upload) → Build → Job Match → Cover Letter → Salary Estimator.
+ * The pipeline flows: Score (upload) → Build → Job Match → Cover Letter → Salary Estimator → Interview Coach.
  * Each step reads what the previous step wrote so the user never has to
  * re-import data between steps.
  */
@@ -32,6 +32,11 @@ export const PIPELINE_KEYS = {
   salaryEstimatorForm: "salaryEstimatorForm",
   salaryEstimatorResult: "salaryEstimatorResult",
   salaryEstimatorAnalysis: "salaryEstimatorAnalysis",
+
+  // Interview coach step
+  interviewCoachForm: "interviewCoachForm",
+  interviewCoachResult: "interviewCoachResult",
+  interviewCoachAnalysis: "interviewCoachAnalysis",
 } as const;
 
 export interface JobMatchContext {
@@ -202,6 +207,32 @@ export function getSalaryEstimatorAnalysis(): string | null {
 
 export function setSalaryEstimatorAnalysis(text: string): void {
   writeString(PIPELINE_KEYS.salaryEstimatorAnalysis, text);
+}
+
+// ---------- Interview Coach ----------
+
+export function getInterviewCoachForm(): InterviewCoachFormData | null {
+  return readJson<InterviewCoachFormData>(PIPELINE_KEYS.interviewCoachForm);
+}
+
+export function setInterviewCoachForm(form: InterviewCoachFormData): void {
+  writeJson(PIPELINE_KEYS.interviewCoachForm, form);
+}
+
+export function getInterviewCoachResult(): InterviewCoachResult | null {
+  return readJson<InterviewCoachResult>(PIPELINE_KEYS.interviewCoachResult);
+}
+
+export function setInterviewCoachResult(result: InterviewCoachResult): void {
+  writeJson(PIPELINE_KEYS.interviewCoachResult, result);
+}
+
+export function getInterviewCoachAnalysis(): string | null {
+  return readString(PIPELINE_KEYS.interviewCoachAnalysis);
+}
+
+export function setInterviewCoachAnalysis(text: string): void {
+  writeString(PIPELINE_KEYS.interviewCoachAnalysis, text);
 }
 
 // ---------- Reset ----------

@@ -78,3 +78,30 @@ export interface SalaryEstimatorApiResponse {
   data?: { estimate: SalaryEstimate; analysis: string };
   error?: string;
 }
+
+export interface InterviewCoachFormData {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
+  interviewType: "behavioral" | "technical" | "mixed";
+  resumeSummary: string;
+}
+
+export interface InterviewQuestion {
+  category: string;
+  question: string;
+  tip: string;
+}
+
+export interface InterviewCoachResult {
+  questions: InterviewQuestion[];
+  keyStrengths: string[];
+  commonPitfalls: string[];
+  closingQuestions: string[];
+}
+
+export interface InterviewCoachApiResponse {
+  success: boolean;
+  data?: { result: InterviewCoachResult; analysis: string };
+  error?: string;
+}

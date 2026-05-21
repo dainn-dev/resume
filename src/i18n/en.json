@@ -5,7 +5,8 @@
     "buildResume": "Build Resume",
     "jobMatch": "Job Match",
     "coverLetter": "Cover Letter",
-    "salaryEstimator": "Salary Estimator"
+    "salaryEstimator": "Salary Estimator",
+    "interviewCoach": "Interview Coach"
   },
   "build": {
     "title": "Build Your Resume",
@@ -216,5 +217,37 @@
     "loading": "Loading...",
     "copy": "Copy",
     "copied": "Copied!"
+  },
+  "interviewCoach": {
+    "title": "AI Interview Coach",
+    "subtitle": "Get personalized interview questions and coaching based on your resume and target role.",
+    "syncedBanner": "✓ Job details and resume synced from your previous steps.",
+    "jobTitle": "Job Title *",
+    "jobTitlePlaceholder": "e.g., Senior Software Engineer",
+    "company": "Company *",
+    "companyPlaceholder": "e.g., Google",
+    "jobDescription": "Job Description *",
+    "jobDescriptionPlaceholder": "Paste the full job description here…",
+    "resumeSummary": "Your Resume Summary *",
+    "resumeSummaryPlaceholder": "Paste a summary of your resume (skills, experience, achievements)…",
+    "resumeSummaryHint": "Pre-filled from your uploaded resume — edit as needed.",
+    "interviewType": "Interview Type",
+    "typeBehavioral": "Behavioral",
+    "typeTechnical": "Technical",
+    "typeMixed": "Mixed",
+    "submit": "Generate Interview Prep",
+    "analyzing": "Building your interview prep…",
+    "analyzingSubtext": "Claude AI is tailoring questions to your profile",
+    "prepareTitle": "Prepare for your interview at",
+    "prepareAnother": "← Prepare for another role",
+    "questionsSection": "Interview Questions",
+    "tip": "Tip:",
+    "strengthsSection": "Key Strengths to Highlight",
+    "pitfallsSection": "Common Pitfalls to Avoid",
+    "closingSection": "Questions to Ask the Interviewer",
+    "narrativeSection": "Your Personalized Preparation Plan",
+    "copyReport": "Copy Interview Prep Report",
+    "copied": "Copied!",
+    "failed": "Failed to generate coaching."
   }
 }

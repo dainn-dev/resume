@@ -5,7 +5,8 @@
     "buildResume": "Xây Dựng CV",
     "jobMatch": "Kết Hợp Công Việc",
     "coverLetter": "Thư Xin Việc",
-    "salaryEstimator": "Ước Tính Lương"
+    "salaryEstimator": "Ước Tính Lương",
+    "interviewCoach": "Huấn Luyện Phỏng Vấn"
   },
   "build": {
     "title": "Xây Dựng CV của Bạn",
@@ -216,5 +217,37 @@
     "loading": "Đang tải...",
     "copy": "Sao Chép",
     "copied": "Đã Sao Chép!"
+  },
+  "interviewCoach": {
+    "title": "Huấn Luyện Phỏng Vấn AI",
+    "subtitle": "Nhận câu hỏi phỏng vấn được cá nhân hóa và huấn luyện dựa trên CV và vị trí mục tiêu của bạn.",
+    "syncedBanner": "✓ Chi tiết công việc và CV được đồng bộ hóa từ các bước trước đó của bạn.",
+    "jobTitle": "Chức Vị Công Việc *",
+    "jobTitlePlaceholder": "ví dụ: Kỹ Sư Phần Mềm Cao Cấp",
+    "company": "Công Ty *",
+    "companyPlaceholder": "ví dụ: Google",
+    "jobDescription": "Mô Tả Công Việc *",
+    "jobDescriptionPlaceholder": "Dán toàn bộ mô tả công việc ở đây…",
+    "resumeSummary": "Tóm Tắt CV Của Bạn *",
+    "resumeSummaryPlaceholder": "Dán tóm tắt CV của bạn (kỹ năng, kinh nghiệm, thành tích)…",
+    "resumeSummaryHint": "Được điền sẵn từ CV tải lên của bạn — chỉnh sửa khi cần thiết.",
+    "interviewType": "Loại Phỏng Vấn",
+    "typeBehavioral": "Hành Vi",
+    "typeTechnical": "Kỹ Thuật",
+    "typeMixed": "Hỗn Hợp",
+    "submit": "Tạo Chuẩn Bị Phỏng Vấn",
+    "analyzing": "Đang xây dựng chuẩn bị phỏng vấn của bạn…",
+    "analyzingSubtext": "Claude AI đang điều chỉnh câu hỏi theo hồ sơ của bạn",
+    "prepareTitle": "Chuẩn bị phỏng vấn tại",
+    "prepareAnother": "← Chuẩn bị cho một vị trí khác",
+    "questionsSection": "Câu Hỏi Phỏng Vấn",
+    "tip": "Mẹo:",
+    "strengthsSection": "Những Điểm Mạnh Cần Nổi Bật",
+    "pitfallsSection": "Những Sai Lầm Phổ Biến Cần Tránh",
+    "closingSection": "Câu Hỏi Để Hỏi Nhà Tuyển Dụng",
+    "narrativeSection": "Kế Hoạch Chuẩn Bị Được Cá Nhân Hóa",
+    "copyReport": "Sao Chép Báo Cáo Chuẩn Bị Phỏng Vấn",
+    "copied": "Đã Sao Chép!",
+    "failed": "Không thể tạo huấn luyện."
   }
 }
