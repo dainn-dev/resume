@@ -99,7 +99,7 @@ export default function BuildPage() {
   if (!mounted) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-10">
-        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+        <LoadingSpinner message="Loading resume builder..." subMessage="Preparing your information" />
       </main>
     );
   }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ScoreDashboard from "@/components/ScoreDashboard";
 import RecommendationList from "@/components/RecommendationList";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { useTranslation } from "@/components/TranslationProvider";
 import type { ResumeAnalysis } from "@/types/resume";
 import { clearPipeline, getResumeAnalysis } from "@/lib/pipeline";
@@ -31,7 +32,7 @@ export default function ResultsPage() {
   if (!mounted) {
     return (
       <main className="min-h-screen px-4 py-12 max-w-3xl mx-auto">
-        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+        <LoadingSpinner message="Loading your results..." subMessage="Analyzing your resume" />
       </main>
     );
   }
