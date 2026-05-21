@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { ResumeFormData, WorkEntry, EducationEntry } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
+import {
+  getBuilderForm,
+  getBuiltResumeMarkdown,
+  getParsedResumeForm,
+  getResumeText,
+  setBuilderForm,
+  setBuiltResumeMarkdown,
+  setParsedResumeForm,
+  PIPELINE_KEYS,
+} from "@/lib/pipeline";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -62,6 +72,15 @@ function StepBar({ step }: { step: Step }) {
   );
 }
 
+function normalizeParsed(data: Partial<ResumeFormData>): ResumeFormData {
+  return {
+    ...INITIAL_FORM,
+    ...data,
+    workEntries: data.workEntries?.length ? data.workEntries : [{ ...EMPTY_WORK, bullets: [""] }],
+    educationEntries: data.educationEntries?.length ? data.educationEntries : [{ ...EMPTY_EDUCATION }],
+  };
+}
+
 export default function BuildPage() {
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<ResumeFormData>(INITIAL_FORM);
@@ -69,44 +88,80 @@ export default function BuildPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<"md" | "txt" | null>(null);
-  const [hasStoredResume, setHasStoredResume] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [imported, setImported] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [synced, setSynced] = useState(false);
+  const hydratedRef = useRef(false);
 
+  // Step 1: hydrate the form from session storage on mount. We prefer
+  // in-progress builder edits over a freshly-parsed resume so the user's
+  // work is never overwritten when they navigate between steps.
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHasStoredResume(!!sessionStorage.getItem("resumeText"));
+    const inProgress = getBuilderForm();
+    if (inProgress) {
+      setForm(inProgress);
+      setSynced(true);
+      hydratedRef.current = true;
+      const cachedMarkdown = getBuiltResumeMarkdown();
+      if (cachedMarkdown) setMarkdown(cachedMarkdown);
+      return;
     }
+
+    const cachedParse = getParsedResumeForm();
+    if (cachedParse) {
+      const normalized = normalizeParsed(cachedParse);
+      setForm(normalized);
+      setSynced(true);
+      hydratedRef.current = true;
+      return;
+    }
+
+    // Step 2: no cached form — auto-import from the previous (Score) step
+    // exactly once, so the user never has to click "Import".
+    const resumeText = getResumeText();
+    if (!resumeText.trim()) {
+      hydratedRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    setSyncing(true);
+    setSyncError(null);
+    (async () => {
+      try {
+        const res = await fetch("/api/parse-resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error ?? "Sync failed.");
+        if (cancelled) return;
+        const parsed = normalizeParsed(data.data);
+        setParsedResumeForm(parsed);
+        setForm(parsed);
+        setSynced(true);
+      } catch (err) {
+        if (!cancelled) setSyncError(err instanceof Error ? err.message : "Sync failed.");
+      } finally {
+        if (!cancelled) {
+          setSyncing(false);
+          hydratedRef.current = true;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  async function handleImport() {
-    const resumeText = sessionStorage.getItem("resumeText");
-    if (!resumeText) return;
-    setImporting(true);
-    setImportError(null);
-    try {
-      const res = await fetch("/api/parse-resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error ?? "Import failed.");
-      // Ensure arrays always have at least one entry
-      const parsed: ResumeFormData = {
-        ...data.data,
-        workEntries: data.data.workEntries?.length ? data.data.workEntries : [{ ...EMPTY_WORK, bullets: [""] }],
-        educationEntries: data.data.educationEntries?.length ? data.data.educationEntries : [{ ...EMPTY_EDUCATION }],
-      };
-      setForm(parsed);
-      setImported(true);
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Import failed.");
-    } finally {
-      setImporting(false);
-    }
-  }
+  // Persist every form edit so navigating away never loses progress and
+  // the next visit doesn't need to re-import from the previous step.
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    setBuilderForm(form);
+  }, [form]);
 
   function updateField(field: keyof ResumeFormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -168,7 +223,7 @@ export default function BuildPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Generation failed.");
       setMarkdown(data.data.markdown);
-      sessionStorage.setItem("builtResume", "1");
+      setBuiltResumeMarkdown(data.data.markdown);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -203,29 +258,20 @@ export default function BuildPage() {
         <p className="text-gray-400 text-sm mt-1">Fill in your details and Claude will craft a polished resume.</p>
       </div>
 
-      {/* Import banner */}
-      {hasStoredResume && !imported && (
-        <div className="mb-6 flex items-center justify-between gap-4 bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-4">
-          <div>
-            <p className="text-sm font-medium text-blue-300">Resume detected from your last score</p>
-            <p className="text-xs text-blue-400/70 mt-0.5">Import it to pre-fill all fields automatically.</p>
-          </div>
-          <button
-            onClick={handleImport}
-            disabled={importing}
-            className="shrink-0 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            {importing ? "Importing…" : "Import Resume"}
-          </button>
+      {/* Auto-sync status */}
+      {syncing && (
+        <div className="mb-6 flex items-center gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-3">
+          <span className="inline-block w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+          <span className="text-blue-300 text-sm">Syncing your resume from the last score…</span>
         </div>
       )}
-      {imported && (
+      {!syncing && synced && (
         <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3">
-          <span className="text-green-400 text-sm">✓ Resume imported — review and edit each step as needed.</span>
+          <span className="text-green-400 text-sm">✓ Synced from your last score — review and edit each step as needed.</span>
         </div>
       )}
-      {importError && (
-        <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl px-5 py-3 text-red-400 text-sm">{importError}</div>
+      {syncError && (
+        <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl px-5 py-3 text-red-400 text-sm">{syncError}</div>
       )}
 
       <StepBar step={step} />
@@ -419,7 +465,17 @@ export default function BuildPage() {
                     <a href="/job-match" className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors text-center">
                       Job Match →
                     </a>
-                    <button onClick={() => { setStep(1); setMarkdown(null); setForm(INITIAL_FORM); setError(null); sessionStorage.removeItem("builtResume"); }} className="w-full border border-gray-700 text-gray-400 hover:text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+                    <button onClick={() => {
+                      setStep(1);
+                      setMarkdown(null);
+                      setForm(INITIAL_FORM);
+                      setError(null);
+                      if (typeof window !== "undefined") {
+                        sessionStorage.removeItem(PIPELINE_KEYS.builtResume);
+                        sessionStorage.removeItem(PIPELINE_KEYS.builtResumeMarkdown);
+                        sessionStorage.removeItem(PIPELINE_KEYS.builderForm);
+                      }
+                    }} className="w-full border border-gray-700 text-gray-400 hover:text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
                       Start Over
                     </button>
                   </div>
