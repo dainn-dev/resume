@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useTranslation } from "@/components/TranslationProvider";
 import type { JobMatchAnalysis } from "@/types/jobMatch";
 import {
   getJobMatchInput,
@@ -61,10 +62,12 @@ function ResultView({
   result,
   onReset,
   onWriteCoverLetter,
+  t,
 }: {
   result: JobMatchAnalysis;
   onReset: () => void;
   onWriteCoverLetter: () => void;
+  t: (key: string) => string;
 }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -87,7 +90,7 @@ function ResultView({
           </div>
           <p className="text-gray-300 text-sm leading-relaxed">{result.summary}</p>
           <button onClick={onReset} className="text-xs text-gray-500 hover:text-gray-300 underline">
-            ← Analyze another job
+            {t("jobMatch.reanalyze")}
           </button>
         </div>
       </div>
@@ -95,23 +98,23 @@ function ResultView({
       {/* CTA: Write Cover Letter */}
       <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-4">
         <div>
-          <p className="text-sm font-medium text-blue-300">Ready to apply?</p>
+          <p className="text-sm font-medium text-blue-300">{t("jobMatch.coverLetterCTA")}</p>
           <p className="text-xs text-blue-400/70 mt-0.5">
-            Job details are pre-loaded — generate a tailored cover letter in one click.
+            {t("jobMatch.coverLetterHint")}
           </p>
         </div>
         <button
           onClick={onWriteCoverLetter}
           className="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
         >
-          Write Cover Letter →
+          {t("jobMatch.writeCoverLetter")}
         </button>
       </div>
 
       {/* Strengths & Gaps */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-white">What you have</h3>
+          <h3 className="text-sm font-semibold text-white">{t("jobMatch.strengths")}</h3>
           <ul className="space-y-2">
             {result.strengths.map((s, i) => (
               <li key={i} className="flex gap-2 text-sm text-gray-300">
@@ -122,7 +125,7 @@ function ResultView({
           </ul>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-white">What&apos;s missing</h3>
+          <h3 className="text-sm font-semibold text-white">{t("jobMatch.gaps")}</h3>
           <ul className="space-y-2">
             {result.gaps.map((g, i) => (
               <li key={i} className="flex gap-2 text-sm text-gray-300">
@@ -136,19 +139,19 @@ function ResultView({
 
       {/* Keyword match */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-white">Keyword Match</h3>
+        <h3 className="text-sm font-semibold text-white">{t("jobMatch.keywordMatch")}</h3>
         <div className="flex flex-wrap gap-2">
           {result.keywordMatch.matched.map(k => <KeywordChip key={k} label={k} matched />)}
           {result.keywordMatch.missing.map(k => <KeywordChip key={k} label={k} matched={false} />)}
         </div>
         <p className="text-xs text-gray-500">
-          {result.keywordMatch.matched.length} matched · {result.keywordMatch.missing.length} missing
+          {result.keywordMatch.matched.length} {t("jobMatch.matched")} · {result.keywordMatch.missing.length} {t("jobMatch.missing")}
         </p>
       </div>
 
       {/* Suggestions accordion */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-white px-1">How to improve your match</h3>
+        <h3 className="text-sm font-semibold text-white px-1">{t("jobMatch.recommendations")}</h3>
         {result.suggestions.map((s, i) => (
           <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
             <button
@@ -173,6 +176,7 @@ function ResultView({
 }
 
 export default function JobMatchPage() {
+  const { t, mounted } = useTranslation();
   const router = useRouter();
   const [mode, setMode] = useState<InputMode>("url");
   const [linkedinUrl, setLinkedinUrl] = useState("");
@@ -183,6 +187,14 @@ export default function JobMatchPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<JobMatchAnalysis | null>(null);
   const hydratedRef = useRef(false);
+
+  if (!mounted) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+      </main>
+    );
+  }
 
   // Auto-sync inputs and any previous match result from sessionStorage
   // so navigating between pipeline steps never loses progress.
@@ -263,6 +275,7 @@ export default function JobMatchPage() {
         </div>
         <ResultView
           result={result}
+          t={t}
           onReset={() => {
             if (typeof window !== "undefined") {
               sessionStorage.removeItem("jobMatchContext");
@@ -279,20 +292,20 @@ export default function JobMatchPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Job Match Score</h1>
-        <p className="text-gray-400 text-sm mt-1">Paste a job URL or description — Claude scores how well your resume fits.</p>
+        <h1 className="text-2xl font-bold text-white">{t("jobMatch.title")}</h1>
+        <p className="text-gray-400 text-sm mt-1">{t("jobMatch.subtitle")}</p>
       </div>
 
       {/* Resume status */}
       {hasResume ? (
         <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3">
-          <span className="text-green-400 text-sm">✓ Resume loaded from your last score.</span>
+          <span className="text-green-400 text-sm">{t("jobMatch.resumeLoadedMessage")}</span>
         </div>
       ) : (
         <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl px-5 py-4">
-          <p className="text-amber-400 text-sm font-medium">No resume detected.</p>
+          <p className="text-amber-400 text-sm font-medium">{t("jobMatch.noResumeWarning")}</p>
           <p className="text-amber-400/70 text-xs mt-1">
-            <Link href="/" className="underline hover:text-amber-300">Score your resume first</Link> so we can load it here, or paste it below.
+            <Link href="/" className="underline hover:text-amber-300">{t("jobMatch.scoreResumeLinkText")}</Link> {t("jobMatch.noResumeHint")}
           </p>
           <textarea
             className="mt-3 w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
@@ -320,29 +333,29 @@ export default function JobMatchPage() {
               onClick={() => setMode(m)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${mode === m ? "bg-gray-900 text-white shadow" : "text-gray-400 hover:text-white"}`}
             >
-              {m === "url" ? "Job URL" : "Paste Description"}
+              {m === "url" ? t("jobMatch.jobUrl") : t("jobMatch.paste")}
             </button>
           ))}
         </div>
 
         {mode === "url" ? (
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">LinkedIn or job posting URL</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">{t("jobMatch.linkedinUrl")}</label>
             <input
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-              placeholder="https://www.linkedin.com/jobs/view/..."
+              placeholder={t("jobMatch.jobUrlPlaceholder")}
               value={linkedinUrl}
               onChange={e => setLinkedinUrl(e.target.value)}
             />
-            <p className="text-xs text-gray-600 mt-1.5">If the URL is blocked, switch to &quot;Paste Description&quot;.</p>
+            <p className="text-xs text-gray-600 mt-1.5">{t("jobMatch.jobUrlHint")}</p>
           </div>
         ) : (
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Job description *</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">{t("jobMatch.jobDescription")}</label>
             <textarea
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
               rows={10}
-              placeholder="Paste the full job description here…"
+              placeholder={t("jobMatch.jobDescriptionPlaceholder")}
               value={jobDescription}
               onChange={e => setJobDescription(e.target.value)}
             />
@@ -354,14 +367,14 @@ export default function JobMatchPage() {
         )}
 
         {loading ? (
-          <LoadingSpinner message="Analyzing job match…" subMessage="Claude AI is comparing your resume to the job" />
+          <LoadingSpinner message={t("jobMatch.analyzing")} subMessage={t("jobMatch.analyzingSubtext")} />
         ) : (
           <button
             onClick={handleAnalyze}
             disabled={!canSubmit}
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            Analyze Match
+            {t("jobMatch.analyze")}
           </button>
         )}
       </div>

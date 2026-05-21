@@ -49,3 +49,32 @@ export interface CoverLetterApiResponse {
   data?: { text: string };
   error?: string;
 }
+
+export interface SalaryEstimatorFormData {
+  jobTitle: string;
+  industry: string;
+  experience: string;
+  location: string;
+  skills: string;
+  education: string;
+}
+
+export interface SalaryEstimate {
+  minSalary: number;
+  maxSalary: number;
+  medianSalary: number;
+  currency: string;
+  alternativeCurrency?: string;
+  minSalaryAlt?: number;
+  maxSalaryAlt?: number;
+  medianSalaryAlt?: number;
+  confidence: string;
+  factors: string[];
+  marketInsights: string;
+}
+
+export interface SalaryEstimatorApiResponse {
+  success: boolean;
+  data?: { estimate: SalaryEstimate; analysis: string };
+  error?: string;
+}

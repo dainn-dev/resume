@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import WorkflowProgress from "@/components/WorkflowProgress";
+import { TranslationProvider } from "@/components/TranslationProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,13 +20,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-950 text-white min-h-screen`}>
-        <NavBar />
-        <div className="border-b border-gray-800/60 bg-gray-900/30">
-          <div className="max-w-3xl mx-auto px-6 py-5">
-            <WorkflowProgress />
+        <TranslationProvider>
+          <NavBar />
+          <div className="border-b border-gray-800/60 bg-gray-900/30">
+            <div className="max-w-3xl mx-auto px-6 py-3">
+              <WorkflowProgress />
+            </div>
           </div>
-        </div>
-        {children}
+          {children}
+        </TranslationProvider>
       </body>
     </html>
   );

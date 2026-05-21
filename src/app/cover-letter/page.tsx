@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import type { CoverLetterFormData } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useTranslation } from "@/components/TranslationProvider";
 import {
   getCoverLetterForm,
   getCoverLetterResult,
@@ -43,6 +45,7 @@ function mergeJobContext(
 }
 
 export default function CoverLetterPage() {
+  const { t, mounted } = useTranslation();
   const [form, setForm] = useState<CoverLetterFormData>(INITIAL_FORM);
   const [result, setResult] = useState<string | null>(null);
   const [edited, setEdited] = useState<string>("");
@@ -51,6 +54,14 @@ export default function CoverLetterPage() {
   const [copied, setCopied] = useState(false);
   const [synced, setSynced] = useState(false);
   const hydratedRef = useRef(false);
+
+  if (!mounted) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+      </main>
+    );
+  }
 
   // Auto-sync from previous steps on mount. We restore any in-progress
   // edits first, then fold in any new job-match context on top so the
@@ -120,24 +131,24 @@ export default function CoverLetterPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Cover Letter Generator</h1>
-        <p className="text-gray-400 text-sm mt-1">Describe the role and yourself — Claude writes a tailored cover letter.</p>
+        <h1 className="text-2xl font-bold text-white">{t("coverLetter.title")}</h1>
+        <p className="text-gray-400 text-sm mt-1">{t("coverLetter.subtitle")}</p>
       </div>
 
       {/* Auto-synced job context */}
       {synced && (
         <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3">
-          <span className="text-green-400 text-sm">✓ Job details synced from your match analysis — add your personal pitch below.</span>
+          <span className="text-green-400 text-sm">{t("coverLetter.jobDetailsSync")}</span>
         </div>
       )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
         {loading ? (
-          <LoadingSpinner message="Writing your cover letter…" subMessage="Claude AI is tailoring it to the role" />
+          <LoadingSpinner message={t("coverLetter.generating")} subMessage={t("coverLetter.generatingSubtext")} />
         ) : result ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Your Cover Letter</h2>
+              <h2 className="text-sm font-semibold text-white">{t("coverLetter.yourCoverLetter")}</h2>
               <button
                 onClick={() => {
                   setResult(null);
@@ -148,7 +159,7 @@ export default function CoverLetterPage() {
                 }}
                 className="text-xs text-blue-400 hover:text-blue-300"
               >
-                ↺ Regenerate
+                {t("coverLetter.regenerate")}
               </button>
             </div>
             <textarea
@@ -158,10 +169,19 @@ export default function CoverLetterPage() {
               onChange={e => setEdited(e.target.value)}
             />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">{edited.length} characters</span>
+              <span className="text-xs text-gray-500">{edited.length} {t("coverLetter.characters")}</span>
               <button onClick={handleCopy} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
-                {copied ? "Copied!" : "Copy"}
+                {copied ? t("common.copied") : t("common.copy")}
               </button>
+            </div>
+
+            <div className="border-t border-gray-800 pt-6 flex gap-3">
+              <Link
+                href="/salary-estimator"
+                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+              >
+                {t("salary.nextStep")}
+              </Link>
             </div>
           </div>
         ) : (
@@ -172,27 +192,27 @@ export default function CoverLetterPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass()}>Job Title *</label>
-                <input className={inputClass()} placeholder="Senior Software Engineer" value={form.jobTitle} onChange={e => updateField("jobTitle", e.target.value)} required />
+                <label className={labelClass()}>{t("coverLetter.jobTitle")}</label>
+                <input className={inputClass()} placeholder={t("coverLetter.jobTitlePlaceholder")} value={form.jobTitle} onChange={e => updateField("jobTitle", e.target.value)} required />
               </div>
               <div>
-                <label className={labelClass()}>Company *</label>
-                <input className={inputClass()} placeholder="Stripe" value={form.company} onChange={e => updateField("company", e.target.value)} required />
+                <label className={labelClass()}>{t("coverLetter.company")}</label>
+                <input className={inputClass()} placeholder={t("coverLetter.companyPlaceholder")} value={form.company} onChange={e => updateField("company", e.target.value)} required />
               </div>
             </div>
 
             <div>
-              <label className={labelClass()}>Job Description *</label>
-              <textarea className={inputClass("resize-none")} rows={7} placeholder="Paste the job description here…" value={form.jobDescription} onChange={e => updateField("jobDescription", e.target.value)} required />
+              <label className={labelClass()}>{t("coverLetter.jobDescription")}</label>
+              <textarea className={inputClass("resize-none")} rows={7} placeholder={t("coverLetter.jobDescriptionPlaceholder")} value={form.jobDescription} onChange={e => updateField("jobDescription", e.target.value)} required />
             </div>
 
             <div>
-              <label className={labelClass()}>About Yourself *</label>
-              <textarea className={inputClass("resize-none")} rows={4} placeholder="Your current role, years of experience, top relevant skills…" value={form.aboutYourself} onChange={e => updateField("aboutYourself", e.target.value)} required />
+              <label className={labelClass()}>{t("coverLetter.aboutYourself")}</label>
+              <textarea className={inputClass("resize-none")} rows={4} placeholder={t("coverLetter.aboutYourselfPlaceholder")} value={form.aboutYourself} onChange={e => updateField("aboutYourself", e.target.value)} required />
             </div>
 
             <div>
-              <label className={labelClass()}>Tone</label>
+              <label className={labelClass()}>{t("coverLetter.tone")}</label>
               <div className="flex gap-2">
                 {TONES.map(tone => (
                   <button
@@ -205,14 +225,14 @@ export default function CoverLetterPage() {
                         : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
                     }`}
                   >
-                    {tone}
+                    {t(`coverLetter.tones.${tone.toLowerCase()}`)}
                   </button>
                 ))}
               </div>
             </div>
 
             <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-colors">
-              Generate Cover Letter
+              {t("coverLetter.generateCoverLetter")}
             </button>
           </form>
         )}

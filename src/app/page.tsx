@@ -100,11 +100,11 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
+    <main className="flex flex-col items-center justify-center px-4 py-8">
       {loading ? (
         <LoadingSpinner />
       ) : (
-        <div className="flex flex-col items-center gap-8 w-full max-w-xl">
+        <div className="flex flex-col items-center gap-6 w-full max-w-xl">
           {/* Hero */}
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-2">

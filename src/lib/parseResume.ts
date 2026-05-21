@@ -52,6 +52,6 @@ Return ONLY this JSON:
 }
 
 export async function parseResume(resumeText: string): Promise<ResumeFormData> {
-  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(resumeText), 2000);
+  const raw = await callClaude(SYSTEM_PROMPT, buildUserPrompt(resumeText), 4000);
   return JSON.parse(extractJson(raw)) as ResumeFormData;
 }

@@ -1,10 +1,10 @@
 import type { ResumeAnalysis } from "@/types/resume";
-import type { CoverLetterFormData, ResumeFormData } from "@/types/builder";
+import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate } from "@/types/builder";
 
 /**
  * Session-storage keys shared by every step of the resume pipeline.
  *
- * The pipeline flows: Score (upload) → Build → Job Match → Cover Letter.
+ * The pipeline flows: Score (upload) → Build → Job Match → Cover Letter → Salary Estimator.
  * Each step reads what the previous step wrote so the user never has to
  * re-import data between steps.
  */
@@ -27,6 +27,11 @@ export const PIPELINE_KEYS = {
   // Cover letter step
   coverLetterForm: "coverLetterForm",
   coverLetterResult: "coverLetterResult",
+
+  // Salary estimator step
+  salaryEstimatorForm: "salaryEstimatorForm",
+  salaryEstimatorResult: "salaryEstimatorResult",
+  salaryEstimatorAnalysis: "salaryEstimatorAnalysis",
 } as const;
 
 export interface JobMatchContext {
@@ -171,6 +176,32 @@ export function getCoverLetterResult(): string | null {
 
 export function setCoverLetterResult(text: string): void {
   writeString(PIPELINE_KEYS.coverLetterResult, text);
+}
+
+// ---------- Salary Estimator ----------
+
+export function getSalaryEstimatorForm(): SalaryEstimatorFormData | null {
+  return readJson<SalaryEstimatorFormData>(PIPELINE_KEYS.salaryEstimatorForm);
+}
+
+export function setSalaryEstimatorForm(form: SalaryEstimatorFormData): void {
+  writeJson(PIPELINE_KEYS.salaryEstimatorForm, form);
+}
+
+export function getSalaryEstimatorResult(): SalaryEstimate | null {
+  return readJson<SalaryEstimate>(PIPELINE_KEYS.salaryEstimatorResult);
+}
+
+export function setSalaryEstimatorResult(result: SalaryEstimate): void {
+  writeJson(PIPELINE_KEYS.salaryEstimatorResult, result);
+}
+
+export function getSalaryEstimatorAnalysis(): string | null {
+  return readString(PIPELINE_KEYS.salaryEstimatorAnalysis);
+}
+
+export function setSalaryEstimatorAnalysis(text: string): void {
+  writeString(PIPELINE_KEYS.salaryEstimatorAnalysis, text);
 }
 
 // ---------- Reset ----------
