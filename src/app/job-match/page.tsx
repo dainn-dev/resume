@@ -188,14 +188,6 @@ export default function JobMatchPage() {
   const [result, setResult] = useState<JobMatchAnalysis | null>(null);
   const hydratedRef = useRef(false);
 
-  if (!mounted) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
-      </main>
-    );
-  }
-
   // Auto-sync inputs and any previous match result from sessionStorage
   // so navigating between pipeline steps never loses progress.
   useEffect(() => {
@@ -221,6 +213,14 @@ export default function JobMatchPage() {
     if (!hydratedRef.current) return;
     setJobMatchInput({ mode, linkedinUrl, jobDescription });
   }, [mode, linkedinUrl, jobDescription]);
+
+  if (!mounted) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+      </main>
+    );
+  }
 
   async function handleAnalyze() {
     if (!resumeText.trim()) return;
