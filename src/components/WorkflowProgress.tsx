@@ -55,6 +55,7 @@ const steps: Step[] = [
     label: "Cover Letter Generator",
     description: "Generate compelling cover letters instantly",
     href: "/cover-letter",
+    sessionKey: "coverLetterResult",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
         <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
@@ -97,6 +98,7 @@ export default function WorkflowProgress() {
     if (sessionStorage.getItem("resumeAnalysis")) keys.add("resumeAnalysis");
     if (sessionStorage.getItem("builtResume")) keys.add("builtResume");
     if (sessionStorage.getItem("jobMatchContext")) keys.add("jobMatchContext");
+    if (sessionStorage.getItem("coverLetterResult")) keys.add("coverLetterResult");
     if (sessionStorage.getItem("salaryEstimatorResult")) keys.add("salaryEstimatorResult");
     if (sessionStorage.getItem("interviewCoachResult")) keys.add("interviewCoachResult");
     setCompleted(keys);
