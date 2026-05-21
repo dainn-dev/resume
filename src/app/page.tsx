@@ -11,6 +11,7 @@ import {
   formatRelativeTime,
   type RecentAnalysis,
 } from "@/lib/recentAnalyses";
+import { clearPipeline, setResumeAnalysis } from "@/lib/pipeline";
 
 function scoreColor(score: number) {
   if (score >= 75) return "text-green-400 bg-green-500/10 border-green-500/30";
@@ -56,8 +57,9 @@ export default function HomePage() {
   }, []);
 
   function restoreRecent(item: RecentAnalysis) {
-    sessionStorage.setItem("resumeAnalysis", JSON.stringify(item.analysis));
-    sessionStorage.setItem("resumeText", item.resumeText);
+    // Restoring a different resume invalidates every downstream step.
+    clearPipeline();
+    setResumeAnalysis(item.analysis, item.resumeText);
     router.push("/results");
   }
 
@@ -76,9 +78,11 @@ export default function HomePage() {
         throw new Error(json.error ?? "Analysis failed.");
       }
 
-      sessionStorage.setItem("resumeAnalysis", JSON.stringify(json.data));
+      // A new analysis starts a fresh pipeline run — wipe any cached
+      // builder / job-match / cover-letter state from a previous resume.
+      clearPipeline();
+      setResumeAnalysis(json.data, json.resumeText ?? "");
       if (json.resumeText) {
-        sessionStorage.setItem("resumeText", json.resumeText);
         saveRecentAnalysis({
           filename: file.name,
           timestamp: Date.now(),

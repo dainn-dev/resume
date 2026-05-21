@@ -4,7 +4,7 @@ import { callClaude, extractJson } from "./callClaude";
 const SYSTEM_PROMPT = `You are an expert resume coach and hiring manager with 15+ years of experience reviewing resumes across tech, finance, and business sectors. Your role is to evaluate a resume objectively and return a structured JSON analysis. You must ONLY return valid JSON — no markdown, no commentary outside the JSON.`;
 
 function buildUserPrompt(resumeText: string): string {
-  const truncated = resumeText.slice(0, 8000);
+  const truncated = resumeText.slice(0, 24000);
   return `Analyze the following resume and return a JSON object that exactly matches this schema. Score each section from 0–100 based on completeness, clarity, impact, and industry best practices.
 
 RESUME TEXT:

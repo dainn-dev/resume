@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { CoverLetterFormData } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import {
+  getCoverLetterForm,
+  getCoverLetterResult,
+  getJobMatchContext,
+  setCoverLetterForm,
+  setCoverLetterResult,
+  type JobMatchContext,
+} from "@/lib/pipeline";
 
 const TONES: CoverLetterFormData["tone"][] = ["Professional", "Enthusiastic", "Concise"];
 
@@ -22,10 +30,16 @@ function labelClass() {
   return "block text-xs font-medium text-gray-400 mb-1";
 }
 
-interface JobContext {
-  jobTitle: string;
-  company: string;
-  jobDescription: string;
+function mergeJobContext(
+  form: CoverLetterFormData,
+  ctx: JobMatchContext,
+): CoverLetterFormData {
+  return {
+    ...form,
+    jobTitle: ctx.jobTitle || form.jobTitle,
+    company: ctx.company || form.company,
+    jobDescription: ctx.jobDescription || form.jobDescription,
+  };
 }
 
 export default function CoverLetterPage() {
@@ -35,33 +49,40 @@ export default function CoverLetterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [jobContext, setJobContext] = useState<JobContext | null>(null);
-  const [imported, setImported] = useState(false);
+  const [synced, setSynced] = useState(false);
+  const hydratedRef = useRef(false);
 
+  // Auto-sync from previous steps on mount. We restore any in-progress
+  // edits first, then fold in any new job-match context on top so the
+  // user never has to click an "Import" button.
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("jobMatchContext");
-      if (raw) {
-        const ctx = JSON.parse(raw) as JobContext;
-        if (ctx.jobTitle || ctx.company || ctx.jobDescription) {
-          setJobContext(ctx);
-        }
-      }
-    } catch {
-      // ignore
+    const stored = getCoverLetterForm();
+    const ctx = getJobMatchContext();
+    const hasCtx = !!(ctx && (ctx.jobTitle || ctx.company || ctx.jobDescription));
+
+    let next: CoverLetterFormData = stored ?? INITIAL_FORM;
+    if (hasCtx && ctx) {
+      next = mergeJobContext(next, ctx);
+      setSynced(true);
+    } else if (stored) {
+      setSynced(true);
     }
+    setForm(next);
+
+    const cachedResult = getCoverLetterResult();
+    if (cachedResult) {
+      setResult(cachedResult);
+      setEdited(cachedResult);
+    }
+
+    hydratedRef.current = true;
   }, []);
 
-  function handleImportContext() {
-    if (!jobContext) return;
-    setForm(prev => ({
-      ...prev,
-      jobTitle: jobContext.jobTitle || prev.jobTitle,
-      company: jobContext.company || prev.company,
-      jobDescription: jobContext.jobDescription || prev.jobDescription,
-    }));
-    setImported(true);
-  }
+  // Persist form edits so navigating between steps doesn't lose state.
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    setCoverLetterForm(form);
+  }, [form]);
 
   function updateField(field: keyof CoverLetterFormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -82,6 +103,7 @@ export default function CoverLetterPage() {
       if (!data.success) throw new Error(data.error ?? "Generation failed.");
       setResult(data.data.text);
       setEdited(data.data.text);
+      setCoverLetterResult(data.data.text);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -102,26 +124,10 @@ export default function CoverLetterPage() {
         <p className="text-gray-400 text-sm mt-1">Describe the role and yourself — Claude writes a tailored cover letter.</p>
       </div>
 
-      {/* Job Match import banner */}
-      {jobContext && !imported && (
-        <div className="mb-6 flex items-center justify-between gap-4 bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-blue-300">Job detected from your match analysis</p>
-            <p className="text-xs text-blue-400/70 mt-0.5 truncate">
-              {[jobContext.jobTitle, jobContext.company].filter(Boolean).join(" · ") || "Job details available"}
-            </p>
-          </div>
-          <button
-            onClick={handleImportContext}
-            className="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            Import Job Details
-          </button>
-        </div>
-      )}
-      {imported && (
+      {/* Auto-synced job context */}
+      {synced && (
         <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3">
-          <span className="text-green-400 text-sm">✓ Job details imported — add your personal pitch below.</span>
+          <span className="text-green-400 text-sm">✓ Job details synced from your match analysis — add your personal pitch below.</span>
         </div>
       )}
 
@@ -132,7 +138,16 @@ export default function CoverLetterPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">Your Cover Letter</h2>
-              <button onClick={() => { setResult(null); setEdited(""); }} className="text-xs text-blue-400 hover:text-blue-300">
+              <button
+                onClick={() => {
+                  setResult(null);
+                  setEdited("");
+                  if (typeof window !== "undefined") {
+                    sessionStorage.removeItem("coverLetterResult");
+                  }
+                }}
+                className="text-xs text-blue-400 hover:text-blue-300"
+              >
                 ↺ Regenerate
               </button>
             </div>

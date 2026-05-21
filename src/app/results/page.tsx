@@ -6,28 +6,23 @@ import Link from "next/link";
 import ScoreDashboard from "@/components/ScoreDashboard";
 import RecommendationList from "@/components/RecommendationList";
 import type { ResumeAnalysis } from "@/types/resume";
+import { clearPipeline, getResumeAnalysis } from "@/lib/pipeline";
 
 export default function ResultsPage() {
   const router = useRouter();
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("resumeAnalysis");
-    if (!raw) {
+    const stored = getResumeAnalysis();
+    if (!stored) {
       router.replace("/");
       return;
     }
-    try {
-      setAnalysis(JSON.parse(raw) as ResumeAnalysis);
-    } catch {
-      router.replace("/");
-    }
+    setAnalysis(stored);
   }, [router]);
 
   function handleReset() {
-    sessionStorage.removeItem("resumeAnalysis");
-    sessionStorage.removeItem("resumeText");
-    sessionStorage.removeItem("jobMatchContext");
+    clearPipeline();
     router.push("/");
   }
 

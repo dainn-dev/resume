@@ -3,8 +3,13 @@ import { callClaude, extractJson } from "./callClaude";
 
 const SYSTEM_PROMPT = `You are an expert resume parser. Extract the candidate's information from the resume text and return a JSON object matching the exact schema provided. Return ONLY valid JSON — no markdown fences, no commentary outside the JSON.`;
 
+// Upper bound on resume text we send to the model. Larger than the prior
+// 8000-char cap so multi-page resumes (often 18k+ chars) don't silently lose
+// their later work entries, education, and certifications.
+const MAX_RESUME_CHARS = 24000;
+
 function buildUserPrompt(resumeText: string): string {
-  const truncated = resumeText.slice(0, 8000);
+  const truncated = resumeText.slice(0, MAX_RESUME_CHARS);
   return `Parse the following resume and extract all information into this exact JSON schema. Use empty strings for missing fields, empty arrays for missing lists.
 
 RESUME TEXT:

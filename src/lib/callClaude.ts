@@ -56,6 +56,7 @@ export async function callClaude(
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
+      stream: true,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -70,12 +71,28 @@ export async function callClaude(
 
   const isSse = body.trimStart().startsWith("event:") || body.trimStart().startsWith("data:");
   if (isSse) {
-    return parseSseText(body);
+    const text = parseSseText(body);
+    if (!text.trim()) {
+      throw new Error(
+        "Model API returned an empty response. This usually means the upstream proxy or model rejected the request (often due to input size or quota limits).",
+      );
+    }
+    return text;
   }
 
   const bodyJson = JSON.parse(extractJson(body));
-  return (bodyJson.content as { type: string; text?: string }[])
-    .filter(b => b.type === "text")
-    .map(b => b.text ?? "")
-    .join("");
+  if (Array.isArray(bodyJson.content)) {
+    return (bodyJson.content as { type: string; text?: string }[])
+      .filter(b => b.type === "text")
+      .map(b => b.text ?? "")
+      .join("");
+  }
+  // Some proxies (e.g. OpenAI-compatible gateways fronting Claude) return
+  // chat-completion shape instead of Anthropic's content blocks.
+  if (Array.isArray(bodyJson.choices)) {
+    return (bodyJson.choices as { message?: { content?: string } }[])
+      .map(c => c.message?.content ?? "")
+      .join("");
+  }
+  throw new Error("Unexpected response shape from model API.");
 }

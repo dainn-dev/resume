@@ -8,12 +8,12 @@ function buildUserPrompt(resumeText: string, jobDescription: string): string {
 
 RESUME:
 ---
-${resumeText.slice(0, 6000)}
+${resumeText.slice(0, 18000)}
 ---
 
 JOB DESCRIPTION:
 ---
-${jobDescription.slice(0, 4000)}
+${jobDescription.slice(0, 12000)}
 ---
 
 Return ONLY this JSON structure:

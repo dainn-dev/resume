@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { JobMatchAnalysis } from "@/types/jobMatch";
+import {
+  getJobMatchInput,
+  getJobMatchResult,
+  getResumeText,
+  setJobMatchContext,
+  setJobMatchInput,
+  setJobMatchResult,
+} from "@/lib/pipeline";
 
 type InputMode = "url" | "paste";
 
@@ -174,12 +182,33 @@ export default function JobMatchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<JobMatchAnalysis | null>(null);
+  const hydratedRef = useRef(false);
 
+  // Auto-sync inputs and any previous match result from sessionStorage
+  // so navigating between pipeline steps never loses progress.
   useEffect(() => {
-    const stored = sessionStorage.getItem("resumeText") ?? "";
+    const stored = getResumeText();
     setResumeText(stored);
     setHasResume(!!stored);
+
+    const input = getJobMatchInput();
+    if (input) {
+      setMode(input.mode);
+      setLinkedinUrl(input.linkedinUrl);
+      setJobDescription(input.jobDescription);
+    }
+
+    const cached = getJobMatchResult<JobMatchAnalysis>();
+    if (cached) setResult(cached);
+
+    hydratedRef.current = true;
   }, []);
+
+  // Persist input state every time it changes.
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    setJobMatchInput({ mode, linkedinUrl, jobDescription });
+  }, [mode, linkedinUrl, jobDescription]);
 
   async function handleAnalyze() {
     if (!resumeText.trim()) return;
@@ -203,13 +232,14 @@ export default function JobMatchPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Analysis failed.");
 
-      // Store context for Cover Letter pre-fill
-      sessionStorage.setItem("jobMatchContext", JSON.stringify({
+      // Store context for Cover Letter pre-fill (auto-synced on the next step)
+      setJobMatchContext({
         jobTitle: data.data.jobTitle ?? "",
         company: data.data.company ?? "",
         jobDescription: data.jobDescription ?? jobDescription,
-      }));
+      });
 
+      setJobMatchResult(data.data);
       setResult(data.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
@@ -234,7 +264,10 @@ export default function JobMatchPage() {
         <ResultView
           result={result}
           onReset={() => {
-            sessionStorage.removeItem("jobMatchContext");
+            if (typeof window !== "undefined") {
+              sessionStorage.removeItem("jobMatchContext");
+              sessionStorage.removeItem("jobMatchResult");
+            }
             setResult(null);
           }}
           onWriteCoverLetter={handleWriteCoverLetter}
@@ -266,7 +299,14 @@ export default function JobMatchPage() {
             rows={5}
             placeholder="Paste your resume text here…"
             value={resumeText}
-            onChange={e => { setResumeText(e.target.value); setHasResume(!!e.target.value.trim()); }}
+            onChange={e => {
+              const v = e.target.value;
+              setResumeText(v);
+              setHasResume(!!v.trim());
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem("resumeText", v);
+              }
+            }}
           />
         </div>
       )}
