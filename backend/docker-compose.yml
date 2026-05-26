@@ -1,0 +1,29 @@
+name: dresume-backend
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dresume-postgres
+    environment:
+      POSTGRES_DB: dresume
+      POSTGRES_USER: dresume
+      POSTGRES_PASSWORD: dresume
+    ports:
+      - "5432:5432"
+    volumes:
+      - dresume-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dresume -d dresume"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: dresume-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
+volumes:
+  dresume-pg:

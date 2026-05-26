@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DainnStripe - Complete Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #635bff;
+            --primary-dark: #0a2540;
+            --bg: #ffffff;
+            --bg-secondary: #f6f9fc;
+            --text: #0a2540;
+            --text-secondary: #425466;
+            --border: #e3e8ee;
+            --code-bg: #f6f9fc;
+            --success: #00d924;
+            --warning: #ff9800;
+            --danger: #df1b41;
+            --stripe-blue: #635bff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0;
+        }
+
+        nav li {
+            margin: 0;
+        }
+
+        nav a {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        nav a:hover {
+            background: var(--bg);
+            border-bottom-color: var(--primary);
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--text);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--primary);
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge-stripe { background: #e8e5ff; color: #635bff; }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            border-color: var(--primary);
+            color: #1e40af;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-color: var(--warning);
+            color: #92400e;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            border-color: var(--success);
+            color: #065f46;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: var(--bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .feature-card h4 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        footer {
+            background: var(--bg-secondary);
+            padding: 2rem 0;
+            margin-top: 4rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                flex-direction: column;
+            }
+
+            nav a {
+                padding: 0.75rem 1rem;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>DainnStripe</h1>
+            <p>Complete .NET Stripe Integration - Payments, Subscriptions, Webhooks & Catalog Management</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#quickstart">Quickstart</a></li>
+                <li><a href="#program-setup">Program.cs</a></li>
+                <li><a href="#webhooks">Webhooks</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#catalog">Catalog</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Introduction -->
+        <section id="introduction">
+            <h2>Introduction</h2>
+            <p>
+                <strong>DainnStripe</strong> is a comprehensive .NET/C# library that provides enterprise-grade Stripe integration
+                for payments, subscriptions, webhooks, and catalog management. Built on top of Stripe.NET with Entity Framework Core
+                for persistence and audit trails.
+            </p>
+
+            <div class="alert alert-info">
+                <strong>🎯 Purpose:</strong> DainnStripe eliminates the complexity of Stripe integration by providing
+                pre-built services, webhook handlers, database persistence, and idempotency guarantees out of the box.
+            </div>
+
+            <h3>Why DainnStripe?</h3>
+            <ul>
+                <li><strong>Production-Ready:</strong> Built-in webhook idempotency, retry logic, and error handling</li>
+                <li><strong>Database Persistence:</strong> Automatic tracking of payments, subscriptions, and events</li>
+                <li><strong>Multi-Tenant Support:</strong> Stripe Connect integration for marketplace platforms</li>
+                <li><strong>Type-Safe:</strong> Strongly-typed models and services with full IntelliSense support</li>
+                <li><strong>Extensible:</strong> Easy to customize and extend for your business logic</li>
+                <li><strong>Database Agnostic:</strong> Supports SQL Server, PostgreSQL, MySQL, and SQLite</li>
+            </ul>
+
+            <h3>Target Audience</h3>
+            <p>.NET developers building SaaS applications, e-commerce platforms, or marketplace solutions that require payment processing.</p>
+
+            <h3>Key Capabilities</h3>
+            <ul>
+                <li>One-time payments with Payment Intents</li>
+                <li>Recurring subscriptions with automatic billing</li>
+                <li>Stripe Checkout Sessions for hosted payment pages</li>
+                <li>Webhook processing with automatic persistence</li>
+                <li>Product and price catalog synchronization</li>
+                <li>Stripe Connect for multi-tenant marketplaces</li>
+                <li>Money movement (transfers, payouts, balance tracking)</li>
+                <li>Reconciliation and audit trails</li>
+            </ul>
+        </section>
+
+        <!-- Features -->
+        <section id="features">
+            <h2>Features</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>💳 Payments</h4>
+                    <ul>
+                        <li>Payment Intents API</li>
+                        <li>Checkout Sessions</li>
+                        <li>Payment tracking & persistence</li>
+                        <li>Refund management</li>
+                        <li>Payment attempt history</li>
+                        <li>Automatic status updates</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>🔄 Subscriptions</h4>
+                    <ul>
+                        <li>Create & manage subscriptions</li>
+                        <li>Multiple pricing models</li>
+                        <li>Trial periods</li>
+                        <li>Proration handling</li>
+                        <li>Subscription lifecycle tracking</li>
+                        <li>Invoice management</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>🔔 Webhooks</h4>
+                    <ul>
+                        <li>Automatic signature verification</li>
+                        <li>Idempotency guarantees</li>
+                        <li>Event persistence</li>
+                        <li>Extensible handler system</li>
+                        <li>Retry logic</li>
+                        <li>Error tracking</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>📦 Catalog Management</h4>
+                    <ul>
+                        <li>Product synchronization</li>
+                        <li>Price management</li>
+                        <li>Bulk catalog operations</li>
+                        <li>Local catalog cache</li>
+                        <li>Sync history tracking</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>🏢 Stripe Connect</h4>
+                    <ul>
+                        <li>Connected account management</li>
+                        <li>Account onboarding links</li>
+                        <li>Multi-tenant support</li>
+                        <li>Platform fee handling</li>
+                        <li>Account status tracking</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>💰 Money Movement</h4>
+                    <ul>
+                        <li>Transfers to connected accounts</li>
+                        <li>Payout management</li>
+                        <li>Balance tracking</li>
+                        <li>Reconciliation tools</li>
+                        <li>Transaction history</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation -->
+        <section id="installation">
+            <h2>Installation</h2>
+
+            <h3>Prerequisites</h3>
+            <ul>
+                <li><strong>.NET 8.0 SDK</strong> or later</li>
+                <li><strong>Stripe Account:</strong> Sign up at <a href="https://stripe.com" target="_blank">stripe.com</a></li>
+                <li><strong>Database:</strong> SQL Server, PostgreSQL, MySQL, or SQLite</li>
+                <li><strong>Stripe CLI:</strong> (Optional) For local webhook testing</li>
+            </ul>
+
+            <h3>Install via NuGet</h3>
+            <p>Install the DainnStripe package in your ASP.NET Core project:</p>
+
+            <pre><code>dotnet add package DainnStripe</code></pre>
+
+            <div class="alert alert-info">
+                <strong>💡 Single Package:</strong> DainnStripe is distributed as a single NuGet package that includes
+                all services, entities, and configurations. No need to install multiple packages.
+            </div>
+
+            <h3>Get Your Stripe API Keys</h3>
+            <ol>
+                <li>Log in to your <a href="https://dashboard.stripe.com" target="_blank">Stripe Dashboard</a></li>
+                <li>Navigate to <strong>Developers → API keys</strong></li>
+                <li>Copy your <strong>Secret key</strong> (starts with <code>sk_test_</code> or <code>sk_live_</code>)</li>
+                <li>Copy your <strong>Publishable key</strong> (starts with <code>pk_test_</code> or <code>pk_live_</code>)</li>
+            </ol>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Security:</strong> Never commit API keys to source control. Use environment variables,
+                Azure Key Vault, or user secrets for development.
+            </div>
+
+            <h3>Install Stripe CLI (Optional)</h3>
+            <p>For local webhook testing:</p>
+
+            <pre><code># macOS
+brew install stripe/stripe-cli/stripe
+
+# Windows (with Scoop)
+scoop bucket add stripe https://github.com/stripe/scoop-stripe-cli.git
+scoop install stripe
+
+# Or download from https://github.com/stripe/stripe-cli/releases</code></pre>
+        </section>
+
+        <!-- Configuration -->
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>appsettings.json Structure</h3>
+            <p>Add the DainnStripe configuration section to your <code>appsettings.json</code>:</p>
+
+            <pre><code>{
+  "DainnStripe": {
+    "Enabled": true,
+    "SecretKey": "sk_test_your_secret_key_here",
+    "PublishableKey": "pk_test_your_publishable_key_here",
+    "WebhookSigningSecret": "whsec_your_webhook_secret_here",
+    "WebhookToleranceSeconds": 300,
+    "WebhookPath": "/stripe/webhooks",
+    "ThrowOnApiVersionMismatch": false
+  },
+  "ConnectionStrings": {
+    "DainnStripe": "Data Source=dainnstripe.db"
+  }
+}</code></pre>
+
+            <h3>Configuration Options</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Option</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>Enabled</code></td>
+                        <td>bool</td>
+                        <td>No</td>
+                        <td>Enable/disable Stripe integration (default: true)</td>
+                    </tr>
+                    <tr>
+                        <td><code>SecretKey</code></td>
+                        <td>string</td>
+                        <td>Yes</td>
+                        <td>Stripe secret API key (sk_test_* or sk_live_*)</td>
+                    </tr>
+                    <tr>
+                        <td><code>PublishableKey</code></td>
+                        <td>string</td>
+                        <td>Yes</td>
+                        <td>Stripe publishable key (pk_test_* or pk_live_*)</td>
+                    </tr>
+                    <tr>
+                        <td><code>WebhookSigningSecret</code></td>
+                        <td>string</td>
+                        <td>Yes</td>
+                        <td>Webhook endpoint signing secret (whsec_*)</td>
+                    </tr>
+                    <tr>
+                        <td><code>WebhookToleranceSeconds</code></td>
+                        <td>long</td>
+                        <td>No</td>
+                        <td>Timestamp tolerance for webhook validation (default: 300)</td>
+                    </tr>
+                    <tr>
+                        <td><code>WebhookPath</code></td>
+                        <td>string</td>
+                        <td>No</td>
+                        <td>Webhook endpoint path (default: /stripe/webhooks)</td>
+                    </tr>
+                    <tr>
+                        <td><code>ThrowOnApiVersionMismatch</code></td>
+                        <td>bool</td>
+                        <td>No</td>
+                        <td>Reject events with API version mismatch (default: false)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Database Configuration</h3>
+            <p>DainnStripe supports multiple database providers:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Connection String Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SQLite</strong></td>
+                        <td><code>Data Source=dainnstripe.db</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>SQL Server</strong></td>
+                        <td><code>Server=localhost;Database=DainnStripe;Trusted_Connection=True;</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>PostgreSQL</strong></td>
+                        <td><code>Host=localhost;Database=dainnstripe;Username=postgres;Password=pass</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>MySQL</strong></td>
+                        <td><code>Server=localhost;Database=dainnstripe;User=root;Password=pass;</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>User Secrets (Development)</h3>
+            <p>For local development, use user secrets to store API keys:</p>
+
+            <pre><code># Initialize user secrets
+dotnet user-secrets init
+
+# Set Stripe keys
+dotnet user-secrets set "DainnStripe:SecretKey" "sk_test_your_key"
+dotnet user-secrets set "DainnStripe:PublishableKey" "pk_test_your_key"
+dotnet user-secrets set "DainnStripe:WebhookSigningSecret" "whsec_your_secret"</code></pre>
+        </section>
+
+        <!-- Quickstart -->
+        <section id="quickstart">
+            <h2>Quickstart (Payments Only)</h2>
+            <p>Get up and running with Stripe payments in 10 minutes.</p>
+
+            <h3>Step 1: Create a New ASP.NET Core Web API</h3>
+            <pre><code>dotnet new webapi -n MyPaymentApp
+cd MyPaymentApp</code></pre>
+
+            <h3>Step 2: Install DainnStripe</h3>
+            <pre><code>dotnet add package DainnStripe</code></pre>
+
+            <h3>Step 3: Configure appsettings.json</h3>
+            <pre><code>{
+  "DainnStripe": {
+    "SecretKey": "sk_test_your_secret_key",
+    "PublishableKey": "pk_test_your_publishable_key",
+    "WebhookSigningSecret": "whsec_your_webhook_secret"
+  },
+  "ConnectionStrings": {
+    "DainnStripe": "Data Source=payments.db"
+  }
+}</code></pre>
+
+            <h3>Step 4: Update Program.cs</h3>
+            <pre><code>using DainnStripe;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add DainnStripe services
+builder.Services.AddDainnStripe(builder.Configuration);
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// Add DainnStripe middleware
+app.UseDainnStripe();
+
+// Map webhook endpoint
+app.MapDainnStripeWebhooks();
+
+app.MapControllers();
+
+app.Run();</code></pre>
+
+            <h3>Step 5: Run Database Migrations</h3>
+            <pre><code>dotnet ef migrations add InitialCreate
+dotnet ef database update</code></pre>
+
+            <h3>Step 6: Create a Payment Controller</h3>
+            <pre><code>using DainnStripe.Interfaces;
+using DainnStripe.Models;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class PaymentsController : ControllerBase
+{
+    private readonly IDainnStripePaymentService _paymentService;
+
+    public PaymentsController(IDainnStripePaymentService paymentService)
+    {
+        _paymentService = paymentService;
+    }
+
+    [HttpPost("create-payment-intent")]
+    public async Task&lt;IActionResult&gt; CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
+    {
+        var result = await _paymentService.CreatePaymentIntentAsync(request);
+        return Ok(result);
+    }
+}</code></pre>
+
+            <h3>Step 7: Test the API</h3>
+            <pre><code>dotnet run</code></pre>
+
+            <p>Navigate to <code>https://localhost:5001/swagger</code> and test the payment endpoint.</p>
+
+            <div class="alert alert-success">
+                <strong>✅ Success!</strong> You now have a working Stripe payment integration with automatic
+                database persistence and webhook handling.
+            </div>
+        </section>
+
+        <!-- Program.cs Setup -->
+        <section id="program-setup">
+            <h2>Program.cs Setup</h2>
+
+            <h3>Basic Setup</h3>
+            <pre><code>using DainnStripe;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add DainnStripe with default configuration
+builder.Services.AddDainnStripe(builder.Configuration);
+
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+// Add middleware
+app.UseDainnStripe();
+
+// Map webhook endpoint
+app.MapDainnStripeWebhooks();
+
+app.MapControllers();
+app.Run();</code></pre>
+
+            <h3>Advanced Setup with Options</h3>
+            <pre><code>builder.Services.AddDainnStripe(builder.Configuration, options =>
+{
+    // Override configuration values
+    options.Enabled = true;
+    options.WebhookPath = "/api/stripe/webhooks";
+    options.WebhookToleranceSeconds = 600;
+    options.ThrowOnApiVersionMismatch = true;
+});</code></pre>
+
+            <h3>Custom Webhook Path</h3>
+            <pre><code>// Map webhook to custom path
+app.MapDainnStripeWebhooks("/api/payments/stripe-webhook");</code></pre>
+
+            <h3>Multi-Tenant Setup</h3>
+            <p>For marketplace applications using Stripe Connect:</p>
+
+            <pre><code>using DainnStripe;
+using DainnStripe.Models;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDainnStripe(builder.Configuration);
+
+// Add request context accessor for tenant isolation
+builder.Services.AddHttpContextAccessor();
+
+var app = builder.Build();
+
+// Middleware to set tenant context
+app.Use(async (context, next) =>
+{
+    var tenantId = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(tenantId))
+    {
+        var contextAccessor = context.RequestServices
+            .GetRequiredService&lt;IDainnStripeRequestContextAccessor&gt;();
+        contextAccessor.SetContext(new DainnStripeRequestContext
+        {
+            TenantId = tenantId
+        });
+    }
+    await next();
+});
+
+app.UseDainnStripe();
+app.MapDainnStripeWebhooks();
+app.MapControllers();
+app.Run();</code></pre>
+        </section>
+
+        <!-- Webhooks Setup -->
+        <section id="webhooks">
+            <h2>Webhooks Setup</h2>
+
+            <h3>What are Webhooks?</h3>
+            <p>
+                Webhooks are HTTP callbacks that Stripe sends to your application when events occur (e.g., payment succeeded,
+                subscription canceled). DainnStripe automatically handles webhook verification, idempotency, and persistence.
+            </p>
+
+            <h3>Local Development with Stripe CLI</h3>
+            <p>For local testing, use the Stripe CLI to forward webhooks:</p>
+
+            <pre><code># Login to Stripe CLI
+stripe login
+
+# Forward webhooks to your local endpoint
+stripe listen --forward-to https://localhost:5001/stripe/webhooks
+
+# The CLI will output your webhook signing secret
+# Copy it to your appsettings.json or user secrets</code></pre>
+
+            <h3>Production Webhook Setup</h3>
+            <ol>
+                <li>Go to <a href="https://dashboard.stripe.com/webhooks" target="_blank">Stripe Dashboard → Webhooks</a></li>
+                <li>Click <strong>Add endpoint</strong></li>
+                <li>Enter your webhook URL: <code>https://yourdomain.com/stripe/webhooks</code></li>
+                <li>Select events to listen to (or select "Select all events")</li>
+                <li>Copy the <strong>Signing secret</strong> (starts with <code>whsec_</code>)</li>
+                <li>Add it to your production configuration</li>
+            </ol>
+
+            <h3>Recommended Events to Listen To</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>payment_intent.succeeded</code></td>
+                        <td>Payment completed successfully</td>
+                    </tr>
+                    <tr>
+                        <td><code>payment_intent.payment_failed</code></td>
+                        <td>Payment failed</td>
+                    </tr>
+                    <tr>
+                        <td><code>customer.subscription.created</code></td>
+                        <td>New subscription created</td>
+                    </tr>
+                    <tr>
+                        <td><code>customer.subscription.updated</code></td>
+                        <td>Subscription modified</td>
+                    </tr>
+                    <tr>
+                        <td><code>customer.subscription.deleted</code></td>
+                        <td>Subscription canceled</td>
+                    </tr>
+                    <tr>
+                        <td><code>invoice.payment_succeeded</code></td>
+                        <td>Invoice paid successfully</td>
+                    </tr>
+                    <tr>
+                        <td><code>invoice.payment_failed</code></td>
+                        <td>Invoice payment failed</td>
+                    </tr>
+                    <tr>
+                        <td><code>checkout.session.completed</code></td>
+                        <td>Checkout session completed</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>How DainnStripe Handles Webhooks</h3>
+            <ol>
+                <li><strong>Signature Verification:</strong> Validates webhook signature using signing secret</li>
+                <li><strong>Idempotency Check:</strong> Prevents duplicate processing of the same event</li>
+                <li><strong>Event Persistence:</strong> Stores event in database with processing status</li>
+                <li><strong>Handler Dispatch:</strong> Routes event to appropriate handler</li>
+                <li><strong>Status Update:</strong> Marks event as processed or failed</li>
+            </ol>
+
+            <h3>Custom Webhook Handlers</h3>
+            <p>Create custom handlers by implementing <code>IStripeWebhookHandler</code>:</p>
+
+            <pre><code>using DainnStripe.Interfaces;
+using DainnStripe.Models;
+using Stripe;
+
+public class CustomPaymentHandler : IStripeWebhookHandler
+{
+    public bool CanHandle(Event stripeEvent)
+    {
+        return stripeEvent.Type == "payment_intent.succeeded";
+    }
+
+    public async Task&lt;StripeWebhookProcessResult&gt; HandleAsync(Event stripeEvent)
+    {
+        var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
+
+        // Your custom logic here
+        Console.WriteLine($"Payment succeeded: {paymentIntent.Id}");
+
+        return StripeWebhookProcessResult.Success();
+    }
+}
+
+// Register in Program.cs
+builder.Services.AddScoped&lt;IStripeWebhookHandler, CustomPaymentHandler&gt;();</code></pre>
+
+            <h3>Testing Webhooks</h3>
+            <pre><code># Send a test webhook event
+stripe trigger payment_intent.succeeded
+
+# Or send a specific event
+stripe events resend evt_1234567890</code></pre>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Important:</strong> Always verify webhook signatures in production. Never trust webhook
+                data without signature verification to prevent spoofing attacks.
+            </div>
+        </section>
+
+        <!-- Services Reference -->
+        <section id="services">
+            <h2>Services Reference</h2>
+
+            <h3>Payment Service</h3>
+            <p><code>IDainnStripePaymentService</code> - Handle one-time payments with Payment Intents</p>
+
+            <pre><code>public interface IDainnStripePaymentService
+{
+    Task&lt;PaymentIntentResult&gt; CreatePaymentIntentAsync(CreatePaymentIntentRequest request);
+    Task&lt;PaymentIntentResult&gt; GetPaymentIntentAsync(string paymentIntentId);
+    Task&lt;PaymentIntentResult&gt; CancelPaymentIntentAsync(string paymentIntentId);
+}</code></pre>
+
+            <h4>Example: Create Payment Intent</h4>
+            <pre><code>var request = new CreatePaymentIntentRequest
+{
+    Amount = 2000, // $20.00 in cents
+    Currency = "usd",
+    Description = "Order #12345",
+    Metadata = new Dictionary&lt;string, string&gt;
+    {
+        { "order_id", "12345" },
+        { "customer_email", "customer@example.com" }
+    }
+};
+
+var result = await _paymentService.CreatePaymentIntentAsync(request);
+// Returns: PaymentIntentResult with ClientSecret for frontend</code></pre>
+
+            <h3>Checkout Service</h3>
+            <p><code>IDainnStripeCheckoutService</code> - Create hosted Checkout Sessions</p>
+
+            <pre><code>public interface IDainnStripeCheckoutService
+{
+    Task&lt;CheckoutSessionResult&gt; CreateCheckoutSessionAsync(CreateCheckoutSessionRequest request);
+    Task&lt;CheckoutSessionResult&gt; GetCheckoutSessionAsync(string sessionId);
+}</code></pre>
+
+            <h4>Example: Create Checkout Session</h4>
+            <pre><code>var request = new CreateCheckoutSessionRequest
+{
+    Mode = DainnStripeCheckoutMode.Payment,
+    SuccessUrl = "https://yourdomain.com/success?session_id={CHECKOUT_SESSION_ID}",
+    CancelUrl = "https://yourdomain.com/cancel",
+    LineItems = new List&lt;CreateCheckoutSessionLineItem&gt;
+    {
+        new()
+        {
+            PriceId = "price_1234567890",
+            Quantity = 1
+        }
+    }
+};
+
+var result = await _checkoutService.CreateCheckoutSessionAsync(request);
+// Redirect user to result.Url</code></pre>
+
+            <h3>Subscription Service</h3>
+            <p><code>IDainnStripeSubscriptionService</code> - Manage recurring subscriptions</p>
+
+            <pre><code>public interface IDainnStripeSubscriptionService
+{
+    Task&lt;SubscriptionResult&gt; CreateSubscriptionAsync(CreateSubscriptionRequest request);
+    Task&lt;SubscriptionResult&gt; GetSubscriptionAsync(string subscriptionId);
+    Task&lt;SubscriptionResult&gt; CancelSubscriptionAsync(string subscriptionId);
+    Task&lt;SubscriptionResult&gt; UpdateSubscriptionAsync(string subscriptionId, UpdateSubscriptionRequest request);
+}</code></pre>
+
+            <h4>Example: Create Subscription</h4>
+            <pre><code>var request = new CreateSubscriptionRequest
+{
+    CustomerId = "cus_1234567890",
+    PriceId = "price_monthly_plan",
+    TrialPeriodDays = 14
+};
+
+var result = await _subscriptionService.CreateSubscriptionAsync(request);</code></pre>
+
+            <h3>Catalog Service</h3>
+            <p><code>IDainnStripeCatalogService</code> - Manage products and prices</p>
+
+            <pre><code>public interface IDainnStripeCatalogService
+{
+    Task&lt;DainnStripeProduct&gt; UpsertProductAsync(UpsertCatalogProductRequest request);
+    Task&lt;DainnStripePrice&gt; UpsertPriceAsync(UpsertCatalogPriceRequest request);
+    Task&lt;List&lt;DainnStripeProduct&gt;&gt; GetProductsAsync();
+    Task&lt;List&lt;DainnStripePrice&gt;&gt; GetPricesForProductAsync(string productId);
+}</code></pre>
+
+            <h3>Connect Service</h3>
+            <p><code>IDainnStripeConnectService</code> - Manage Stripe Connect accounts for marketplaces</p>
+
+            <pre><code>public interface IDainnStripeConnectService
+{
+    Task&lt;ConnectedAccountResult&gt; CreateConnectedAccountAsync(CreateConnectedAccountRequest request);
+    Task&lt;ConnectedAccountLinkResult&gt; CreateAccountLinkAsync(CreateConnectedAccountLinkRequest request);
+    Task&lt;ConnectedAccountResult&gt; GetConnectedAccountAsync(string accountId);
+}</code></pre>
+
+            <h3>Money Movement Service</h3>
+            <p><code>IDainnStripeMoneyMovementService</code> - Handle transfers and payouts</p>
+
+            <pre><code>public interface IDainnStripeMoneyMovementService
+{
+    Task&lt;TransferResult&gt; CreateTransferAsync(CreateTransferRequest request);
+    Task&lt;PayoutResult&gt; CreatePayoutAsync(CreatePayoutRequest request);
+    Task&lt;BalanceSnapshotResult&gt; GetBalanceAsync();
+}</code></pre>
+
+            <h3>Service Injection</h3>
+            <p>All services are registered automatically and can be injected via constructor:</p>
+
+            <pre><code>public class PaymentController : ControllerBase
+{
+    private readonly IDainnStripePaymentService _paymentService;
+    private readonly IDainnStripeCheckoutService _checkoutService;
+    private readonly IDainnStripeSubscriptionService _subscriptionService;
+
+    public PaymentController(
+        IDainnStripePaymentService paymentService,
+        IDainnStripeCheckoutService checkoutService,
+        IDainnStripeSubscriptionService subscriptionService)
+    {
+        _paymentService = paymentService;
+        _checkoutService = checkoutService;
+        _subscriptionService = subscriptionService;
+    }
+}</code></pre>
+        </section>
+
+        <!-- Catalog Management -->
+        <section id="catalog">
+            <h2>Catalog Management</h2>
+
+            <h3>Product & Price Synchronization</h3>
+            <p>DainnStripe can synchronize your Stripe product catalog to your local database for faster queries and offline access.</p>
+
+            <h3>Create a Product</h3>
+            <pre><code>var productRequest = new UpsertCatalogProductRequest
+{
+    Name = "Premium Plan",
+    Description = "Access to all premium features",
+    Active = true,
+    Metadata = new Dictionary&lt;string, string&gt;
+    {
+        { "feature_set", "premium" }
+    }
+};
+
+var product = await _catalogService.UpsertProductAsync(productRequest);</code></pre>
+
+            <h3>Create a Price</h3>
+            <pre><code>var priceRequest = new UpsertCatalogPriceRequest
+{
+    ProductId = product.StripeProductId,
+    UnitAmount = 2999, // $29.99
+    Currency = "usd",
+    Interval = DainnStripePriceInterval.Month,
+    Active = true
+};
+
+var price = await _catalogService.UpsertPriceAsync(priceRequest);</code></pre>
+
+            <h3>Sync Catalog from Stripe</h3>
+            <p>Use <code>IDainnStripeCatalogSyncService</code> to sync your entire catalog:</p>
+
+            <pre><code>public interface IDainnStripeCatalogSyncService
+{
+    Task&lt;CatalogSyncResult&gt; SyncAllProductsAsync();
+    Task&lt;CatalogSyncResult&gt; SyncProductAsync(string productId);
+}
+
+// Example usage
+var syncResult = await _catalogSyncService.SyncAllProductsAsync();
+Console.WriteLine($"Synced {syncResult.ProductsSynced} products, {syncResult.PricesSynced} prices");</code></pre>
+
+            <h3>Query Local Catalog</h3>
+            <pre><code>// Get all active products
+var products = await _catalogService.GetProductsAsync();
+
+// Get prices for a specific product
+var prices = await _catalogService.GetPricesForProductAsync(productId);
+
+// Filter by metadata
+var premiumProducts = products
+    .Where(p => p.Metadata.ContainsKey("feature_set") &&
+                p.Metadata["feature_set"] == "premium")
+    .ToList();</code></pre>
+
+            <h3>Database Schema</h3>
+            <p>DainnStripe creates the following tables for catalog management:</p>
+            <ul>
+                <li><code>DainnStripeProducts</code> - Product information</li>
+                <li><code>DainnStripePrices</code> - Price information</li>
+                <li><code>DainnStripeCatalogSyncRuns</code> - Sync history and audit trail</li>
+            </ul>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+
+            <h3>Common Issues</h3>
+
+            <h4>1. Webhook Signature Verification Failed</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Webhooks are rejected with signature verification errors.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Verify <code>WebhookSigningSecret</code> matches your Stripe webhook endpoint</li>
+                    <li>Check that the secret starts with <code>whsec_</code></li>
+                    <li>For local testing, use Stripe CLI and copy the signing secret it provides</li>
+                    <li>Ensure webhook payload is not modified by middleware (compression, etc.)</li>
+                    <li>Check <code>WebhookToleranceSeconds</code> if server time is off</li>
+                </ul>
+            </div>
+
+            <h4>2. Payment Intent Creation Fails</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Getting errors when creating payment intents.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Verify <code>SecretKey</code> is correct and starts with <code>sk_test_</code> or <code>sk_live_</code></li>
+                    <li>Check amount is in smallest currency unit (cents for USD)</li>
+                    <li>Ensure currency code is valid (lowercase, e.g., "usd", "eur")</li>
+                    <li>Check Stripe API logs in dashboard for detailed error messages</li>
+                    <li>Verify your Stripe account is activated and not restricted</li>
+                </ul>
+            </div>
+
+            <h4>3. Database Migration Errors</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> EF Core migrations fail or database not created.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Ensure connection string is correct in appsettings.json</li>
+                    <li>Check database server is running</li>
+                    <li>Verify user has permissions to create database/tables</li>
+                    <li>For SQLite: Check file path is writable</li>
+                    <li>Run migrations with verbose logging: <code>dotnet ef database update --verbose</code></li>
+                </ul>
+            </div>
+
+            <h4>4. Webhooks Not Received Locally</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Stripe CLI forwards webhooks but app doesn't receive them.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Verify <code>MapDainnStripeWebhooks()</code> is called in Program.cs</li>
+                    <li>Check webhook path matches: default is <code>/stripe/webhooks</code></li>
+                    <li>Ensure app is running on the port Stripe CLI is forwarding to</li>
+                    <li>Check firewall/antivirus not blocking connections</li>
+                    <li>Use <code>stripe listen --print-json</code> to see raw webhook data</li>
+                </ul>
+            </div>
+
+            <h4>5. Idempotency Issues</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Same webhook event processed multiple times.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>DainnStripe automatically handles idempotency via <code>StripeWebhookEventRecords</code> table</li>
+                    <li>Check database connection is stable</li>
+                    <li>Verify <code>StripeWebhookIdempotencyService</code> is registered</li>
+                    <li>Check for database transaction issues or deadlocks</li>
+                </ul>
+            </div>
+
+            <h3>Debugging Tips</h3>
+
+            <h4>Enable Detailed Logging</h4>
+            <pre><code>// appsettings.Development.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "DainnStripe": "Debug",
+      "Stripe": "Debug"
+    }
+  }
+}</code></pre>
+
+            <h4>Check Stripe API Logs</h4>
+            <p>View all API requests in your <a href="https://dashboard.stripe.com/logs" target="_blank">Stripe Dashboard → Logs</a></p>
+
+            <h4>Test Webhook Locally</h4>
+            <pre><code># Send test webhook
+stripe trigger payment_intent.succeeded
+
+# View webhook events
+stripe events list --limit 10
+
+# Resend specific event
+stripe events resend evt_1234567890</code></pre>
+
+            <h4>Verify Database State</h4>
+            <pre><code>// Check webhook event records
+SELECT * FROM StripeWebhookEventRecords ORDER BY CreatedAt DESC;
+
+// Check payment records
+SELECT * FROM DainnStripePayments ORDER BY CreatedAt DESC;
+
+// Check subscription records
+SELECT * FROM DainnStripeSubscriptions ORDER BY CreatedAt DESC;</code></pre>
+
+            <h3>Performance Optimization</h3>
+            <div class="alert alert-success">
+                <strong>Production Tips:</strong>
+                <ul>
+                    <li>Enable database connection pooling</li>
+                    <li>Add indexes on frequently queried columns (StripePaymentIntentId, CustomerId)</li>
+                    <li>Use async/await for all Stripe API calls</li>
+                    <li>Implement retry logic with exponential backoff for transient failures</li>
+                    <li>Cache product catalog locally to reduce API calls</li>
+                    <li>Monitor webhook processing time and optimize slow handlers</li>
+                    <li>Use Stripe's idempotency keys for payment creation</li>
+                </ul>
+            </div>
+
+            <h3>Security Best Practices</h3>
+            <div class="alert alert-warning">
+                <strong>⚠️ Important Security Measures:</strong>
+                <ul>
+                    <li><strong>Never expose Secret Key:</strong> Keep it server-side only</li>
+                    <li><strong>Always verify webhooks:</strong> Use signing secret validation</li>
+                    <li><strong>Use HTTPS:</strong> Required for production webhooks</li>
+                    <li><strong>Validate amounts:</strong> Always verify payment amounts match expected values</li>
+                    <li><strong>Log security events:</strong> Track failed webhook verifications</li>
+                    <li><strong>Rotate keys:</strong> Periodically rotate API keys and webhook secrets</li>
+                    <li><strong>Use test mode:</strong> Test thoroughly before going live</li>
+                </ul>
+            </div>
+
+            <h3>Getting Help</h3>
+            <ul>
+                <li><strong>Stripe Documentation:</strong> <a href="https://stripe.com/docs" target="_blank">stripe.com/docs</a></li>
+                <li><strong>Stripe Support:</strong> <a href="https://support.stripe.com" target="_blank">support.stripe.com</a></li>
+                <li><strong>GitHub Issues:</strong> <a href="https://github.com/dainn/dainn-user/issues" target="_blank">Report DainnStripe bugs</a></li>
+                <li><strong>Stack Overflow:</strong> Tag questions with <code>dainnstripe</code> and <code>stripe.net</code></li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p><strong>DainnStripe</strong> - .NET Stripe Integration Library</p>
+            <p>Version 1.0.0 | MIT License | &copy; 2024 Dainn Team</p>
+            <p>
+                <a href="https://github.com/dainn/dainn-user" target="_blank">GitHub</a> |
+                <a href="https://www.nuget.org/packages/DainnStripe" target="_blank">NuGet</a> |
+                <a href="https://stripe.com/docs" target="_blank">Stripe Docs</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DainnUser - Complete Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --bg: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0;
+        }
+
+        nav li {
+            margin: 0;
+        }
+
+        nav a {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        nav a:hover {
+            background: var(--bg);
+            border-bottom-color: var(--primary);
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--text);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--danger);
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            border-color: var(--primary);
+            color: #1e40af;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-color: var(--warning);
+            color: #92400e;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            border-color: var(--success);
+            color: #065f46;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: var(--bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .feature-card h4 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        footer {
+            background: var(--bg-secondary);
+            padding: 2rem 0;
+            margin-top: 4rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                flex-direction: column;
+            }
+
+            nav a {
+                padding: 0.75rem 1rem;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>DainnUser</h1>
+            <p>Complete .NET User Management Library - Authentication, Authorization & Security</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#quickstart">Quickstart</a></li>
+                <li><a href="#program-setup">Program.cs</a></li>
+                <li><a href="#migrations">Migrations</a></li>
+                <li><a href="#jwt">JWT Auth</a></li>
+                <li><a href="#social-login">Social Login</a></li>
+                <li><a href="#api-reference">API Reference</a></li>
+                <li><a href="#customization">Customization</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Introduction -->
+        <section id="introduction">
+            <h2>Introduction</h2>
+            <p>
+                <strong>DainnUser</strong> is a comprehensive .NET/C# class library that provides enterprise-grade user management capabilities
+                for your applications. Built with security, flexibility, and developer experience in mind.
+            </p>
+
+            <div class="alert alert-info">
+                <strong>🎯 Purpose:</strong> DainnUser eliminates the need to build authentication and user management from scratch.
+                Simply install the NuGet package, configure your preferences, and you're ready to go.
+            </div>
+
+            <h3>Why DainnUser?</h3>
+            <ul>
+                <li><strong>Production-Ready:</strong> OWASP Top 10 compliant with built-in security best practices</li>
+                <li><strong>Flexible:</strong> Enable/disable features via configuration - use only what you need</li>
+                <li><strong>Database Agnostic:</strong> Supports SQL Server, PostgreSQL, MySQL, and SQLite</li>
+                <li><strong>Clean Architecture:</strong> Well-structured, testable, and maintainable codebase</li>
+                <li><strong>Extensible:</strong> Easy to customize and extend for your business logic</li>
+            </ul>
+
+            <h3>Target Audience</h3>
+            <p>.NET developers building web applications, APIs, or microservices that require user authentication and management.</p>
+        </section>
+
+        <!-- Features -->
+        <section id="features">
+            <h2>Features</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🔐 Authentication</h4>
+                    <ul>
+                        <li>User Registration</li>
+                        <li>Email Verification</li>
+                        <li>Login with JWT</li>
+                        <li>Password Reset</li>
+                        <li>Two-Factor Auth (2FA)</li>
+                        <li>Social Login (Google, Facebook, GitHub, Microsoft)</li>
+                        <li>Refresh Tokens</li>
+                        <li>Account Lockout</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>🛡️ Authorization</h4>
+                    <ul>
+                        <li>Role-Based Access Control (RBAC)</li>
+                        <li>Policy-Based Authorization</li>
+                        <li>Permission Management</li>
+                        <li>Fine-Grained Access Control</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>👤 Profile Management</h4>
+                    <ul>
+                        <li>User Profile CRUD</li>
+                        <li>Avatar Upload</li>
+                        <li>Language & Timezone</li>
+                        <li>Activity History</li>
+                        <li>Address & Contact Info</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h4>🔒 Security</h4>
+                    <ul>
+                        <li>OWASP Top 10 Compliance</li>
+                        <li>Rate Limiting</li>
+                        <li>Google reCAPTCHA</li>
+                        <li>Session Management</li>
+                        <li>Login History & Audit Trail</li>
+                        <li>Input Validation</li>
+                        <li>SQL Injection Prevention</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation -->
+        <section id="installation">
+            <h2>Installation</h2>
+
+            <h3>Prerequisites</h3>
+            <ul>
+                <li><strong>.NET 8.0 SDK</strong> or later</li>
+                <li><strong>Database:</strong> SQL Server, PostgreSQL, MySQL, or SQLite</li>
+                <li><strong>SMTP Server:</strong> For email functionality (Gmail, SendGrid, or local SMTP for dev)</li>
+            </ul>
+
+            <h3>Install via NuGet</h3>
+            <p>Install the required packages in your ASP.NET Core project:</p>
+
+            <pre><code># Core package (required)
+dotnet add package DainnUser.Core
+
+# Infrastructure package (required for database)
+dotnet add package DainnUser.Infrastructure
+
+# Application package (required for business logic)
+dotnet add package DainnUser.Application
+
+# API package (required for controllers)
+dotnet add package DainnUser.Api
+
+# Web package (optional - for Razor/Blazor components)
+dotnet add package DainnUser.Web</code></pre>
+
+            <div class="alert alert-info">
+                <strong>💡 Tip:</strong> For most applications, you'll need Core, Infrastructure, Application, and Api packages.
+                The Web package is only needed if you're using server-side Razor or Blazor components.
+            </div>
+
+            <h3>Manual Installation (Development)</h3>
+            <p>If you're contributing or want to build from source:</p>
+
+            <pre><code>git clone https://github.com/dainn/dainn-user.git
+cd DainnUser
+dotnet build
+dotnet test</code></pre>
+        </section>
+
+        <!-- Configuration -->
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>appsettings.json Structure</h3>
+            <p>Add the DainnUser configuration section to your <code>appsettings.json</code>:</p>
+
+            <pre><code>{
+  "DainnUser": {
+    "Database": {
+      "Provider": "SQLite",
+      "ConnectionString": "Data Source=dainnuser.db"
+    },
+    "Jwt": {
+      "SecretKey": "your-super-secret-key-min-32-characters-long",
+      "Issuer": "DainnUser",
+      "Audience": "DainnUserApp",
+      "ExpirationMinutes": 60,
+      "RefreshTokenExpirationDays": 7
+    },
+    "Email": {
+      "SmtpHost": "smtp.gmail.com",
+      "SmtpPort": 587,
+      "SmtpUsername": "your-email@gmail.com",
+      "SmtpPassword": "your-app-password",
+      "FromEmail": "noreply@yourdomain.com",
+      "FromName": "DainnUser",
+      "EnableSsl": true
+    },
+    "Features": {
+      "EnableSocialLogin": false,
+      "EnableTwoFactor": false,
+      "RequireEmailVerification": true,
+      "EnableAccountLockout": true,
+      "EnableSessionManagement": true,
+      "EnableActivityLogging": true
+    },
+    "Security": {
+      "MaxLoginAttempts": 5,
+      "LockoutDurationMinutes": 15,
+      "PasswordMinLength": 8,
+      "RequireDigit": true,
+      "RequireUppercase": true,
+      "RequireLowercase": true,
+      "RequireSpecialChar": true
+    }
+  }
+}</code></pre>
+
+            <h3>Database Providers</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Connection String Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SQLite</strong></td>
+                        <td><code>Data Source=dainnuser.db</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>SQL Server</strong></td>
+                        <td><code>Server=localhost;Database=DainnUser;Trusted_Connection=True;</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>PostgreSQL</strong></td>
+                        <td><code>Host=localhost;Database=dainnuser;Username=postgres;Password=pass</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>MySQL</strong></td>
+                        <td><code>Server=localhost;Database=dainnuser;User=root;Password=pass;</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Email Configuration for Development</h3>
+            <p>For local development, use <a href="https://github.com/mailhog/MailHog" target="_blank">MailHog</a> to catch emails:</p>
+
+            <pre><code>{
+  "DainnUser": {
+    "Email": {
+      "SmtpHost": "localhost",
+      "SmtpPort": 1025,
+      "SmtpUsername": "",
+      "SmtpPassword": "",
+      "FromEmail": "dev@localhost",
+      "FromName": "DainnUser Dev",
+      "EnableSsl": false
+    }
+  }
+}</code></pre>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Security Warning:</strong> Never commit real SMTP credentials to source control.
+                Use environment variables or Azure Key Vault for production secrets.
+            </div>
+        </section>
+
+        <!-- Quickstart -->
+        <section id="quickstart">
+            <h2>Quickstart (Auth Only)</h2>
+            <p>Get up and running with basic authentication in 5 minutes.</p>
+
+            <h3>Step 1: Create a New ASP.NET Core Web API</h3>
+            <pre><code>dotnet new webapi -n MyApp
+cd MyApp</code></pre>
+
+            <h3>Step 2: Install DainnUser Packages</h3>
+            <pre><code>dotnet add package DainnUser.Core
+dotnet add package DainnUser.Infrastructure
+dotnet add package DainnUser.Application
+dotnet add package DainnUser.Api</code></pre>
+
+            <h3>Step 3: Configure appsettings.json</h3>
+            <pre><code>{
+  "DainnUser": {
+    "Database": {
+      "Provider": "SQLite",
+      "ConnectionString": "Data Source=myapp.db"
+    },
+    "Jwt": {
+      "SecretKey": "my-super-secret-jwt-key-at-least-32-chars",
+      "Issuer": "MyApp",
+      "Audience": "MyAppUsers",
+      "ExpirationMinutes": 60
+    },
+    "Email": {
+      "SmtpHost": "localhost",
+      "SmtpPort": 1025,
+      "FromEmail": "dev@localhost"
+    }
+  }
+}</code></pre>
+
+            <h3>Step 4: Update Program.cs</h3>
+            <pre><code>var builder = WebApplication.CreateBuilder(args);
+
+// Add DainnUser services
+builder.Services.AddDainnUser(builder.Configuration, options =>
+{
+    options.EnableSocialLogin = false;
+    options.EnableTwoFactor = false;
+    options.RequireEmailVerification = true;
+});
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// Add DainnUser middleware
+app.UseDainnUser();
+
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();</code></pre>
+
+            <h3>Step 5: Run Migrations</h3>
+            <pre><code>dotnet ef migrations add InitialCreate
+dotnet ef database update</code></pre>
+
+            <h3>Step 6: Run the Application</h3>
+            <pre><code>dotnet run</code></pre>
+
+            <p>Navigate to <code>https://localhost:5001/swagger</code> to see the API documentation and test endpoints.</p>
+
+            <div class="alert alert-success">
+                <strong>✅ Success!</strong> You now have a working authentication system with registration, login, and email verification.
+            </div>
+        </section>
+
+        <!-- Program.cs Setup -->
+        <section id="program-setup">
+            <h2>Program.cs Setup</h2>
+
+            <h3>Basic Setup</h3>
+            <pre><code>using DainnUser.Api;
+using DainnUser.Application;
+using DainnUser.Infrastructure;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add DainnUser services
+builder.Services.AddDainnUser(builder.Configuration);
+
+// Add other services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// Configure middleware pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// DainnUser middleware (includes Authentication & Authorization)
+app.UseDainnUser();
+
+app.MapControllers();
+
+app.Run();</code></pre>
+
+            <h3>Advanced Setup with Feature Flags</h3>
+            <pre><code>builder.Services.AddDainnUser(builder.Configuration, options =>
+{
+    // Authentication features
+    options.EnableSocialLogin = true;
+    options.EnableTwoFactor = true;
+    options.RequireEmailVerification = true;
+
+    // Security features
+    options.EnableAccountLockout = true;
+    options.EnableRateLimiting = true;
+    options.EnableRecaptcha = false;
+
+    // Session & logging
+    options.EnableSessionManagement = true;
+    options.EnableActivityLogging = true;
+    options.EnableAuditTrail = true;
+});</code></pre>
+
+            <h3>Custom Database Provider</h3>
+            <pre><code>builder.Services.AddDainnUser(builder.Configuration, options =>
+{
+    options.DatabaseProvider = "PostgreSQL";
+    options.ConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+});</code></pre>
+
+            <h3>Available Options</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Option</th>
+                        <th>Type</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>EnableSocialLogin</code></td>
+                        <td>bool</td>
+                        <td>false</td>
+                        <td>Enable OAuth providers (Google, Facebook, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><code>EnableTwoFactor</code></td>
+                        <td>bool</td>
+                        <td>false</td>
+                        <td>Enable 2FA with TOTP</td>
+                    </tr>
+                    <tr>
+                        <td><code>RequireEmailVerification</code></td>
+                        <td>bool</td>
+                        <td>true</td>
+                        <td>Require email verification before login</td>
+                    </tr>
+                    <tr>
+                        <td><code>EnableAccountLockout</code></td>
+                        <td>bool</td>
+                        <td>true</td>
+                        <td>Lock account after failed login attempts</td>
+                    </tr>
+                    <tr>
+                        <td><code>EnableSessionManagement</code></td>
+                        <td>bool</td>
+                        <td>true</td>
+                        <td>Track active sessions</td>
+                    </tr>
+                    <tr>
+                        <td><code>EnableActivityLogging</code></td>
+                        <td>bool</td>
+                        <td>true</td>
+                        <td>Log user activities</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Database Migrations -->
+        <section id="migrations">
+            <h2>Database Migrations</h2>
+
+            <h3>Initial Migration</h3>
+            <pre><code># Create initial migration
+dotnet ef migrations add InitialCreate --project src/DainnUser.Infrastructure
+
+# Apply migration to database
+dotnet ef database update --project src/DainnUser.Infrastructure</code></pre>
+
+            <h3>Adding New Migrations</h3>
+            <pre><code># After modifying entities
+dotnet ef migrations add AddNewFeature --project src/DainnUser.Infrastructure
+
+# Review the generated migration file, then apply
+dotnet ef database update --project src/DainnUser.Infrastructure</code></pre>
+
+            <h3>Rollback Migration</h3>
+            <pre><code># Rollback to previous migration
+dotnet ef database update PreviousMigrationName --project src/DainnUser.Infrastructure
+
+# Remove last migration (if not applied)
+dotnet ef migrations remove --project src/DainnUser.Infrastructure</code></pre>
+
+            <h3>Production Migrations</h3>
+            <div class="alert alert-warning">
+                <strong>⚠️ Production Best Practices:</strong>
+                <ul>
+                    <li>Always backup your database before running migrations</li>
+                    <li>Test migrations in staging environment first</li>
+                    <li>Use migration scripts for production deployments</li>
+                    <li>Never use <code>dotnet ef database update</code> directly in production</li>
+                </ul>
+            </div>
+
+            <pre><code># Generate SQL script for production
+dotnet ef migrations script --project src/DainnUser.Infrastructure --output migration.sql
+
+# Review the SQL script, then apply manually or via CI/CD</code></pre>
+
+            <h3>Database Schema Overview</h3>
+            <p>DainnUser creates the following tables:</p>
+            <ul>
+                <li><code>Users</code> - Core user information</li>
+                <li><code>Roles</code> - User roles</li>
+                <li><code>UserRoles</code> - User-Role mapping</li>
+                <li><code>Permissions</code> - Permission definitions</li>
+                <li><code>RolePermissions</code> - Role-Permission mapping</li>
+                <li><code>RefreshTokens</code> - JWT refresh tokens</li>
+                <li><code>EmailVerificationTokens</code> - Email verification tokens</li>
+                <li><code>PasswordResetTokens</code> - Password reset tokens</li>
+                <li><code>TwoFactorTokens</code> - 2FA tokens</li>
+                <li><code>Sessions</code> - Active user sessions</li>
+                <li><code>ActivityLogs</code> - User activity history</li>
+                <li><code>LoginHistory</code> - Login attempts and history</li>
+            </ul>
+        </section>
+
+        <!-- JWT Authentication -->
+        <section id="jwt">
+            <h2>JWT Authentication</h2>
+
+            <h3>How JWT Works in DainnUser</h3>
+            <p>DainnUser uses JWT (JSON Web Tokens) for stateless authentication:</p>
+            <ol>
+                <li>User logs in with credentials</li>
+                <li>Server validates credentials and generates JWT access token + refresh token</li>
+                <li>Client stores tokens (typically in localStorage or httpOnly cookies)</li>
+                <li>Client includes access token in Authorization header for subsequent requests</li>
+                <li>When access token expires, client uses refresh token to get new access token</li>
+            </ol>
+
+            <h3>JWT Configuration</h3>
+            <pre><code>{
+  "DainnUser": {
+    "Jwt": {
+      "SecretKey": "your-secret-key-minimum-32-characters-long",
+      "Issuer": "YourAppName",
+      "Audience": "YourAppUsers",
+      "ExpirationMinutes": 60,
+      "RefreshTokenExpirationDays": 7
+    }
+  }
+}</code></pre>
+
+            <h3>Login Flow</h3>
+            <pre><code>// POST /api/auth/login
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+
+// Response
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "expiresIn": 3600,
+  "tokenType": "Bearer"
+}</code></pre>
+
+            <h3>Using JWT in Requests</h3>
+            <pre><code>// Add Authorization header to your HTTP requests
+GET /api/users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
+
+            <h3>Refresh Token Flow</h3>
+            <pre><code>// POST /api/auth/refresh
+{
+  "refreshToken": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+
+// Response
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "new-refresh-token-uuid",
+  "expiresIn": 3600
+}</code></pre>
+
+            <h3>Protecting Endpoints</h3>
+            <pre><code>using Microsoft.AspNetCore.Authorization;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    // Requires authentication
+    [Authorize]
+    [HttpGet]
+    public IActionResult GetProducts()
+    {
+        // Only authenticated users can access
+        return Ok(products);
+    }
+
+    // Requires specific role
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public IActionResult DeleteProduct(int id)
+    {
+        // Only Admin role can access
+        return NoContent();
+    }
+
+    // Requires specific permission
+    [Authorize(Policy = "CanManageProducts")]
+    [HttpPost]
+    public IActionResult CreateProduct(Product product)
+    {
+        // Only users with CanManageProducts permission
+        return Created();
+    }
+}</code></pre>
+
+            <h3>JWT Security Best Practices</h3>
+            <div class="alert alert-warning">
+                <ul>
+                    <li><strong>Secret Key:</strong> Use a strong, random key (minimum 32 characters)</li>
+                    <li><strong>HTTPS Only:</strong> Always use HTTPS in production</li>
+                    <li><strong>Short Expiration:</strong> Keep access token expiration short (15-60 minutes)</li>
+                    <li><strong>Refresh Token Rotation:</strong> DainnUser automatically rotates refresh tokens</li>
+                    <li><strong>Token Storage:</strong> Store tokens securely (httpOnly cookies preferred over localStorage)</li>
+                    <li><strong>Logout:</strong> Invalidate refresh tokens on logout</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Social Login -->
+        <section id="social-login">
+            <h2>Social Login Setup</h2>
+            <p>DainnUser supports OAuth 2.0 / OpenID Connect (OIDC) authentication with popular providers.</p>
+
+            <h3>Supported Providers</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>🔵 Google</h4>
+                    <p>OAuth 2.0 / OIDC</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔷 Facebook</h4>
+                    <p>OAuth 2.0</p>
+                </div>
+                <div class="feature-card">
+                    <h4>⚫ GitHub</h4>
+                    <p>OAuth 2.0</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🟦 Microsoft</h4>
+                    <p>OAuth 2.0 / OIDC</p>
+                </div>
+            </div>
+
+            <h3>Google OAuth Setup</h3>
+
+            <h4>Step 1: Create Google OAuth Credentials</h4>
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+                <li>Create a new project or select existing one</li>
+                <li>Navigate to <strong>APIs & Services → Credentials</strong></li>
+                <li>Click <strong>Create Credentials → OAuth 2.0 Client ID</strong></li>
+                <li>Configure OAuth consent screen if prompted</li>
+                <li>Application type: <strong>Web application</strong></li>
+                <li>Add authorized redirect URIs:
+                    <ul>
+                        <li>Development: <code>https://localhost:5001/signin-google</code></li>
+                        <li>Production: <code>https://yourdomain.com/signin-google</code></li>
+                    </ul>
+                </li>
+                <li>Copy <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+            </ol>
+
+            <h4>Step 2: Configure appsettings.json</h4>
+            <pre><code>{
+  "DainnUser": {
+    "SocialLogin": {
+      "Google": {
+        "ClientId": "your-google-client-id.apps.googleusercontent.com",
+        "ClientSecret": "your-google-client-secret"
+      }
+    }
+  }
+}</code></pre>
+
+            <h4>Step 3: Enable in Program.cs</h4>
+            <pre><code>builder.Services.AddDainnUser(builder.Configuration, options =>
+{
+    options.EnableSocialLogin = true;
+});</code></pre>
+
+            <h4>Step 4: Frontend Integration</h4>
+            <pre><code>// Redirect user to Google login
+window.location.href = '/api/auth/external-login?provider=Google&returnUrl=/dashboard';
+
+// Or use a button
+&lt;a href="/api/auth/external-login?provider=Google&returnUrl=/dashboard"&gt;
+    Sign in with Google
+&lt;/a&gt;</code></pre>
+
+            <h3>Facebook OAuth Setup</h3>
+
+            <h4>Step 1: Create Facebook App</h4>
+            <ol>
+                <li>Go to <a href="https://developers.facebook.com" target="_blank">Facebook Developers</a></li>
+                <li>Click <strong>My Apps → Create App</strong></li>
+                <li>Select <strong>Consumer</strong> app type</li>
+                <li>Add <strong>Facebook Login</strong> product</li>
+                <li>Configure OAuth redirect URIs in <strong>Settings → Basic</strong>:
+                    <ul>
+                        <li>Development: <code>https://localhost:5001/signin-facebook</code></li>
+                        <li>Production: <code>https://yourdomain.com/signin-facebook</code></li>
+                    </ul>
+                </li>
+                <li>Copy <strong>App ID</strong> and <strong>App Secret</strong></li>
+            </ol>
+
+            <h4>Step 2: Configure appsettings.json</h4>
+            <pre><code>{
+  "DainnUser": {
+    "SocialLogin": {
+      "Facebook": {
+        "AppId": "your-facebook-app-id",
+        "AppSecret": "your-facebook-app-secret"
+      }
+    }
+  }
+}</code></pre>
+
+            <h4>Step 3: Frontend Integration</h4>
+            <pre><code>&lt;a href="/api/auth/external-login?provider=Facebook&returnUrl=/dashboard"&gt;
+    Sign in with Facebook
+&lt;/a&gt;</code></pre>
+
+            <h3>GitHub OAuth Setup</h3>
+
+            <h4>Step 1: Create GitHub OAuth App</h4>
+            <ol>
+                <li>Go to <a href="https://github.com/settings/developers" target="_blank">GitHub Developer Settings</a></li>
+                <li>Click <strong>OAuth Apps → New OAuth App</strong></li>
+                <li>Fill in application details</li>
+                <li>Authorization callback URL:
+                    <ul>
+                        <li>Development: <code>https://localhost:5001/signin-github</code></li>
+                        <li>Production: <code>https://yourdomain.com/signin-github</code></li>
+                    </ul>
+                </li>
+                <li>Copy <strong>Client ID</strong> and generate <strong>Client Secret</strong></li>
+            </ol>
+
+            <h4>Step 2: Configure appsettings.json</h4>
+            <pre><code>{
+  "DainnUser": {
+    "SocialLogin": {
+      "GitHub": {
+        "ClientId": "your-github-client-id",
+        "ClientSecret": "your-github-client-secret"
+      }
+    }
+  }
+}</code></pre>
+
+            <h4>Step 3: Frontend Integration</h4>
+            <pre><code>&lt;a href="/api/auth/external-login?provider=GitHub&returnUrl=/dashboard"&gt;
+    Sign in with GitHub
+&lt;/a&gt;</code></pre>
+
+            <h3>Microsoft OAuth Setup</h3>
+
+            <h4>Step 1: Register App in Azure AD</h4>
+            <ol>
+                <li>Go to <a href="https://portal.azure.com" target="_blank">Azure Portal</a></li>
+                <li>Navigate to <strong>Azure Active Directory → App registrations</strong></li>
+                <li>Click <strong>New registration</strong></li>
+                <li>Name your application</li>
+                <li>Supported account types: Choose based on your needs</li>
+                <li>Redirect URI:
+                    <ul>
+                        <li>Platform: <strong>Web</strong></li>
+                        <li>Development: <code>https://localhost:5001/signin-microsoft</code></li>
+                        <li>Production: <code>https://yourdomain.com/signin-microsoft</code></li>
+                    </ul>
+                </li>
+                <li>Copy <strong>Application (client) ID</strong></li>
+                <li>Go to <strong>Certificates & secrets → New client secret</strong></li>
+                <li>Copy the secret value</li>
+            </ol>
+
+            <h4>Step 2: Configure appsettings.json</h4>
+            <pre><code>{
+  "DainnUser": {
+    "SocialLogin": {
+      "Microsoft": {
+        "ClientId": "your-microsoft-client-id",
+        "ClientSecret": "your-microsoft-client-secret",
+        "TenantId": "common"  // or your specific tenant ID
+      }
+    }
+  }
+}</code></pre>
+
+            <h4>Step 3: Frontend Integration</h4>
+            <pre><code>&lt;a href="/api/auth/external-login?provider=Microsoft&returnUrl=/dashboard"&gt;
+    Sign in with Microsoft
+&lt;/a&gt;</code></pre>
+
+            <h3>Generic OIDC Provider Setup</h3>
+            <p>DainnUser supports any OpenID Connect (OIDC) compliant provider (Auth0, Okta, Keycloak, IdentityServer, etc.).</p>
+
+            <h4>Enable Generic OIDC</h4>
+            <pre><code>builder.Services.AddDainnUser(builder.Configuration, options =>
+{
+    options.EnableGenericOidc = true;
+});</code></pre>
+
+            <h4>Configuration Example</h4>
+            <pre><code>{
+  "DainnUser": {
+    "EnableGenericOidc": true,
+    "OidcProviders": [
+      {
+        "ProviderId": "auth0",
+        "DisplayName": "Auth0",
+        "Authority": "https://your-tenant.auth0.com",
+        "ClientId": "your-client-id",
+        "ClientSecret": "your-client-secret",
+        "CallbackPath": "/signin-oidc",
+        "Scope": "openid profile email",
+        "EmailClaimType": "email",
+        "NameClaimType": "name",
+        "SubjectClaimType": "sub"
+      }
+    ]
+  }
+}</code></pre>
+
+            <h4>OIDC Configuration Parameters</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ProviderId</code></td>
+                        <td>Yes</td>
+                        <td>Unique identifier for this provider (e.g., "auth0", "okta")</td>
+                    </tr>
+                    <tr>
+                        <td><code>DisplayName</code></td>
+                        <td>Yes</td>
+                        <td>Human-readable name shown to users</td>
+                    </tr>
+                    <tr>
+                        <td><code>Authority</code></td>
+                        <td>Yes</td>
+                        <td>Base URL of the OIDC provider - used for discovery endpoint</td>
+                    </tr>
+                    <tr>
+                        <td><code>ClientId</code></td>
+                        <td>Yes</td>
+                        <td>OAuth 2.0 client identifier</td>
+                    </tr>
+                    <tr>
+                        <td><code>ClientSecret</code></td>
+                        <td>Yes</td>
+                        <td>OAuth 2.0 client secret</td>
+                    </tr>
+                    <tr>
+                        <td><code>CallbackPath</code></td>
+                        <td>No</td>
+                        <td>Redirect URI path (default: "/signin-oidc")</td>
+                    </tr>
+                    <tr>
+                        <td><code>Scope</code></td>
+                        <td>No</td>
+                        <td>Space-separated scopes (default: "openid profile email")</td>
+                    </tr>
+                    <tr>
+                        <td><code>EmailClaimType</code></td>
+                        <td>No</td>
+                        <td>Claim type for email (default: "email")</td>
+                    </tr>
+                    <tr>
+                        <td><code>NameClaimType</code></td>
+                        <td>No</td>
+                        <td>Claim type for display name (default: "name")</td>
+                    </tr>
+                    <tr>
+                        <td><code>SubjectClaimType</code></td>
+                        <td>No</td>
+                        <td>Claim type for subject identifier (default: "sub")</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="alert alert-info">
+                <strong>💡 Note:</strong> The <code>Authority</code> property is used for OIDC discovery.
+                DainnUser automatically fetches the issuer and endpoints from
+                <code>{Authority}/.well-known/openid-configuration</code>. You don't need to specify
+                a separate Issuer URL - it's retrieved from the discovery document.
+            </div>
+
+            <h4>Common OIDC Providers</h4>
+
+            <h5>Auth0</h5>
+            <pre><code>{
+  "DainnUser": {
+    "EnableGenericOidc": true,
+    "OidcProviders": [
+      {
+        "ProviderId": "auth0",
+        "DisplayName": "Auth0",
+        "Authority": "https://your-tenant.auth0.com",
+        "ClientId": "your-auth0-client-id",
+        "ClientSecret": "your-auth0-client-secret",
+        "Scope": "openid profile email"
+      }
+    ]
+  }
+}</code></pre>
+
+            <h5>Okta</h5>
+            <pre><code>{
+  "DainnUser": {
+    "EnableGenericOidc": true,
+    "OidcProviders": [
+      {
+        "ProviderId": "okta",
+        "DisplayName": "Okta",
+        "Authority": "https://your-domain.okta.com/oauth2/default",
+        "ClientId": "your-okta-client-id",
+        "ClientSecret": "your-okta-client-secret",
+        "Scope": "openid profile email"
+      }
+    ]
+  }
+}</code></pre>
+
+            <h5>Keycloak</h5>
+            <pre><code>{
+  "DainnUser": {
+    "EnableGenericOidc": true,
+    "OidcProviders": [
+      {
+        "ProviderId": "keycloak",
+        "DisplayName": "Keycloak",
+        "Authority": "https://your-keycloak.com/realms/your-realm",
+        "ClientId": "your-keycloak-client-id",
+        "ClientSecret": "your-keycloak-client-secret",
+        "Scope": "openid profile email"
+      }
+    ]
+  }
+}</code></pre>
+
+            <h5>IdentityServer</h5>
+            <pre><code>{
+  "DainnUser": {
+    "EnableGenericOidc": true,
+    "OidcProviders": [
+      {
+        "ProviderId": "identityserver",
+        "DisplayName": "IdentityServer",
+        "Authority": "https://your-identityserver.com",
+        "ClientId": "your-client-id",
+        "ClientSecret": "your-client-secret",
+        "Scope": "openid profile email"
+      }
+    ]
+  }
+}</code></pre>
+
+            <div class="alert alert-info">
+                <strong>💡 Discovery Endpoint:</strong> OIDC providers expose a discovery endpoint at
+                <code>/.well-known/openid-configuration</code>. DainnUser automatically uses this to discover
+                authorization, token, and userinfo endpoints. Example:
+                <code>https://your-provider.com/.well-known/openid-configuration</code>
+            </div>
+
+            <h3>Complete Configuration Example</h3>
+            <pre><code>{
+  "DainnUser": {
+    "SocialLogin": {
+      "Google": {
+        "ClientId": "123456789.apps.googleusercontent.com",
+        "ClientSecret": "GOCSPX-abc123"
+      },
+      "Facebook": {
+        "AppId": "1234567890123456",
+        "AppSecret": "abc123def456"
+      },
+      "GitHub": {
+        "ClientId": "Iv1.abc123def456",
+        "ClientSecret": "abc123def456ghi789"
+      },
+      "Microsoft": {
+        "ClientId": "12345678-1234-1234-1234-123456789012",
+        "ClientSecret": "abc~123.def456",
+        "TenantId": "common"
+      }
+    }
+  }
+}</code></pre>
+
+            <h3>Handling External Login Callback</h3>
+            <p>DainnUser automatically handles the OAuth callback. The flow is:</p>
+            <ol>
+                <li>User clicks "Sign in with Google" button</li>
+                <li>User is redirected to Google login page</li>
+                <li>User authorizes your app</li>
+                <li>Google redirects back to <code>/signin-google</code></li>
+                <li>DainnUser processes the callback:
+                    <ul>
+                        <li>Validates the OAuth response</li>
+                        <li>Creates or updates user account</li>
+                        <li>Issues JWT token</li>
+                        <li>Redirects to <code>returnUrl</code></li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h3>Account Linking</h3>
+            <p>Users can link multiple social accounts to one DainnUser account:</p>
+
+            <pre><code>// Link additional provider to existing account
+POST /api/auth/link-external-account?provider=Google
+
+// Unlink provider
+DELETE /api/auth/unlink-external-account?provider=Google
+
+// Get linked accounts
+GET /api/auth/external-accounts</code></pre>
+
+            <h3>Security Best Practices</h3>
+            <div class="alert alert-warning">
+                <strong>⚠️ Important:</strong>
+                <ul>
+                    <li><strong>Use HTTPS:</strong> OAuth requires HTTPS in production</li>
+                    <li><strong>Validate State Parameter:</strong> DainnUser automatically validates to prevent CSRF</li>
+                    <li><strong>Store Secrets Securely:</strong> Never commit client secrets to source control</li>
+                    <li><strong>Limit Scopes:</strong> Only request necessary permissions</li>
+                    <li><strong>Handle Errors:</strong> Gracefully handle OAuth failures</li>
+                    <li><strong>Email Verification:</strong> Consider requiring email verification even for social logins</li>
+                </ul>
+            </div>
+
+            <h3>Troubleshooting Social Login</h3>
+
+            <h4>Redirect URI Mismatch</h4>
+            <p><strong>Error:</strong> "redirect_uri_mismatch" or similar</p>
+            <p><strong>Solution:</strong> Ensure redirect URI in provider settings exactly matches your application URL, including protocol (https://) and port.</p>
+
+            <h4>Invalid Client</h4>
+            <p><strong>Error:</strong> "invalid_client"</p>
+            <p><strong>Solution:</strong> Verify Client ID and Client Secret are correct and not expired.</p>
+
+            <h4>User Not Created</h4>
+            <p><strong>Error:</strong> User logs in but account not created</p>
+            <p><strong>Solution:</strong> Check that <code>EnableSocialLogin = true</code> in DainnUser options.</p>
+        </section>
+
+        <!-- API Reference -->
+        <section id="api-reference">
+            <h2>API Reference</h2>
+
+            <h3>Authentication Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Method</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>POST /api/auth/register</code></td>
+                        <td>POST</td>
+                        <td>Register new user</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/login</code></td>
+                        <td>POST</td>
+                        <td>Login with email/password</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/verify-email</code></td>
+                        <td>POST</td>
+                        <td>Verify email address</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/resend-verification</code></td>
+                        <td>POST</td>
+                        <td>Resend verification email</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/forgot-password</code></td>
+                        <td>POST</td>
+                        <td>Request password reset</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/reset-password</code></td>
+                        <td>POST</td>
+                        <td>Reset password with token</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/refresh</code></td>
+                        <td>POST</td>
+                        <td>Refresh access token</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/auth/logout</code></td>
+                        <td>POST</td>
+                        <td>Logout and invalidate tokens</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>User Profile Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Method</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>GET /api/users/profile</code></td>
+                        <td>GET</td>
+                        <td>Get current user profile</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT /api/users/profile</code></td>
+                        <td>PUT</td>
+                        <td>Update user profile</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST /api/users/avatar</code></td>
+                        <td>POST</td>
+                        <td>Upload avatar image</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET /api/users/activity</code></td>
+                        <td>GET</td>
+                        <td>Get user activity history</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET /api/users/sessions</code></td>
+                        <td>GET</td>
+                        <td>Get active sessions</td>
+                    </tr>
+                    <tr>
+                        <td><code>DELETE /api/users/sessions/{id}</code></td>
+                        <td>DELETE</td>
+                        <td>Revoke specific session</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Example: Register User</h3>
+            <pre><code>POST /api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+// Response 201 Created
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "message": "Registration successful. Please check your email to verify your account."
+}</code></pre>
+
+            <h3>Example: Login</h3>
+            <pre><code>POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+
+// Response 200 OK
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "expiresIn": 3600,
+  "tokenType": "Bearer",
+  "user": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "roles": ["User"]
+  }
+}</code></pre>
+        </section>
+
+        <!-- Customization -->
+        <section id="customization">
+            <h2>Customization</h2>
+
+            <h3>Custom User Entity</h3>
+            <p>Extend the base User entity with custom properties:</p>
+
+            <pre><code>using DainnUser.Core.Entities;
+
+public class ApplicationUser : User
+{
+    public string CompanyName { get; set; }
+    public string Department { get; set; }
+    public DateTime? LastLoginDate { get; set; }
+
+    // Add your custom properties
+}
+
+// Register in Program.cs
+builder.Services.AddDainnUser&lt;ApplicationUser&gt;(builder.Configuration);</code></pre>
+
+            <h3>Custom Validation Rules</h3>
+            <pre><code>using DainnUser.Application.Validators;
+
+public class CustomPasswordValidator : IPasswordValidator
+{
+    public ValidationResult Validate(string password)
+    {
+        // Your custom password rules
+        if (password.Contains("password"))
+        {
+            return ValidationResult.Failure("Password cannot contain the word 'password'");
+        }
+
+        return ValidationResult.Success();
+    }
+}
+
+// Register in Program.cs
+builder.Services.AddScoped&lt;IPasswordValidator, CustomPasswordValidator&gt;();</code></pre>
+
+            <h3>Custom Email Templates</h3>
+            <pre><code>using DainnUser.Application.Services;
+
+public class CustomEmailService : IEmailService
+{
+    public async Task SendVerificationEmailAsync(string email, string token)
+    {
+        // Your custom email template
+        var htmlBody = $@"
+            &lt;h1&gt;Welcome to MyApp!&lt;/h1&gt;
+            &lt;p&gt;Click the link below to verify your email:&lt;/p&gt;
+            &lt;a href='https://myapp.com/verify?token={token}'&gt;Verify Email&lt;/a&gt;
+        ";
+
+        await SendEmailAsync(email, "Verify Your Email", htmlBody);
+    }
+}
+
+// Register in Program.cs
+builder.Services.AddScoped&lt;IEmailService, CustomEmailService&gt;();</code></pre>
+
+            <h3>Custom Authorization Policies</h3>
+            <pre><code>builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CanManageProducts", policy =>
+        policy.RequireClaim("Permission", "products.manage"));
+
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy("VerifiedEmailOnly", policy =>
+        policy.RequireClaim("EmailVerified", "true"));
+});</code></pre>
+
+            <h3>Override Default Services</h3>
+            <p>You can override any DainnUser service with your custom implementation:</p>
+
+            <pre><code>// Custom authentication service
+public class CustomAuthService : IAuthenticationService
+{
+    public async Task&lt;LoginResult&gt; LoginAsync(LoginRequest request)
+    {
+        // Your custom login logic
+        // Add custom logging, analytics, etc.
+    }
+}
+
+// Register AFTER AddDainnUser to override
+builder.Services.AddDainnUser(builder.Configuration);
+builder.Services.AddScoped&lt;IAuthenticationService, CustomAuthService&gt;();</code></pre>
+
+            <h3>Event Hooks</h3>
+            <pre><code>using DainnUser.Application.Events;
+
+public class UserEventHandler : IUserEventHandler
+{
+    public async Task OnUserRegisteredAsync(User user)
+    {
+        // Send welcome email, create default data, etc.
+        Console.WriteLine($"New user registered: {user.Email}");
+    }
+
+    public async Task OnUserLoggedInAsync(User user)
+    {
+        // Track analytics, update last login, etc.
+        Console.WriteLine($"User logged in: {user.Email}");
+    }
+
+    public async Task OnPasswordChangedAsync(User user)
+    {
+        // Send notification email
+        Console.WriteLine($"Password changed for: {user.Email}");
+    }
+}
+
+// Register in Program.cs
+builder.Services.AddScoped&lt;IUserEventHandler, UserEventHandler&gt;();</code></pre>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+
+            <h3>Common Issues</h3>
+
+            <h4>1. Email Not Sending</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Verification emails are not being sent.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Check SMTP configuration in appsettings.json</li>
+                    <li>For Gmail: Enable "Less secure app access" or use App Password</li>
+                    <li>Check firewall/antivirus blocking SMTP port</li>
+                    <li>Use MailHog for local development testing</li>
+                    <li>Check application logs for email errors</li>
+                </ul>
+            </div>
+
+            <h4>2. JWT Token Invalid</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Getting "401 Unauthorized" with valid token.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Verify JWT SecretKey matches between configuration and token generation</li>
+                    <li>Check token expiration time</li>
+                    <li>Ensure <code>app.UseDainnUser()</code> is called before <code>app.UseAuthorization()</code></li>
+                    <li>Verify Authorization header format: <code>Bearer {token}</code></li>
+                    <li>Check Issuer and Audience match configuration</li>
+                </ul>
+            </div>
+
+            <h4>3. Database Migration Errors</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Migration fails or database not created.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Ensure connection string is correct</li>
+                    <li>Check database server is running</li>
+                    <li>Verify user has permissions to create database/tables</li>
+                    <li>For SQLite: Check file path is writable</li>
+                    <li>Run migrations from correct project directory</li>
+                </ul>
+            </div>
+
+            <h4>4. Account Lockout Issues</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Account locked after failed attempts.
+                <br><br>
+                <strong>Solutions:</strong>
+                <ul>
+                    <li>Wait for lockout duration to expire (default: 15 minutes)</li>
+                    <li>Admin can manually unlock via database or API</li>
+                    <li>Adjust <code>MaxLoginAttempts</code> and <code>LockoutDurationMinutes</code> in config</li>
+                    <li>Disable lockout in development: <code>EnableAccountLockout = false</code></li>
+                </ul>
+            </div>
+
+            <h4>5. CORS Errors</h4>
+            <div class="alert alert-info">
+                <strong>Problem:</strong> Frontend can't call API due to CORS.
+                <br><br>
+                <strong>Solution:</strong> Add CORS policy in Program.cs:
+                <pre><code>builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+app.UseCors("AllowFrontend");</code></pre>
+            </div>
+
+            <h3>Debugging Tips</h3>
+
+            <h4>Enable Detailed Logging</h4>
+            <pre><code>// appsettings.Development.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "DainnUser": "Debug",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  }
+}</code></pre>
+
+            <h4>Check Database Connection</h4>
+            <pre><code>// Add to Program.cs for testing
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService&lt;DainnUserDbContext&gt;();
+    var canConnect = await dbContext.Database.CanConnectAsync();
+    Console.WriteLine($"Database connection: {(canConnect ? "OK" : "FAILED")}");
+}</code></pre>
+
+            <h4>Verify JWT Configuration</h4>
+            <pre><code>// Add endpoint to check JWT config (development only)
+app.MapGet("/debug/jwt-config", (IConfiguration config) =>
+{
+    return new
+    {
+        Issuer = config["DainnUser:Jwt:Issuer"],
+        Audience = config["DainnUser:Jwt:Audience"],
+        ExpirationMinutes = config["DainnUser:Jwt:ExpirationMinutes"],
+        SecretKeyLength = config["DainnUser:Jwt:SecretKey"]?.Length ?? 0
+    };
+}).RequireAuthorization("Admin");</code></pre>
+
+            <h3>Getting Help</h3>
+            <ul>
+                <li><strong>GitHub Issues:</strong> <a href="https://github.com/dainn/dainn-user/issues" target="_blank">Report bugs or request features</a></li>
+                <li><strong>Documentation:</strong> Check the <code>docs/</code> folder for detailed guides</li>
+                <li><strong>Stack Overflow:</strong> Tag questions with <code>dainnuser</code></li>
+                <li><strong>Email Support:</strong> support@dainn.com</li>
+            </ul>
+
+            <h3>Performance Optimization</h3>
+            <div class="alert alert-success">
+                <strong>Tips for Production:</strong>
+                <ul>
+                    <li>Enable response caching for user profiles</li>
+                    <li>Use Redis for distributed session management</li>
+                    <li>Index frequently queried columns (email, username)</li>
+                    <li>Enable database connection pooling</li>
+                    <li>Use async/await for all I/O operations</li>
+                    <li>Implement rate limiting to prevent abuse</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p><strong>DainnUser</strong> - .NET User Management Library</p>
+            <p>Version 1.0.0 | MIT License | &copy; 2024 Dainn Team</p>
+            <p>
+                <a href="https://github.com/dainn/dainn-user" target="_blank">GitHub</a> |
+                <a href="https://www.nuget.org/packages/DainnUser.Core" target="_blank">NuGet</a> |
+                <a href="mailto:support@dainn.com">Support</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
