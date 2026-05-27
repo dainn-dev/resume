@@ -14,6 +14,7 @@ public class ResumeDbContext : DbContext
     public DbSet<CareerCoachSession> CareerCoachSessions => Set<CareerCoachSession>();
     public DbSet<InterviewCoachSession> InterviewCoachSessions => Set<InterviewCoachSession>();
     public DbSet<SalaryEstimateRecord> SalaryEstimates => Set<SalaryEstimateRecord>();
+    public DbSet<ResumeBuild> ResumeBuilds => Set<ResumeBuild>();
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -25,8 +26,10 @@ public class ResumeDbContext : DbContext
             e.ToTable("resumes");
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.UserId);
+            e.HasIndex(x => new { x.UserId, x.FileHash }).HasFilter("\"FileHash\" IS NOT NULL");
             e.Property(x => x.RawText).HasColumnType("text");
             e.Property(x => x.ParsedDataJson).HasColumnType("jsonb");
+            e.Property(x => x.FileHash).HasMaxLength(64);
             e.HasMany(x => x.Analyses).WithOne(x => x.Resume!).HasForeignKey(x => x.ResumeId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -75,6 +78,15 @@ public class ResumeDbContext : DbContext
             e.Property(x => x.InputJson).HasColumnType("jsonb");
             e.Property(x => x.ResultJson).HasColumnType("jsonb");
             e.Property(x => x.Analysis).HasColumnType("text");
+        });
+
+        b.Entity<ResumeBuild>(e =>
+        {
+            e.ToTable("resume_builds");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.UserId, x.InputHash });
+            e.Property(x => x.InputHash).HasMaxLength(64);
+            e.Property(x => x.Markdown).HasColumnType("text");
         });
 
         b.Entity<SalaryEstimateRecord>(e =>

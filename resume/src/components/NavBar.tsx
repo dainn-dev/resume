@@ -59,7 +59,7 @@ export default function NavBar() {
   return (
     <nav className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4">
-        <span className="text-blue-400 font-semibold text-sm">{t("nav.title")}</span>
+        <Link href="/dashboard" className="text-blue-400 font-semibold text-sm hover:text-blue-300 transition-colors">{t("nav.title")}</Link>
 
         {/* Desktop tabs */}
         <div className="hidden lg:flex items-center gap-1">

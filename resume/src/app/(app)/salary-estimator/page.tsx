@@ -14,9 +14,7 @@ import {
   setSalaryEstimatorResult,
   setSalaryEstimatorAnalysis,
   getBuilderForm,
-  getCurrentResumeId,
 } from "@/lib/pipeline";
-import { saveStepResult } from "@/lib/stepResults";
 
 const EXPERIENCE_KEYS = [
   { value: "0-2 years", label: "salary.experience_0_2" },
@@ -121,8 +119,6 @@ export default function SalaryEstimatorPage() {
       setAnalysis(data.data.analysis);
       setSalaryEstimatorResult(data.data.estimate);
       setSalaryEstimatorAnalysis(data.data.analysis);
-      const rid = getCurrentResumeId();
-      if (rid) saveStepResult(rid, "salary", { minSalary: data.data.estimate.minSalary, maxSalary: data.data.estimate.maxSalary, medianSalary: data.data.estimate.medianSalary, currency: data.data.estimate.currency, confidence: data.data.estimate.confidence, analysis: data.data.analysis });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -194,10 +190,6 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                 onClick={() => {
                   setResult(null);
                   setAnalysis("");
-                  if (typeof window !== "undefined") {
-                    sessionStorage.removeItem("salaryEstimatorResult");
-                    sessionStorage.removeItem("salaryEstimatorAnalysis");
-                  }
                 }}
                 className="text-xs text-blue-400 hover:text-blue-300"
               >

@@ -10,12 +10,11 @@ import {
   getJobMatchInput,
   getJobMatchResult,
   getResumeText,
+  getCurrentResumeId,
   setJobMatchContext,
   setJobMatchInput,
   setJobMatchResult,
-  getCurrentResumeId,
 } from "@/lib/pipeline";
-import { saveStepResult } from "@/lib/stepResults";
 
 type InputMode = "url" | "paste";
 
@@ -190,12 +189,27 @@ export default function JobMatchPage() {
   const [result, setResult] = useState<JobMatchAnalysis | null>(null);
   const hydratedRef = useRef(false);
 
-  // Auto-sync inputs and any previous match result from sessionStorage
-  // so navigating between pipeline steps never loses progress.
   useEffect(() => {
+    let cancelled = false;
+
     const stored = getResumeText();
-    setResumeText(stored);
-    setHasResume(!!stored);
+    if (stored) {
+      setResumeText(stored);
+      setHasResume(true);
+    } else {
+      const resumeId = getCurrentResumeId();
+      if (resumeId) {
+        fetch(`/api/resumes/${resumeId}`)
+          .then(r => r.json())
+          .then(json => {
+            if (!cancelled && json.success && json.data?.rawText) {
+              setResumeText(json.data.rawText);
+              setHasResume(true);
+            }
+          })
+          .catch(() => {});
+      }
+    }
 
     const input = getJobMatchInput();
     if (input) {
@@ -208,6 +222,7 @@ export default function JobMatchPage() {
     if (cached) setResult(cached);
 
     hydratedRef.current = true;
+    return () => { cancelled = true; };
   }, []);
 
   // Persist input state every time it changes.
@@ -246,17 +261,15 @@ export default function JobMatchPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Analysis failed.");
 
-      // Store context for Cover Letter pre-fill (auto-synced on the next step)
+      const match = data.data;
       setJobMatchContext({
-        jobTitle: data.data.jobTitle ?? "",
-        company: data.data.company ?? "",
-        jobDescription: data.jobDescription ?? jobDescription,
+        jobTitle: match.jobTitle ?? "",
+        company: match.company ?? "",
+        jobDescription: match.jobDescription ?? jobDescription,
       });
 
-      setJobMatchResult(data.data);
-      setResult(data.data);
-      const rid = getCurrentResumeId();
-      if (rid) saveStepResult(rid, "jobMatch", { matchScore: data.data.matchScore, summary: data.data.summary, strengths: data.data.strengths, gaps: data.data.gaps });
+      setJobMatchResult(match);
+      setResult(match);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -281,10 +294,6 @@ export default function JobMatchPage() {
           result={result}
           t={t}
           onReset={() => {
-            if (typeof window !== "undefined") {
-              sessionStorage.removeItem("jobMatchContext");
-              sessionStorage.removeItem("jobMatchResult");
-            }
             setResult(null);
           }}
           onWriteCoverLetter={handleWriteCoverLetter}
@@ -320,9 +329,6 @@ export default function JobMatchPage() {
               const v = e.target.value;
               setResumeText(v);
               setHasResume(!!v.trim());
-              if (typeof window !== "undefined") {
-                sessionStorage.setItem("resumeText", v);
-              }
             }}
           />
         </div>

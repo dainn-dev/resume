@@ -16,9 +16,7 @@ import {
   setCareerCoachForm,
   setCareerCoachResult,
   setCareerCoachAnalysis,
-  getCurrentResumeId,
 } from "@/lib/pipeline";
-import { saveStepResult } from "@/lib/stepResults";
 
 const TIMELINES: CareerCoachFormData["timeline"][] = ["1 year", "2-3 years", "5+ years"];
 const TIMELINE_KEYS: Record<string, string> = {
@@ -157,8 +155,6 @@ export default function CareerCoachPage() {
       setAnalysis(data.data.analysis);
       setCareerCoachResult(data.data.result);
       setCareerCoachAnalysis(data.data.analysis);
-      const rid = getCurrentResumeId();
-      if (rid) saveStepResult(rid, "career", { milestoneCount: data.data.result.careerRoadmap.length, quickWins: data.data.result.quickWins, analysis: data.data.analysis });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -229,10 +225,6 @@ export default function CareerCoachPage() {
                 onClick={() => {
                   setResult(null);
                   setAnalysis("");
-                  if (typeof window !== "undefined") {
-                    sessionStorage.removeItem("careerCoachResult");
-                    sessionStorage.removeItem("careerCoachAnalysis");
-                  }
                 }}
                 className="text-xs text-blue-400 hover:text-blue-300"
               >

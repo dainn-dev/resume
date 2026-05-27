@@ -20,24 +20,7 @@ function getLocale(): Locale {
   return (localStorage.getItem("locale") as Locale) || "en";
 }
 
-function getCached<T>(cacheKey: string, locale: Locale): T | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = sessionStorage.getItem(`${cacheKey}__${locale}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function setCache<T>(cacheKey: string, locale: Locale, data: T): void {
-  if (typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem(`${cacheKey}__${locale}`, JSON.stringify(data));
-  } catch {
-    // ignore
-  }
-}
+const translationCache = new Map<string, unknown>();
 
 async function translateViaApi<T>(content: T, targetLocale: Locale): Promise<T> {
   const res = await fetch("/api/translate", {
@@ -75,7 +58,8 @@ export function useTranslateContent<T>({
         return;
       }
 
-      const cached = getCached<T>(cacheKey, loc);
+      const key = `${cacheKey}__${loc}`;
+      const cached = translationCache.get(key) as T | undefined;
       if (cached) {
         setTranslated(cached);
         return;
@@ -90,7 +74,7 @@ export function useTranslateContent<T>({
         const result = await translateViaApi(src, loc);
         if (!controller.signal.aborted) {
           setTranslated(result);
-          setCache(cacheKey, loc, result);
+          translationCache.set(key, result);
         }
       } catch {
         if (!controller.signal.aborted) {

@@ -29,11 +29,54 @@ public sealed class AnthropicClient : IAnthropicClient
         _http.Timeout = TimeSpan.FromSeconds(_opts.TimeoutSeconds);
     }
 
+    private static readonly int[] RetryableStatusCodes = [429, 502, 503, 524];
+
     public async Task<string> CompleteAsync(string systemPrompt, string userPrompt, int maxTokens = 2000, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_opts.ApiKey))
             throw new InvalidOperationException("ANTHROPIC_API_KEY is not configured. Set Anthropic:ApiKey or the ANTHROPIC__APIKEY env var.");
 
+        using var aiCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        aiCts.CancelAfter(TimeSpan.FromSeconds(_opts.TimeoutSeconds));
+        var aiToken = aiCts.Token;
+
+        const int maxRetries = 3;
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                var (res, body) = await SendRequestAsync(systemPrompt, userPrompt, maxTokens, aiToken);
+
+                if (res.IsSuccessStatusCode)
+                    return ParseResponse(body);
+
+                var status = (int)res.StatusCode;
+                if (attempt < maxRetries - 1 && RetryableStatusCodes.Contains(status))
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
+                    _logger.LogWarning("Anthropic API {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", status, delay.TotalSeconds, attempt + 1, maxRetries);
+                    await Task.Delay(delay, CancellationToken.None);
+                    continue;
+                }
+
+                _logger.LogWarning("Anthropic API {Status}: {Body}", status, body);
+                throw new InvalidOperationException($"Anthropic API error {status}: {Truncate(body, 500)}");
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                if (ct.IsCancellationRequested) throw;
+                if (attempt >= maxRetries - 1) throw;
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
+                _logger.LogWarning(ex, "Anthropic API transport error, retrying in {Delay}s (attempt {Attempt}/{Max})", delay.TotalSeconds, attempt + 1, maxRetries);
+                aiCts.TryReset();
+                aiCts.CancelAfter(TimeSpan.FromSeconds(_opts.TimeoutSeconds));
+                await Task.Delay(delay, CancellationToken.None);
+            }
+        }
+    }
+
+    private async Task<(HttpResponseMessage res, string body)> SendRequestAsync(string systemPrompt, string userPrompt, int maxTokens, CancellationToken ct)
+    {
         var payload = new
         {
             model = _opts.Model,
@@ -51,14 +94,13 @@ public sealed class AnthropicClient : IAnthropicClient
         req.Headers.Add("anthropic-version", _opts.ApiVersion);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opts.ApiKey);
 
-        using var res = await _http.SendAsync(req, ct);
+        var res = await _http.SendAsync(req, ct);
         var body = await res.Content.ReadAsStringAsync(ct);
+        return (res, body);
+    }
 
-        if (!res.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Anthropic API {Status}: {Body}", (int)res.StatusCode, body);
-            throw new InvalidOperationException($"Anthropic API error {(int)res.StatusCode}: {Truncate(body, 500)}");
-        }
+    private string ParseResponse(string body)
+    {
 
         using var doc = JsonDocument.Parse(body);
         var root = doc.RootElement;

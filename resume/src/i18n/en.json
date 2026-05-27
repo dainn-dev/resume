@@ -103,6 +103,8 @@
     "generateButton": "Generate Resume",
     "jobMatchButton": "Job Match →",
     "startOverButton": "Start Over",
+    "applyRecommendationsTitle": "AI Recommendations Available",
+    "applyRecommendationsHint": "Auto-apply scoring feedback to improve your resume",
     "buildingFailed": "Failed to build resume",
     "nextStep": "Next: Job Match →"
   },

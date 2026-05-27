@@ -103,6 +103,8 @@
     "generateButton": "Tạo CV",
     "jobMatchButton": "Kết Hợp Công Việc →",
     "startOverButton": "Bắt Đầu Lại",
+    "applyRecommendationsTitle": "Gợi ý cải thiện từ AI",
+    "applyRecommendationsHint": "Tự động áp dụng phản hồi chấm điểm để cải thiện CV",
     "buildingFailed": "Lỗi xây dựng CV",
     "nextStep": "Tiếp Theo: Kết Hợp Công Việc →"
   },

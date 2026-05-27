@@ -8,6 +8,7 @@ public class Resume
     public string? SourceFileName { get; set; }
     public string RawText { get; set; } = string.Empty;
     public string? ParsedDataJson { get; set; }
+    public string? FileHash { get; set; }
     public Guid? LastAnalysisId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -67,6 +68,15 @@ public class InterviewCoachSession
     public string InputJson { get; set; } = "{}";
     public string ResultJson { get; set; } = "{}";
     public string Analysis { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class ResumeBuild
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string InputHash { get; set; } = string.Empty;
+    public string Markdown { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

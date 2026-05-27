@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  getResumeAnalysis,
+  getBuiltResumeMarkdown,
+  getJobMatchContext,
+  getCoverLetterResult,
+  getSalaryEstimatorResult,
+  getInterviewCoachResult,
+  getCareerCoachResult,
+} from "@/lib/pipeline";
 
 interface Step {
   key: string;
@@ -107,13 +116,13 @@ export default function WorkflowProgress() {
 
   useEffect(() => {
     const keys = new Set<string>();
-    if (sessionStorage.getItem("resumeAnalysis")) keys.add("resumeAnalysis");
-    if (sessionStorage.getItem("builtResume")) keys.add("builtResume");
-    if (sessionStorage.getItem("jobMatchContext")) keys.add("jobMatchContext");
-    if (sessionStorage.getItem("coverLetterResult")) keys.add("coverLetterResult");
-    if (sessionStorage.getItem("salaryEstimatorResult")) keys.add("salaryEstimatorResult");
-    if (sessionStorage.getItem("interviewCoachResult")) keys.add("interviewCoachResult");
-    if (sessionStorage.getItem("careerCoachResult")) keys.add("careerCoachResult");
+    if (getResumeAnalysis()) keys.add("resumeAnalysis");
+    if (getBuiltResumeMarkdown()) keys.add("builtResume");
+    if (getJobMatchContext()) keys.add("jobMatchContext");
+    if (getCoverLetterResult()) keys.add("coverLetterResult");
+    if (getSalaryEstimatorResult()) keys.add("salaryEstimatorResult");
+    if (getInterviewCoachResult()) keys.add("interviewCoachResult");
+    if (getCareerCoachResult()) keys.add("careerCoachResult");
     setCompleted(keys);
   }, [pathname]);
 

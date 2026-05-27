@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using DResume.Api.Common;
 using DResume.Api.Contracts;
@@ -82,6 +83,10 @@ public sealed class ResumesController : ControllerBase
         if (file is null || file.Length == 0) throw new ArgumentException("File is required.");
         var userId = _current.RequireUserId();
 
+        var fileHash = await ComputeFileHashAsync(file, ct);
+        var existing = await FindByHashAsync(userId, fileHash, ct);
+        if (existing is not null) return Ok(ApiResult.Ok(existing));
+
         await using var stream = file.OpenReadStream();
         var text = await _parser.ExtractAsync(stream, file.ContentType, file.FileName, ct);
         if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Could not extract text from file.");
@@ -96,6 +101,7 @@ public sealed class ResumesController : ControllerBase
             SourceFileName = file.FileName,
             RawText = text,
             ParsedDataJson = JsonSerializer.Serialize(parsed, JsonOptions),
+            FileHash = fileHash,
         };
         _db.Resumes.Add(resume);
 
@@ -151,9 +157,41 @@ public sealed class ResumesController : ControllerBase
         var userId = _current.RequireUserId();
         var resume = await _db.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct)
             ?? throw new KeyNotFoundException("Resume not found.");
+
+        _db.JobMatches.RemoveRange(_db.JobMatches.Where(x => x.ResumeId == id));
+        _db.CoverLetters.RemoveRange(_db.CoverLetters.Where(x => x.ResumeId == id));
         _db.Resumes.Remove(resume);
         await _db.SaveChangesAsync(ct);
         return Ok(ApiResult.Ok(new { deleted = true }));
+    }
+
+    private static async Task<string> ComputeFileHashAsync(IFormFile file, CancellationToken ct)
+    {
+        await using var stream = file.OpenReadStream();
+        var hash = await SHA256.HashDataAsync(stream, ct);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private async Task<CreateResumeResponse?> FindByHashAsync(Guid userId, string fileHash, CancellationToken ct)
+    {
+        var resume = await _db.Resumes
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.FileHash == fileHash, ct);
+        if (resume is null) return null;
+
+        var latest = await _db.ResumeAnalyses
+            .Where(a => a.ResumeId == resume.Id)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        var parsed = string.IsNullOrEmpty(resume.ParsedDataJson) ? null
+            : JsonSerializer.Deserialize<ResumeFormDataDto>(resume.ParsedDataJson, JsonOptions);
+        var analysis = latest is null ? null
+            : JsonSerializer.Deserialize<ResumeAnalysisDto>(latest.ResultJson, JsonOptions);
+
+        resume.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return new CreateResumeResponse(resume.Id, resume.Title, resume.RawText, parsed, analysis, latest?.Id);
     }
 }
 
@@ -183,6 +221,32 @@ public sealed class LegacyAnalyzeController : ControllerBase
         if (file is null || file.Length == 0) throw new ArgumentException("File is required.");
         var userId = _current.RequireUserId();
 
+        var fileHash = await ComputeFileHashAsync(file, ct);
+        var existing = await _db.Resumes
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.FileHash == fileHash, ct);
+        if (existing is not null)
+        {
+            var latestAnalysis = await _db.ResumeAnalyses
+                .Where(a => a.ResumeId == existing.Id)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            var cachedAnalysis = latestAnalysis is null ? null
+                : JsonSerializer.Deserialize<ResumeAnalysisDto>(latestAnalysis.ResultJson, JsonOptions);
+
+            existing.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            return Ok(new
+            {
+                success = true,
+                data = cachedAnalysis,
+                resumeText = existing.RawText,
+                id = existing.Id,
+                error = (string?)null,
+            });
+        }
+
         await using var stream = file.OpenReadStream();
         var text = await _parser.ExtractAsync(stream, file.ContentType, file.FileName, ct);
         if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Could not extract text from file.");
@@ -197,6 +261,7 @@ public sealed class LegacyAnalyzeController : ControllerBase
             SourceFileName = file.FileName,
             RawText = text,
             ParsedDataJson = JsonSerializer.Serialize(parsed, JsonOptions),
+            FileHash = fileHash,
         };
         _db.Resumes.Add(resume);
         var record = new ResumeAnalysisRecord
@@ -218,6 +283,13 @@ public sealed class LegacyAnalyzeController : ControllerBase
             id = resume.Id,
             error = (string?)null,
         });
+    }
+
+    private static async Task<string> ComputeFileHashAsync(IFormFile file, CancellationToken ct)
+    {
+        await using var stream = file.OpenReadStream();
+        var hash = await SHA256.HashDataAsync(stream, ct);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }
 

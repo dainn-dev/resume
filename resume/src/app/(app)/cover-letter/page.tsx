@@ -11,10 +11,8 @@ import {
   getJobMatchContext,
   setCoverLetterForm,
   setCoverLetterResult,
-  getCurrentResumeId,
   type JobMatchContext,
 } from "@/lib/pipeline";
-import { saveStepResult } from "@/lib/stepResults";
 
 const TONES: CoverLetterFormData["tone"][] = ["Professional", "Enthusiastic", "Concise"];
 
@@ -117,8 +115,6 @@ export default function CoverLetterPage() {
       setResult(data.data.text);
       setEdited(data.data.text);
       setCoverLetterResult(data.data.text);
-      const rid = getCurrentResumeId();
-      if (rid) saveStepResult(rid, "coverLetter", { text: data.data.text });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -157,9 +153,6 @@ export default function CoverLetterPage() {
                 onClick={() => {
                   setResult(null);
                   setEdited("");
-                  if (typeof window !== "undefined") {
-                    sessionStorage.removeItem("coverLetterResult");
-                  }
                 }}
                 className="text-xs text-blue-400 hover:text-blue-300"
               >

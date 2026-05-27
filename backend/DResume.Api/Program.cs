@@ -1,8 +1,10 @@
 using DainnStripe;
 using DainnStripe.Data;
 using DainnStripe.Interfaces;
+using DainnUser.Core.Interfaces.Services;
 using DainnUser.Infrastructure;
 using DainnUser.Infrastructure.Data;
+using DResume.Api.Features.Email;
 using DResume.Api.Ai;
 using DResume.Api.Billing;
 using DResume.Api.Common;
@@ -43,6 +45,7 @@ builder.Services.AddDainnUser(builder.Configuration, opts =>
     opts.EnableTwoFactor = false;
     opts.EnableGenericOidc = false;
 });
+builder.Services.AddScoped<IEmailService, DResumeEmailService>();
 
 builder.Services.AddDbContext<ResumeDbContext>(o =>
     o.UseNpgsql(
@@ -154,7 +157,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     {
         var stripeDb = scope.ServiceProvider.GetService<DainnStripeDbContext>();
         if (stripeDb is not null)
-            await stripeDb.Database.MigrateAsync();
+            await stripeDb.Database.EnsureCreatedAsync();
     }
     catch (Exception ex)
     {
@@ -173,6 +176,29 @@ await using (var scope = app.Services.CreateAsyncScope())
         catch (Exception ex)
         {
             app.Logger.LogWarning(ex, "Stripe catalog seeding skipped: {Message}", ex.Message);
+        }
+    }
+    // Seed admin accounts
+    var adminEmails = builder.Configuration.GetSection("Admin:Emails").Get<string[]>() ?? [];
+    if (adminEmails.Length > 0 && dainnDb is not null)
+    {
+        var auth = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+        var adminPassword = builder.Configuration["Admin:DefaultPassword"] ?? "123098@";
+        foreach (var email in adminEmails)
+        {
+            try
+            {
+                await auth.RegisterAsync(email, email.Split('@')[0], adminPassword);
+                app.Logger.LogInformation("Admin account created: {Email}", email);
+            }
+            catch { /* Already exists */ }
+
+            try
+            {
+                await dainnDb.Database.ExecuteSqlRawAsync(
+                    "UPDATE public.\"Users\" SET \"EmailVerified\" = true WHERE \"Email\" = {0}", email);
+            }
+            catch { /* Column may not exist or already verified */ }
         }
     }
 }

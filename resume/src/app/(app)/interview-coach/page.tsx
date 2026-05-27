@@ -14,10 +14,8 @@ import {
   setInterviewCoachForm,
   setInterviewCoachResult,
   setInterviewCoachAnalysis,
-  getCurrentResumeId,
   type JobMatchContext,
 } from "@/lib/pipeline";
-import { saveStepResult } from "@/lib/stepResults";
 
 const INTERVIEW_TYPES: InterviewCoachFormData["interviewType"][] = ["behavioral", "technical", "mixed"];
 
@@ -133,8 +131,6 @@ export default function InterviewCoachPage() {
       setAnalysis(data.data.analysis);
       setInterviewCoachResult(data.data.result);
       setInterviewCoachAnalysis(data.data.analysis);
-      const rid = getCurrentResumeId();
-      if (rid) saveStepResult(rid, "interview", { questionCount: data.data.result.questions.length, keyStrengths: data.data.result.keyStrengths, analysis: data.data.analysis });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -208,10 +204,6 @@ export default function InterviewCoachPage() {
                 onClick={() => {
                   setResult(null);
                   setAnalysis("");
-                  if (typeof window !== "undefined") {
-                    sessionStorage.removeItem("interviewCoachResult");
-                    sessionStorage.removeItem("interviewCoachAnalysis");
-                  }
                 }}
                 className="text-xs text-blue-400 hover:text-blue-300"
               >

@@ -45,7 +45,19 @@ public sealed class JobMatchController : ControllerBase
         _db.JobMatches.Add(record);
         await _db.SaveChangesAsync(ct);
 
-        return Ok(new ApiResult<object>(true, new { data = analysis, jobDescription = jd, id = record.Id }, null));
+        return Ok(ApiResult.Ok(new
+        {
+            analysis.JobTitle,
+            analysis.Company,
+            analysis.MatchScore,
+            analysis.Summary,
+            analysis.Strengths,
+            analysis.Gaps,
+            analysis.Suggestions,
+            analysis.KeywordMatch,
+            jobDescription = jd,
+            id = record.Id,
+        }));
     }
 
     [HttpGet]

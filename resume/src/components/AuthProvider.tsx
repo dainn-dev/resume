@@ -45,6 +45,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const logout = useCallback(async () => {
     await logoutRequest();
+    try { localStorage.clear(); } catch {}
+    try { sessionStorage.clear(); } catch {}
     setUserState(null);
   }, []);
 

@@ -1,3 +1,4 @@
+using DResume.Api.Common;
 using DResume.Api.Data;
 using DResume.Api.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -18,13 +19,27 @@ public interface IPlanService
         DateTime? currentPeriodEnd,
         CancellationToken ct = default);
     Task<UserSubscription?> FindByStripeSubscriptionAsync(string subscriptionId, CancellationToken ct = default);
+    bool IsAdmin();
 }
 
 public sealed class PlanService : IPlanService
 {
     private readonly ResumeDbContext _db;
+    private readonly ICurrentUser _current;
+    private readonly HashSet<string> _adminEmails;
 
-    public PlanService(ResumeDbContext db) => _db = db;
+    public PlanService(ResumeDbContext db, ICurrentUser current, IConfiguration config)
+    {
+        _db = db;
+        _current = current;
+        _adminEmails = config.GetSection("Admin:Emails")
+            .Get<string[]>()
+            ?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ?? [];
+    }
+
+    public bool IsAdmin() =>
+        _current.Email is not null && _adminEmails.Contains(_current.Email);
 
     public async Task<UserSubscription> GetOrCreateAsync(Guid userId, CancellationToken ct = default)
     {
@@ -38,6 +53,8 @@ public sealed class PlanService : IPlanService
 
     public async Task<PlanDefinition> GetCurrentPlanAsync(Guid userId, CancellationToken ct = default)
     {
+        if (IsAdmin()) return PlanCatalog.Enterprise;
+
         var sub = await GetOrCreateAsync(userId, ct);
         var isActive = sub.Status is "active" or "trialing";
         return isActive ? PlanCatalog.Get(sub.PlanCode) : PlanCatalog.Free;

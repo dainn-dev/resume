@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import type { ResumeFormData, WorkEntry, EducationEntry } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
@@ -11,12 +12,12 @@ import {
   getParsedResumeForm,
   getResumeText,
   getCurrentResumeId,
+  getResumeAnalysis,
   setBuilderForm,
   setBuiltResumeMarkdown,
   setParsedResumeForm,
-  PIPELINE_KEYS,
+  clearPipeline,
 } from "@/lib/pipeline";
-import { getBuilderCache, saveBuilderCache, updateBuilderCache } from "@/lib/recentAnalyses";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -40,7 +41,7 @@ function labelClass() {
   return "block text-xs font-medium text-gray-400 mb-1";
 }
 
-function StepBar({ step, t }: { step: Step; t: (key: string) => string }) {
+function StepBar({ step, onStepClick, t }: { step: Step; onStepClick: (s: Step) => void; t: (key: string) => string }) {
   return (
     <div className="flex items-center justify-center gap-0 mb-8">
       {STEP_LABEL_KEYS.map((key, i) => {
@@ -48,13 +49,17 @@ function StepBar({ step, t }: { step: Step; t: (key: string) => string }) {
         const num = (i + 1) as Step;
         const isCompleted = num < step;
         const isCurrent = num === step;
+        const isClickable = num <= step;
         return (
           <div key={num} className="flex items-center">
-            <div className="flex flex-col items-center">
+            <div
+              className={`flex flex-col items-center ${isClickable ? "cursor-pointer" : ""}`}
+              onClick={() => isClickable && onStepClick(num)}
+            >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
                   isCompleted
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white hover:bg-blue-500"
                     : isCurrent
                     ? "border-2 border-blue-500 bg-blue-500/10 text-blue-400"
                     : "bg-gray-800 text-gray-500"
@@ -62,7 +67,7 @@ function StepBar({ step, t }: { step: Step; t: (key: string) => string }) {
               >
                 {isCompleted ? "✓" : num}
               </div>
-              <span className={`text-xs mt-1 ${isCurrent ? "text-blue-400" : "text-gray-500"}`}>
+              <span className={`text-xs mt-1 ${isCurrent ? "text-blue-400" : isCompleted ? "text-blue-400" : "text-gray-500"}`}>
                 {label}
               </span>
             </div>
@@ -96,8 +101,40 @@ export default function BuildPage() {
   const [syncStep, setSyncStep] = useState<"idle" | "reading" | "parsing" | "filling" | "done" | "error">("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
   const [synced, setSynced] = useState(false);
+  const [improving, setImproving] = useState(false);
+  const [scoreComparison, setScoreComparison] = useState<{
+    beforeOverall: number; afterOverall: number;
+    beforeSections: Record<string, number>; afterSections: Record<string, number>;
+  } | null>(null);
   const hydratedRef = useRef(false);
   const resumePreviewRef = useRef<HTMLDivElement>(null);
+
+  const hasAnalysis = !!getResumeAnalysis();
+
+  async function handleApplyRecommendations() {
+    const analysis = getResumeAnalysis();
+    if (!analysis) return;
+    setImproving(true);
+    setError(null);
+    setScoreComparison(null);
+    try {
+      const res = await fetch("/api/build/improve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: form, analysis }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? "Failed to apply recommendations.");
+      const { resume: improved, comparison } = data.data;
+      setForm(normalizeParsed(improved));
+      setBuilderForm(normalizeParsed(improved));
+      if (comparison) setScoreComparison(comparison);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred.");
+    } finally {
+      setImproving(false);
+    }
+  }
 
   if (!mounted) {
     return (
@@ -110,7 +147,7 @@ export default function BuildPage() {
   useEffect(() => {
     const resumeId = getCurrentResumeId();
 
-    // 1. Check sessionStorage first (in-progress edits from this session)
+    // 1. Check in-memory pipeline first (in-progress edits from this session)
     const inProgress = getBuilderForm();
     if (inProgress) {
       setForm(inProgress);
@@ -121,37 +158,67 @@ export default function BuildPage() {
       return;
     }
 
-    // 2. Check localStorage cache for this resume ID
-    if (resumeId) {
-      const cached = getBuilderCache(resumeId);
-      if (cached) {
-        const formToUse = cached.builderForm ?? cached.parsedForm;
-        const normalized = normalizeParsed(formToUse);
-        setForm(normalized);
-        setBuilderForm(normalized);
-        setParsedResumeForm(cached.parsedForm);
-        if (cached.builtMarkdown) {
-          setMarkdown(cached.builtMarkdown);
-          setBuiltResumeMarkdown(cached.builtMarkdown);
-        }
-        setSynced(true);
-        hydratedRef.current = true;
-        return;
-      }
-    }
-
-    // 3. Check sessionStorage parsed form
+    // 2. Check in-memory parsed form
     const cachedParse = getParsedResumeForm();
     if (cachedParse) {
       const normalized = normalizeParsed(cachedParse);
       setForm(normalized);
-      if (resumeId) saveBuilderCache(resumeId, { parsedForm: normalized });
       setSynced(true);
       hydratedRef.current = true;
       return;
     }
 
-    // 4. Last resort: parse resume text via API
+    // 3. Try fetching from backend API if we have a resumeId
+    if (resumeId) {
+      let cancelled = false;
+      setSyncError(null);
+      (async () => {
+        try {
+          setSyncStep("reading");
+          const res = await fetch(`/api/resumes/${resumeId}`);
+          const json = await res.json();
+          if (!json.success || !json.data) throw new Error(json.error ?? "Failed to load resume.");
+          if (cancelled) return;
+
+          const detail = json.data;
+          if (detail.parsed) {
+            setSyncStep("filling");
+            const normalized = normalizeParsed(detail.parsed);
+            setParsedResumeForm(normalized);
+            setForm(normalized);
+            setSyncStep("done");
+            setSynced(true);
+          } else if (detail.rawText) {
+            setSyncStep("parsing");
+            const parseRes = await fetch("/api/parse-resume", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resumeText: detail.rawText }),
+            });
+            const parseData = await parseRes.json();
+            if (!parseData.success) throw new Error(parseData.error ?? "Sync failed.");
+            if (cancelled) return;
+
+            setSyncStep("filling");
+            const parsed = normalizeParsed(parseData.data);
+            setParsedResumeForm(parsed);
+            setForm(parsed);
+            setSyncStep("done");
+            setSynced(true);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setSyncStep("error");
+            setSyncError(err instanceof Error ? err.message : "Sync failed.");
+          }
+        } finally {
+          if (!cancelled) hydratedRef.current = true;
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+
+    // 4. Last resort: parse resume text from in-memory pipeline
     const resumeText = getResumeText();
     if (!resumeText.trim()) {
       hydratedRef.current = true;
@@ -162,10 +229,6 @@ export default function BuildPage() {
     setSyncError(null);
     (async () => {
       try {
-        setSyncStep("reading");
-        await new Promise(r => setTimeout(r, 300));
-        if (cancelled) return;
-
         setSyncStep("parsing");
         const res = await fetch("/api/parse-resume", {
           method: "POST",
@@ -180,8 +243,6 @@ export default function BuildPage() {
         const parsed = normalizeParsed(data.data);
         setParsedResumeForm(parsed);
         setForm(parsed);
-        if (resumeId) saveBuilderCache(resumeId, { parsedForm: parsed });
-
         setSyncStep("done");
         setSynced(true);
       } catch (err) {
@@ -190,9 +251,7 @@ export default function BuildPage() {
           setSyncError(err instanceof Error ? err.message : "Sync failed.");
         }
       } finally {
-        if (!cancelled) {
-          hydratedRef.current = true;
-        }
+        if (!cancelled) hydratedRef.current = true;
       }
     })();
 
@@ -202,8 +261,6 @@ export default function BuildPage() {
   useEffect(() => {
     if (!hydratedRef.current) return;
     setBuilderForm(form);
-    const resumeId = getCurrentResumeId();
-    if (resumeId) updateBuilderCache(resumeId, { builderForm: form });
   }, [form]);
 
   function updateField(field: keyof ResumeFormData, value: string) {
@@ -267,8 +324,6 @@ export default function BuildPage() {
       if (!data.success) throw new Error(data.error ?? "Generation failed.");
       setMarkdown(data.data.markdown);
       setBuiltResumeMarkdown(data.data.markdown);
-      const resumeId = getCurrentResumeId();
-      if (resumeId) updateBuilderCache(resumeId, { builtMarkdown: data.data.markdown });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -300,66 +355,158 @@ export default function BuildPage() {
     if (!markdown) return;
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const maxWidth = pageWidth - margin * 2;
-    let y = margin;
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const mx = 16;
+    const mTop = 14;
+    const mBot = 14;
+    const maxW = pageW - mx * 2;
+    let y = mTop;
+    let isFirstSection = true;
 
     function checkPage(needed: number) {
-      if (y + needed > doc.internal.pageSize.getHeight() - margin) {
-        doc.addPage();
-        y = margin;
+      if (y + needed > pageH - mBot) { doc.addPage(); y = mTop; }
+    }
+
+    function renderBoldLine(text: string, x: number, fontSize: number, maxWidth: number) {
+      doc.setFontSize(fontSize);
+      const parts = text.split(/(\*\*[^*]+\*\*)/g);
+      let cx = x;
+      for (const part of parts) {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          doc.setFont("helvetica", "bold");
+          const clean = part.slice(2, -2);
+          doc.text(clean, cx, y);
+          cx += doc.getTextWidth(clean);
+        } else if (part) {
+          doc.setFont("helvetica", "normal");
+          const clean = part.replace(/\*(.+?)\*/g, "$1");
+          doc.text(clean, cx, y);
+          cx += doc.getTextWidth(clean);
+        }
       }
     }
 
-    const lines = markdown.split("\n");
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) { y += 3; continue; }
+    function renderWrappedWithBold(text: string, x: number, fontSize: number, availW: number): number {
+      const clean = text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+      doc.setFontSize(fontSize).setFont("helvetica", "normal");
+      const wrapped = doc.splitTextToSize(clean, availW);
+      if (wrapped.length === 1) {
+        renderBoldLine(text, x, fontSize, availW);
+        return 1;
+      }
+      doc.text(wrapped, x, y);
+      return wrapped.length;
+    }
 
+    const lines = markdown.split("\n");
+    let contactDone = false;
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) { y += 2; continue; }
+      if (/^[-*_]{3,}$/.test(trimmed)) continue;
+
+      // --- Name (H1) ---
       if (trimmed.startsWith("# ")) {
-        checkPage(12);
-        doc.setFontSize(20).setFont("helvetica", "bold");
-        doc.text(trimmed.slice(2), margin, y);
-        y += 10;
-      } else if (trimmed.startsWith("## ")) {
+        const name = trimmed.slice(2).toUpperCase();
         checkPage(14);
-        y += 4;
-        doc.setDrawColor(180).setLineWidth(0.3);
-        doc.line(margin, y, margin + maxWidth, y);
-        y += 6;
-        doc.setFontSize(13).setFont("helvetica", "bold").setTextColor(30, 58, 95);
-        doc.text(trimmed.slice(3), margin, y);
-        doc.setTextColor(0);
-        y += 7;
-      } else if (trimmed.startsWith("### ")) {
+        doc.setFontSize(22).setFont("helvetica", "bold").setTextColor(33, 33, 33);
+        doc.text(name, pageW / 2, y, { align: "center" });
+        y += 9;
+
+      // --- Contact lines (lines between H1 and first H2) ---
+      } else if (i > 0 && !trimmed.startsWith("#") && !contactDone) {
+        const allContactParts: string[] = [];
+        for (let ci = i; ci < lines.length; ci++) {
+          const cl = lines[ci].trim();
+          if (!cl || cl.startsWith("#") || /^[-*_]{3,}$/.test(cl)) { i = ci - 1; break; }
+          const sub = cl.split("|").map(s => s.trim()).filter(Boolean);
+          allContactParts.push(...sub);
+          i = ci;
+        }
+        contactDone = true;
+
+        const basics: string[] = [];
+        const links: string[] = [];
+        for (let p of allContactParts) {
+          p = p.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+          p = p.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) => {
+            const short = url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+            return `${label}: ${short}`;
+          });
+          p = p.replace(/https?:\/\/(www\.)?/gi, "").replace(/\/$/g, "");
+
+          if (/linkedin|github|portfolio/i.test(p)) {
+            links.push(p);
+          } else if (p.includes("@") || /^Email:/i.test(p)) {
+            basics.push(/^Email:/i.test(p) ? p : `Email: ${p}`);
+          } else if (/^Phone:/i.test(p) || /^[+\d][\d\s().,-]+$/.test(p)) {
+            basics.push(/^Phone:/i.test(p) ? p : `Phone: ${p}`);
+          } else if (/^Location:/i.test(p)) {
+            basics.push(p);
+          } else {
+            basics.push(p);
+          }
+        }
+
         checkPage(10);
-        y += 2;
-        doc.setFontSize(11).setFont("helvetica", "bold");
-        doc.text(trimmed.slice(4), margin, y);
-        y += 6;
+        doc.setFontSize(9).setFont("helvetica", "normal").setTextColor(80, 80, 80);
+        const stripBold = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+        if (basics.length) {
+          doc.text(stripBold(basics.join(" | ")), mx, y);
+          y += 4;
+        }
+        if (links.length) {
+          doc.text(stripBold(links.join(" | ")), mx, y);
+          y += 4;
+        }
+        doc.setTextColor(0);
+        y += 1;
+
+      // --- Section header (H2) ---
+      } else if (trimmed.startsWith("## ")) {
+        const sectionName = trimmed.slice(3).toUpperCase();
+        if (isFirstSection) { isFirstSection = false; } else { y += 2; }
+        checkPage(28);
+        doc.setDrawColor(50, 50, 50).setLineWidth(0.5);
+        doc.line(mx, y, mx + maxW, y);
+        y += 5;
+        doc.setFontSize(11).setFont("helvetica", "bold").setTextColor(33, 33, 33);
+        doc.text(sectionName, mx, y);
+        doc.setTextColor(0);
+        y += 5;
+
+      // --- Subsection / Job title (H3) ---
+      } else if (trimmed.startsWith("### ")) {
+        checkPage(12);
+        y += 1;
+        const heading = trimmed.slice(4);
+        doc.setFontSize(10.5).setFont("helvetica", "bold").setTextColor(33, 33, 33);
+        const headClean = heading.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+        const headWrapped = doc.splitTextToSize(headClean, maxW);
+        doc.text(headWrapped, mx, y);
+        doc.setTextColor(0);
+        y += headWrapped.length * 4.5;
+
+      // --- Bullet points ---
       } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) {
         const text = trimmed.replace(/^[-*•]\s+/, "");
         const clean = text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
-        doc.setFontSize(10).setFont("helvetica", "normal");
-        const wrapped = doc.splitTextToSize(clean, maxWidth - 8);
-        checkPage(wrapped.length * 5 + 2);
-        doc.text("•", margin + 2, y);
-        doc.text(wrapped, margin + 8, y);
-        y += wrapped.length * 5 + 1;
-      } else if (trimmed === "---") {
-        checkPage(6);
-        y += 2;
-        doc.setDrawColor(200).setLineWidth(0.2);
-        doc.line(margin, y, margin + maxWidth, y);
-        y += 4;
+        doc.setFontSize(9.5).setFont("helvetica", "normal").setTextColor(40, 40, 40);
+        const wrapped = doc.splitTextToSize(clean, maxW - 7);
+        checkPage(wrapped.length * 4.2 + 1);
+        doc.text("•", mx + 1.5, y);
+        doc.text(wrapped, mx + 6, y);
+        doc.setTextColor(0);
+        y += wrapped.length * 4.2;
+
+      // --- Regular text ---
       } else {
-        const clean = trimmed.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
-        doc.setFontSize(10).setFont("helvetica", "normal");
-        const wrapped = doc.splitTextToSize(clean, maxWidth);
-        checkPage(wrapped.length * 5);
-        doc.text(wrapped, margin, y);
-        y += wrapped.length * 5 + 1;
+        doc.setTextColor(40, 40, 40);
+        doc.setFontSize(9.5);
+        const lineCount = renderWrappedWithBold(trimmed, mx, 9.5, maxW);
+        doc.setTextColor(0);
+        y += lineCount * 4.2 + 0.5;
       }
     }
 
@@ -411,7 +558,76 @@ export default function BuildPage() {
         <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl px-5 py-3 text-red-400 text-sm">{syncError}</div>
       )}
 
-      <StepBar step={step} t={t} />
+      <StepBar step={step} onStepClick={setStep} t={t} />
+
+      {hasAnalysis && step <= 4 && (
+        <div className="mb-6 flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-4">
+          <div>
+            <p className="text-sm font-medium text-blue-300">{t("build.applyRecommendationsTitle")}</p>
+            <p className="text-xs text-blue-400/70 mt-0.5">{t("build.applyRecommendationsHint")}</p>
+          </div>
+          <button
+            onClick={handleApplyRecommendations}
+            disabled={improving}
+            className="shrink-0 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+          >
+            {improving ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                Applying...
+              </>
+            ) : (
+              "Apply All Recommendations"
+            )}
+          </button>
+        </div>
+      )}
+
+      {scoreComparison && (
+        <div className="mb-6 bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Score Improvement</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">{scoreComparison.beforeOverall}</span>
+              <span className="text-gray-600">→</span>
+              <span className={`text-lg font-bold ${scoreComparison.afterOverall > scoreComparison.beforeOverall ? "text-green-400" : scoreComparison.afterOverall < scoreComparison.beforeOverall ? "text-red-400" : "text-gray-400"}`}>
+                {scoreComparison.afterOverall}
+              </span>
+              {scoreComparison.afterOverall !== scoreComparison.beforeOverall && (
+                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${scoreComparison.afterOverall > scoreComparison.beforeOverall ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                  {scoreComparison.afterOverall > scoreComparison.beforeOverall ? "+" : ""}{scoreComparison.afterOverall - scoreComparison.beforeOverall}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Object.entries(scoreComparison.afterSections).map(([key, after]) => {
+              const before = scoreComparison.beforeSections[key] ?? 0;
+              const diff = after - before;
+              const labels: Record<string, string> = {
+                contactInfo: "Contact", summary: "Summary", workExperience: "Experience",
+                education: "Education", skills: "Skills", formatting: "Formatting",
+              };
+              return (
+                <div key={key} className="bg-gray-800 rounded-lg px-3 py-2">
+                  <p className="text-xs text-gray-500">{labels[key] ?? key}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-gray-500 text-sm">{before}</span>
+                    <span className="text-gray-600 text-xs">→</span>
+                    <span className={`text-sm font-semibold ${diff > 0 ? "text-green-400" : diff < 0 ? "text-red-400" : "text-gray-400"}`}>{after}</span>
+                    {diff !== 0 && (
+                      <span className={`text-xs ${diff > 0 ? "text-green-500" : "text-red-500"}`}>
+                        {diff > 0 ? `+${diff}` : diff}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={() => setScoreComparison(null)} className="text-xs text-gray-500 hover:text-gray-400">Dismiss</button>
+        </div>
+      )}
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
         {/* Step 1: Personal Info */}
@@ -627,13 +843,10 @@ export default function BuildPage() {
                     setMarkdown(null);
                     setForm(INITIAL_FORM);
                     setError(null);
-                    if (typeof window !== "undefined") {
-                      sessionStorage.removeItem(PIPELINE_KEYS.builtResume);
-                      sessionStorage.removeItem(PIPELINE_KEYS.builtResumeMarkdown);
-                      sessionStorage.removeItem(PIPELINE_KEYS.builderForm);
-                    }
+                    clearPipeline();
                   }} title={t("build.startOverButton")} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+
                   </button>
                 </div>
 
@@ -666,9 +879,9 @@ export default function BuildPage() {
               {step === 4 ? t("build.generateResumeButton") : t("build.continueButton")}
             </button>
           ) : markdown && (
-            <a href="/job-match" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors">
+            <Link href="/job-match" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors">
               {t("build.jobMatchButton")}
-            </a>
+            </Link>
           )}
         </div>
       </div>

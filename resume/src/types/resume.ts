@@ -26,5 +26,6 @@ export interface AnalyzeApiResponse {
   success: boolean;
   data?: ResumeAnalysis;
   resumeText?: string;
+  id?: string;
   error?: string;
 }

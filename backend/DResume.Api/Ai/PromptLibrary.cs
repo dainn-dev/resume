@@ -7,36 +7,124 @@ public static class PromptLibrary
 {
     private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n];
 
-    public const string AnalyzeSystem =
-        "You are an expert resume coach and hiring manager with 15+ years of experience reviewing resumes across tech, finance, and business sectors. Your role is to evaluate a resume objectively and return a structured JSON analysis. You must ONLY return valid JSON — no markdown, no commentary outside the JSON.";
+    public const string AnalyzeSectionSystem =
+        "You are an expert resume coach. Evaluate ONE section of a resume using the EXACT scoring rubric provided. Be consistent: the same content must always produce the same score. You must ONLY return valid JSON.";
 
-    public static string AnalyzeUser(string resumeText) =>
-        $@"Analyze the following resume and return a JSON object that exactly matches this schema. Score each section from 0–100 based on completeness, clarity, impact, and industry best practices.
+    private static readonly Dictionary<string, string> SectionRubrics = new()
+    {
+        ["Contact Information"] = @"Score based on these criteria (each worth points out of 100):
+- Full name present and professional (15 pts)
+- Email address present and professional, not novelty (15 pts)
+- Phone number with country code (15 pts)
+- Location/city included (15 pts)
+- LinkedIn URL present and complete (20 pts)
+- GitHub/portfolio URL if tech role (10 pts)
+- Clean formatting, no duplicate numbers (10 pts)
+Deduct 5 pts per missing item. Score 0 only if section is completely absent.",
 
-RESUME TEXT:
+        ["Summary / Objective"] = @"Score based on these criteria (each worth points out of 100):
+- Present and at least 2 sentences (15 pts)
+- States years of experience and seniority level (15 pts)
+- Mentions core technical skills or domain expertise (20 pts)
+- Includes 1+ quantified achievement or impact metric (20 pts)
+- Tailored to target role, not generic (15 pts)
+- Concise, under 4 sentences (15 pts)
+Deduct points proportionally for weak areas. Score 0 only if section is completely absent.",
+
+        ["Work Experience"] = @"Score based on these criteria (each worth points out of 100):
+- Uses reverse chronological order (10 pts)
+- Each role has company, title, and dates (10 pts)
+- Bullet points start with strong action verbs (15 pts)
+- At least 50% of bullets have quantified results (numbers, %, $) (20 pts)
+- Bullets show impact/outcome, not just responsibilities (20 pts)
+- 3-6 bullets per role, not too few or too many (10 pts)
+- Consistent date format throughout (5 pts)
+- No gaps or overlapping dates without explanation (10 pts)
+Deduct points proportionally. Score 0 only if section is completely absent.",
+
+        ["Education"] = @"Score based on these criteria (each worth points out of 100):
+- Degree and institution name present (25 pts)
+- Graduation year included (15 pts)
+- GPA included if above 3.0 or equivalent (10 pts)
+- Relevant certifications listed (20 pts)
+- Relevant coursework or honors if junior candidate (15 pts)
+- Clean formatting (15 pts)
+For senior candidates (7+ years), education section is less critical — be lenient on missing GPA/coursework.",
+
+        ["Skills"] = @"Score based on these criteria (each worth points out of 100):
+- Technical skills organized by category (20 pts)
+- Skills are specific, not vague (e.g. 'Python' not 'programming') (20 pts)
+- Skills match the work experience described (20 pts)
+- Proficiency levels indicated or implied by grouping (15 pts)
+- No outdated or irrelevant skills padding the list (10 pts)
+- Soft skills or leadership mentioned if senior role (15 pts)
+Score 0 only if section is completely absent.",
+
+        ["Formatting & Readability"] = @"Score based on these criteria (each worth points out of 100):
+- Resume is 1-2 pages (3 max for 10+ years experience) (25 pts)
+- Consistent heading hierarchy and visual structure (20 pts)
+- Consistent bullet point style (no mixing •, -, numbered) (15 pts)
+- Adequate white space, not dense walls of text (15 pts)
+- No spelling or grammar errors visible (15 pts)
+- ATS-friendly (no tables, columns, images) (10 pts)
+Be lenient on length for senior candidates with 7+ years experience.",
+    };
+
+    public static string AnalyzeSectionUser(string resumeText, string sectionKey, string sectionLabel) =>
+        $@"Analyze the ""{sectionLabel}"" section of the following resume using this EXACT scoring rubric:
+
+{SectionRubrics.GetValueOrDefault(sectionLabel, "Score 0-100 based on completeness, clarity, and impact.")}
+
+RESUME:
 ---
-{Truncate(resumeText, 24000)}
+{Truncate(resumeText, 10000)}
 ---
 
-Return ONLY this JSON structure with no additional text:
+Return ONLY this JSON:
 {{
-  ""overallScore"": <number 0-100>,
-  ""overallSummary"": ""<2-3 sentence executive summary of the resume's strengths and main weaknesses>"",
-  ""sections"": {{
-    ""contactInfo"": {{ ""score"": <0-100>, ""label"": ""Contact Information"", ""tips"": [{{ ""problem"": ""<what is wrong or missing>"", ""suggestion"": ""<exact rewritten text or concrete example to achieve 100>"" }}] }},
-    ""summary"": {{ ""score"": <0-100>, ""label"": ""Summary / Objective"", ""tips"": [{{ ""problem"": ""<what is wrong or missing>"", ""suggestion"": ""<exact rewritten text or concrete example to achieve 100>"" }}] }},
-    ""workExperience"": {{ ""score"": <0-100>, ""label"": ""Work Experience"", ""tips"": [{{ ""problem"": ""<what is wrong or missing>"", ""suggestion"": ""<exact rewritten text or concrete example to achieve 100>"" }}] }},
-    ""education"": {{ ""score"": <0-100>, ""label"": ""Education"", ""tips"": [{{ ""problem"": ""<what is wrong or missing>"", ""suggestion"": ""<exact rewritten text or concrete example to achieve 100>"" }}] }},
-    ""skills"": {{ ""score"": <0-100>, ""label"": ""Skills"", ""tips"": [{{ ""problem"": ""<what is wrong or missing>"", ""suggestion"": ""<exact rewritten text or concrete example to achieve 100>"" }}] }},
-    ""formatting"": {{ ""score"": <0-100>, ""label"": ""Formatting & Readability"", ""tips"": [{{ ""problem"": ""<what is wrong or missing>"", ""suggestion"": ""<exact rewritten text or concrete example to achieve 100>"" }}] }}
-  }}
+  ""score"": <0-100 per rubric above>,
+  ""label"": ""{sectionLabel}"",
+  ""tips"": [
+    {{ ""problem"": ""<specific issue referencing actual resume content>"", ""suggestion"": ""<concrete rewrite or example>"" }}
+  ]
 }}
 
 Rules:
-- Each section must have 2–4 tips
-- ""problem"" must be specific and reference actual content from the resume
-- ""suggestion"" must be a concrete, ready-to-use rewrite or example — not generic advice.
-- If a section is missing entirely, score it 0 and provide a full example of what to add";
+- 2–3 tips only, keep each under 100 words
+- Calculate score by summing points from the rubric — show your math mentally
+- If section is missing entirely, score 0";
+
+    public const string AnalyzeSummarySystem =
+        "You are an expert resume coach. Calculate the overall score using the EXACT weights provided. Return ONLY valid JSON.";
+
+    public static string AnalyzeSummaryUser(Dictionary<string, int> sectionScores) =>
+        $@"Calculate the weighted overall score using these EXACT weights:
+- Work Experience: 30% (most important)
+- Skills: 20%
+- Summary/Objective: 15%
+- Formatting & Readability: 15%
+- Contact Information: 10%
+- Education: 10%
+
+Section scores: {string.Join(", ", sectionScores.Select(kv => $"{kv.Key}: {kv.Value}/100"))}
+
+Compute: overallScore = round(workExperience*0.30 + skills*0.20 + summary*0.15 + formatting*0.15 + contactInfo*0.10 + education*0.10)
+
+Return ONLY this JSON:
+{{
+  ""overallScore"": <calculated weighted average, integer>,
+  ""overallSummary"": ""<2-3 sentence summary of strengths and weaknesses>""
+}}";
+
+    public static readonly (string Key, string Label)[] AnalyzeSections =
+    [
+        ("contactInfo", "Contact Information"),
+        ("summary", "Summary / Objective"),
+        ("workExperience", "Work Experience"),
+        ("education", "Education"),
+        ("skills", "Skills"),
+        ("formatting", "Formatting & Readability"),
+    ];
 
     public const string ParseSystem =
         "You are an expert resume parser. Extract the candidate's information from the resume text and return a JSON object matching the exact schema provided. Return ONLY valid JSON — no markdown fences, no commentary outside the JSON.";
@@ -66,6 +154,55 @@ Return ONLY this JSON:
   ""languages"": ""<spoken languages if listed>"",
   ""projects"": ""<notable projects if listed, else empty string>""
 }}";
+
+    public const string ImproveSystem =
+        "You are an expert resume writer who optimizes resumes to score maximum points on a specific rubric. Return ONLY valid JSON — no markdown, no commentary.";
+
+    private const string ImproveRubric = @"SCORING RUBRIC:
+CONTACT INFO (10%): Name(15), Email(15), Phone+country-code(15), Location(15), LinkedIn-URL(20), GitHub-URL(10), Clean-format(10)
+SUMMARY (15%): Present-2+sentences(15), Years+seniority(15), Core-skills(20), Quantified-achievement(20), Tailored(15), Concise<4-sentences(15)
+WORK EXPERIENCE (30%): Reverse-chrono(10), Company/title/dates(10), Action-verbs(15), 50%+-quantified-bullets(20), Impact-not-duties(20), 3-6-bullets-per-role(10), Consistent-dates(5), No-gaps(10)
+EDUCATION (10%): Degree+school(25), Year(15), GPA-if>3.0(10), Certs(20), Coursework(15), Format(15)
+SKILLS (20%): Categorized(20), Specific-not-vague(20), Match-experience(20), Proficiency(15), No-padding(10), Soft-skills(15)
+FORMATTING (15%): 1-2-pages(25), Consistent-headings(20), Bullet-style(15), White-space(15), No-errors(15), ATS-friendly(10)";
+
+    public static string ImproveUser(string currentFormJson, string tipsJson) =>
+        $@"Improve this resume AND score it using the rubric below.
+
+{ImproveRubric}
+
+CURRENT RESUME DATA:
+{Truncate(currentFormJson, 12000)}
+
+RECOMMENDATIONS TO APPLY:
+{Truncate(tipsJson, 6000)}
+
+Return ONLY this JSON with both improved resume AND scores:
+{{
+  ""resume"": {{
+    ""fullName"": ""..."", ""email"": ""..."", ""phone"": ""..."", ""location"": ""..."",
+    ""linkedIn"": ""..."", ""github"": ""..."", ""summary"": ""..."",
+    ""workEntries"": [{{ ""company"": ""..."", ""projectName"": ""..."", ""title"": ""..."", ""startDate"": ""..."", ""endDate"": ""..."", ""bullets"": [""...""] }}],
+    ""educationEntries"": [{{ ""school"": ""..."", ""degree"": ""..."", ""graduationYear"": ""..."", ""gpa"": ""..."" }}],
+    ""technicalSkills"": ""..."", ""softSkills"": ""..."", ""certifications"": ""..."", ""languages"": ""..."", ""projects"": ""...""
+  }},
+  ""scores"": {{
+    ""contactInfo"": <0-100 sum rubric points>,
+    ""summary"": <0-100>,
+    ""workExperience"": <0-100>,
+    ""education"": <0-100>,
+    ""skills"": <0-100>,
+    ""formatting"": <0-100>
+  }}
+}}
+
+Rules:
+- Apply every recommendation targeting the rubric points
+- Rewrite bullets: action verbs + quantified results (numbers, %, $) in 50%+ of bullets
+- Add phone country code if missing, add location if missing
+- Keep factual information (names, dates, companies) unchanged
+- Score MUST be higher than before — calculate by summing rubric points for the IMPROVED version
+- Be strict and honest with scoring — only award points the improved content actually earns";
 
     public const string JobMatchSystem =
         "You are an expert technical recruiter and career coach. Analyze how well a candidate's resume matches a job description and return a structured JSON analysis. You must ONLY return valid JSON — no markdown, no commentary outside the JSON.";
@@ -104,7 +241,7 @@ Rules:
 - keywordMatch.missing: 5–10 keywords";
 
     public const string BuildSystem =
-        "You are an expert resume writer. Your task is to produce a polished, professional resume in Markdown format based on the structured data provided. Return ONLY the Markdown — no commentary, no code fences, no preamble. Use # for the candidate's name, ## for section headings, and achievement-focused bullet points starting with strong action verbs. When a company has multiple roles, list them under a single company heading with each role as a sub-entry showing its own title, project (if provided), dates, and achievements.";
+        "You are an expert resume writer. Your task is to produce a polished, professional resume in Markdown format based on the structured data provided. Return ONLY the Markdown — no commentary, no code fences, no preamble. Use # for the candidate's name, ## for section headings, ### for company names, and achievement-focused bullet points starting with strong action verbs. When a company has multiple roles, list them under a single ### company heading with each role as a sub-entry showing its own title, project (if provided), dates, and achievements. NEVER use horizontal rules (---, ***, ___) anywhere in the output. NEVER create a 'Selected Projects' or 'Projects' section — project names must only appear inline within the work experience entries where they belong.";
 
     public static string BuildUser(ResumeFormDataDto d)
     {
