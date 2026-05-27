@@ -112,44 +112,46 @@ export default function LandingPage() {
             <p className="text-gray-400">{t("landing.pricingSubtitle")}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(["Free", "Pro", "Enterprise"] as const).map(tier => {
-              const key = tier.toLowerCase() as "free" | "pro" | "enterprise";
-              const isPro = tier === "Pro";
-              return (
-                <div key={tier} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 ${isPro ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
-                  {isPro && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                      {t("landing.pricingProBadge")}
-                    </span>
-                  )}
-                  <div>
-                    <h3 className="text-white font-semibold">{t(`landing.pricing${tier}Title`)}</h3>
-                    <div className="mt-2 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-white">{t(`landing.pricing${tier}Price`)}</span>
-                      <span className="text-gray-500 text-sm">{t(`landing.pricing${tier}Period`)}</span>
-                    </div>
+            {([
+              { name: "Free", price: "$0", period: "", desc: t("landing.pricingFreeTitle"), cta: t("landing.pricingFreeCta"), isPro: false, limits: { resumes: 2, aiCalls: 5, jobMatch: false, coverLetter: false, careerCoach: false, interviewCoach: false, salaryEstimator: false, priorityQueue: false } },
+              { name: "Pro", price: "$9.99", period: "/mo", desc: t("landing.pricingProTitle"), cta: t("landing.pricingProCta"), isPro: true, limits: { resumes: 50, aiCalls: 200, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: false } },
+              { name: "Enterprise", price: "$29.99", period: "/mo", desc: t("landing.pricingEnterpriseTitle"), cta: t("landing.pricingEnterpriseCta"), isPro: false, limits: { resumes: null, aiCalls: null, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: true } },
+            ]).map(plan => (
+              <div key={plan.name} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 flex flex-col ${plan.isPro ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
+                {plan.isPro && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {t("landing.pricingProBadge")}
+                  </span>
+                )}
+                <div>
+                  <h3 className="text-white font-semibold">{plan.name}</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-white">{plan.price}</span>
+                    {plan.period && <span className="text-gray-500 text-sm">{plan.period}</span>}
                   </div>
-                  <ul className="space-y-2.5">
-                    {t(`landing.pricing${tier}Features`).split("|").map((feat, i) => (
-                      <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
-                        <span className="text-green-400 mt-0.5 shrink-0">✓</span>
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href="/register"
-                    className={`block text-center text-sm font-semibold py-2.5 rounded-lg transition-colors ${
-                      isPro
-                        ? "bg-blue-600 hover:bg-blue-500 text-white"
-                        : "border border-gray-700 text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    {t(`landing.pricing${tier}Cta`)}
-                  </Link>
                 </div>
-              );
-            })}
+                <ul className="text-xs text-gray-300 space-y-2 flex-1">
+                  <li>• Resumes: {plan.limits.resumes ?? "Unlimited"}</li>
+                  <li>• AI calls/month: {plan.limits.aiCalls ?? "Unlimited"}</li>
+                  <li className={plan.limits.jobMatch ? "text-gray-300" : "text-gray-600 line-through"}>• Job Match</li>
+                  <li className={plan.limits.coverLetter ? "text-gray-300" : "text-gray-600 line-through"}>• Cover Letter</li>
+                  <li className={plan.limits.careerCoach ? "text-gray-300" : "text-gray-600 line-through"}>• Career Coach</li>
+                  <li className={plan.limits.interviewCoach ? "text-gray-300" : "text-gray-600 line-through"}>• Interview Coach</li>
+                  <li className={plan.limits.salaryEstimator ? "text-gray-300" : "text-gray-600 line-through"}>• Salary Estimator</li>
+                  {plan.limits.priorityQueue && <li className="text-amber-300">• Priority queue</li>}
+                </ul>
+                <Link
+                  href="/register"
+                  className={`block text-center text-sm font-semibold py-2.5 rounded-lg transition-colors ${
+                    plan.isPro
+                      ? "bg-blue-600 hover:bg-blue-500 text-white"
+                      : "border border-gray-700 text-gray-300 hover:bg-gray-800"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       </section>

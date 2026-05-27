@@ -72,7 +72,7 @@ public sealed class BillingController : ControllerBase
     {
         var userId = _current.RequireUserId();
         var sub = await _plans.GetOrCreateAsync(userId, ct);
-        var plan = PlanCatalog.Get(sub.PlanCode);
+        var plan = await _plans.GetCurrentPlanAsync(userId, ct);
         return Ok(ApiResult.Ok(new
         {
             plan = new { code = plan.Code.ToString(), name = plan.Name, lookupKey = plan.LookupKey },

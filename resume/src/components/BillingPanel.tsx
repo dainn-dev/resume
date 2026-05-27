@@ -110,6 +110,8 @@ export default function BillingPanel() {
   }
 
   const currentCode = me?.plan.code ?? "Free";
+  const tierOrder: Record<string, number> = { Free: 0, Pro: 1, Enterprise: 2 };
+  const currentTier = tierOrder[currentCode] ?? 0;
 
   return (
     <div className="space-y-4">
@@ -178,7 +180,7 @@ export default function BillingPanel() {
                   disabled={busyCode === plan.code}
                   className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
                 >
-                  {busyCode === plan.code ? "…" : `Upgrade to ${plan.name}`}
+                  {busyCode === plan.code ? "…" : `${(tierOrder[plan.code] ?? 0) < currentTier ? "Downgrade" : "Upgrade"} to ${plan.name}`}
                 </button>
               )}
             </div>

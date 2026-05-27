@@ -92,7 +92,7 @@ public sealed class UsersController : ControllerBase
 
         var profile = await _profile.GetProfileAsync(userId, ct);
         var subscription = await _plans.GetOrCreateAsync(userId, ct);
-        var plan = PlanCatalog.Get(subscription.PlanCode);
+        var plan = await _plans.GetCurrentPlanAsync(userId, ct);
 
         var resumes = await _db.Resumes
             .AsNoTracking()
