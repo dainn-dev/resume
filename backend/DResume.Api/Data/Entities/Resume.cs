@@ -89,3 +89,43 @@ public class SalaryEstimateRecord
     public string Analysis { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+public class CalendarGoal
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Timeline { get; set; }
+    public string Status { get; set; } = "not-started";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public List<CalendarMilestone> Milestones { get; set; } = new();
+}
+
+public class CalendarMilestone
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid GoalId { get; set; }
+    public CalendarGoal? Goal { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? DueDate { get; set; }
+    public bool Completed { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public List<CalendarTask> Tasks { get; set; } = new();
+}
+
+public class CalendarTask
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid MilestoneId { get; set; }
+    public CalendarMilestone? Milestone { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Date { get; set; }
+    public bool Completed { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

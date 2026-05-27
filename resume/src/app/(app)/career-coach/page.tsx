@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import type { CareerCoachFormData, CareerCoachResult } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useTranslation } from "@/components/TranslationProvider";
@@ -333,9 +334,17 @@ export default function CareerCoachPage() {
               </div>
             )}
 
-            <button onClick={handleCopy} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
-              {copied ? t("careerCoach.copied") : t("careerCoach.copyReport")}
-            </button>
+            <div className="flex gap-3">
+              <button onClick={handleCopy} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
+                {copied ? t("careerCoach.copied") : t("careerCoach.copyReport")}
+              </button>
+              <Link
+                href="/calendar"
+                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+              >
+                {t("careerCoach.buildGoals")}
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">

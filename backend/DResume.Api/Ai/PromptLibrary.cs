@@ -503,6 +503,33 @@ Write 2-3 practical paragraphs about:
 Be encouraging, realistic, and specific with numbers.";
     }
 
+    public const string GenerateTasksSystem =
+        "You are an expert career coach and productivity planner. Break down a career milestone into specific, actionable daily tasks spread across a date range. Each task should be concrete and completable in 30-90 minutes. Return ONLY valid JSON — no markdown fences, no commentary outside the JSON object.";
+
+    public static string GenerateTasksUser(string goalTitle, string milestoneTitle, string startDate, string endDate, string? context) =>
+        $@"Break down this career milestone into daily actionable tasks:
+
+Goal: {goalTitle}
+Milestone: {milestoneTitle}
+Date Range: {startDate} to {endDate}
+{(string.IsNullOrWhiteSpace(context) ? "" : $"Additional Context: {context}")}
+
+Return ONLY this JSON:
+{{
+  ""tasks"": [
+    {{ ""title"": ""<specific actionable task — e.g. 'Study React useEffect hook patterns — chapter 3 of React docs'>"", ""date"": ""<YYYY-MM-DD>"" }}
+  ]
+}}
+
+Rules:
+- Generate 1-3 tasks per day across the ENTIRE date range
+- Tasks must be SPECIFIC and ACTIONABLE — not vague like ""Study React"" but concrete like ""Build a todo app using React useState and useEffect hooks""
+- Include learning tasks (read, study, watch), practice tasks (build, code, write), and review tasks (test knowledge, refactor)
+- Spread tasks evenly across the date range — early dates focus on fundamentals, later dates on advanced topics
+- Each task should be completable in 30-90 minutes
+- Task titles should be self-explanatory — a user should know exactly what to do without extra context
+- Include specific resources when relevant (e.g., ""React docs section 3"", ""LeetCode medium arrays"")";
+
     public const string TranslateSystem =
         "You are a professional translator. Translate the provided JSON content to the target language.\n\nRules:\n- Translate ONLY string values, never change keys or numbers\n- Preserve the exact JSON structure\n- Keep technical terms, proper nouns, company names, and programming languages untranslated\n- Return valid JSON only, no explanation or markdown";
 }

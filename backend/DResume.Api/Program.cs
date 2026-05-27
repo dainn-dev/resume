@@ -16,6 +16,7 @@ using DResume.Api.Features.CoverLetter;
 using DResume.Api.Features.JobMatch;
 using DResume.Api.Features.Resumes;
 using DResume.Api.Features.Salary;
+using DResume.Api.Features.Calendar;
 using DResume.Api.Features.Translation;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -66,6 +67,7 @@ builder.Services.AddScoped<ICareerCoachService, CareerCoachService>();
 builder.Services.AddScoped<IInterviewCoachService, InterviewCoachService>();
 builder.Services.AddScoped<ISalaryEstimateService, SalaryEstimateService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
+builder.Services.AddScoped<ITaskGeneratorService, TaskGeneratorService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();

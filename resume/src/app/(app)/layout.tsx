@@ -9,7 +9,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthGate>
       <NavBar />
       <div className="border-b border-gray-800/60 bg-gray-900/30">
-        <div className="max-w-3xl mx-auto py-3">
+        <div className="max-w-5xl mx-auto py-3">
           <WorkflowProgress />
         </div>
       </div>

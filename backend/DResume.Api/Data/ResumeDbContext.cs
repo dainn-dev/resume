@@ -16,6 +16,9 @@ public class ResumeDbContext : DbContext
     public DbSet<SalaryEstimateRecord> SalaryEstimates => Set<SalaryEstimateRecord>();
     public DbSet<ResumeBuild> ResumeBuilds => Set<ResumeBuild>();
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<CalendarGoal> CalendarGoals => Set<CalendarGoal>();
+    public DbSet<CalendarMilestone> CalendarMilestones => Set<CalendarMilestone>();
+    public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -97,6 +100,30 @@ public class ResumeDbContext : DbContext
             e.Property(x => x.InputJson).HasColumnType("jsonb");
             e.Property(x => x.EstimateJson).HasColumnType("jsonb");
             e.Property(x => x.Analysis).HasColumnType("text");
+        });
+
+        b.Entity<CalendarGoal>(e =>
+        {
+            e.ToTable("calendar_goals");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.UserId);
+            e.Property(x => x.Status).HasMaxLength(20);
+            e.HasMany(x => x.Milestones).WithOne(x => x.Goal!).HasForeignKey(x => x.GoalId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CalendarMilestone>(e =>
+        {
+            e.ToTable("calendar_milestones");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.GoalId);
+            e.HasMany(x => x.Tasks).WithOne(x => x.Milestone!).HasForeignKey(x => x.MilestoneId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CalendarTask>(e =>
+        {
+            e.ToTable("calendar_tasks");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.MilestoneId);
         });
 
         b.Entity<UserSubscription>(e =>

@@ -145,3 +145,33 @@ export interface CareerCoachApiResponse {
   data?: { result: CareerCoachResult; analysis: string };
   error?: string;
 }
+
+export interface CalendarGoal {
+  id: string;
+  title: string;
+  description: string;
+  timeline: string;
+  status: "not-started" | "in-progress" | "completed";
+}
+
+export interface CalendarMilestone {
+  id: string;
+  goalId: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+}
+
+export interface CalendarTask {
+  id: string;
+  milestoneId: string;
+  title: string;
+  date: string;
+  completed: boolean;
+}
+
+export interface CalendarData {
+  goals: CalendarGoal[];
+  milestones: CalendarMilestone[];
+  tasks: CalendarTask[];
+}

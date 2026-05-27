@@ -21,6 +21,7 @@ const tabs = [
   { label: "salaryEstimator", href: "/salary-estimator" },
   { label: "interviewCoach", href: "/interview-coach" },
   { label: "careerCoach", href: "/career-coach" },
+  { label: "calendar", href: "/calendar" },
 ];
 
 export default function NavBar() {

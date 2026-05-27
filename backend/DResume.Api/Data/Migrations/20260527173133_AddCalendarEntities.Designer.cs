@@ -3,6 +3,7 @@ using System;
 using DResume.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DResume.Api.Data.Migrations
 {
     [DbContext(typeof(ResumeDbContext))]
-    partial class ResumeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260527173133_AddCalendarEntities")]
+    partial class AddCalendarEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -107,7 +110,7 @@ namespace DResume.Api.Data.Migrations
                     b.Property<string>("Date")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("MilestoneId")
+                    b.Property<Guid>("GoalId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Title")
@@ -119,7 +122,7 @@ namespace DResume.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MilestoneId");
+                    b.HasIndex("GoalId");
 
                     b.ToTable("calendar_tasks", "resume");
                 });
@@ -447,13 +450,13 @@ namespace DResume.Api.Data.Migrations
 
             modelBuilder.Entity("DResume.Api.Data.Entities.CalendarTask", b =>
                 {
-                    b.HasOne("DResume.Api.Data.Entities.CalendarMilestone", "Milestone")
+                    b.HasOne("DResume.Api.Data.Entities.CalendarGoal", "Goal")
                         .WithMany("Tasks")
-                        .HasForeignKey("MilestoneId")
+                        .HasForeignKey("GoalId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Milestone");
+                    b.Navigation("Goal");
                 });
 
             modelBuilder.Entity("DResume.Api.Data.Entities.ResumeAnalysisRecord", b =>
@@ -470,10 +473,7 @@ namespace DResume.Api.Data.Migrations
             modelBuilder.Entity("DResume.Api.Data.Entities.CalendarGoal", b =>
                 {
                     b.Navigation("Milestones");
-                });
 
-            modelBuilder.Entity("DResume.Api.Data.Entities.CalendarMilestone", b =>
-                {
                     b.Navigation("Tasks");
                 });
 

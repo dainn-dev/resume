@@ -10,6 +10,7 @@ import {
   getSalaryEstimatorResult,
   getInterviewCoachResult,
   getCareerCoachResult,
+  getCalendarData,
 } from "@/lib/pipeline";
 
 interface Step {
@@ -107,6 +108,18 @@ const steps: Step[] = [
       </svg>
     ),
   },
+  {
+    key: "calendar",
+    label: "Goals & Tasks",
+    description: "Build goals, milestones and daily tasks",
+    href: "/calendar",
+    sessionKey: "calendarData",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+        <rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /><path d="m9 16 2 2 4-4" />
+      </svg>
+    ),
+  },
 ];
 
 export default function WorkflowProgress() {
@@ -115,19 +128,25 @@ export default function WorkflowProgress() {
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const keys = new Set<string>();
-    if (getResumeAnalysis()) keys.add("resumeAnalysis");
-    if (getBuiltResumeMarkdown()) keys.add("builtResume");
-    if (getJobMatchContext()) keys.add("jobMatchContext");
-    if (getCoverLetterResult()) keys.add("coverLetterResult");
-    if (getSalaryEstimatorResult()) keys.add("salaryEstimatorResult");
-    if (getInterviewCoachResult()) keys.add("interviewCoachResult");
-    if (getCareerCoachResult()) keys.add("careerCoachResult");
-    setCompleted(keys);
+    function syncCompleted() {
+      const keys = new Set<string>();
+      if (getResumeAnalysis()) keys.add("resumeAnalysis");
+      if (getBuiltResumeMarkdown()) keys.add("builtResume");
+      if (getJobMatchContext()) keys.add("jobMatchContext");
+      if (getCoverLetterResult()) keys.add("coverLetterResult");
+      if (getSalaryEstimatorResult()) keys.add("salaryEstimatorResult");
+      if (getInterviewCoachResult()) keys.add("interviewCoachResult");
+      if (getCareerCoachResult()) keys.add("careerCoachResult");
+      if (getCalendarData()) keys.add("calendarData");
+      setCompleted(keys);
+    }
+    syncCompleted();
+    const interval = setInterval(syncCompleted, 2000);
+    return () => clearInterval(interval);
   }, [pathname]);
 
   return (
-    <div className="flex justify-between gap-4 overflow-x-auto pb-4 px-2 scrollbar-hide">
+    <div className="flex justify-between gap-2 overflow-x-auto pb-4 px-2 scrollbar-hide">
       {steps.map((step) => {
         const isActive = step.href === "/"
           ? pathname === "/dashboard" || pathname === "/results"
@@ -139,7 +158,7 @@ export default function WorkflowProgress() {
           <div
             key={step.key}
             onClick={() => isClickable && router.push(step.href)}
-            className={`flex flex-col items-center min-w-28 z-10 pt-2 ${isClickable ? "cursor-pointer group" : "cursor-default opacity-50"}`}
+            className={`flex flex-col items-center min-w-24 z-10 pt-2 ${isClickable ? "cursor-pointer group" : "cursor-default opacity-50"}`}
           >
             {/* Icon circle */}
             <div className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 mb-3 ${

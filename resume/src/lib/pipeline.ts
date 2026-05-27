@@ -1,5 +1,5 @@
 import type { ResumeAnalysis } from "@/types/resume";
-import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate, InterviewCoachFormData, InterviewCoachResult, CareerCoachFormData, CareerCoachResult } from "@/types/builder";
+import type { CoverLetterFormData, ResumeFormData, SalaryEstimatorFormData, SalaryEstimate, InterviewCoachFormData, InterviewCoachResult, CareerCoachFormData, CareerCoachResult, CalendarData } from "@/types/builder";
 
 export interface JobMatchContext {
   jobTitle: string;
@@ -204,6 +204,16 @@ export function getCareerCoachAnalysis(): string | null {
 
 export function setCareerCoachAnalysis(text: string): void {
   writeString("careerCoachAnalysis", text);
+}
+
+// ---------- Calendar ----------
+
+export function getCalendarData(): CalendarData | null {
+  return readJson<CalendarData>("calendarData");
+}
+
+export function setCalendarData(data: CalendarData): void {
+  writeJson("calendarData", data);
 }
 
 // ---------- Reset ----------
