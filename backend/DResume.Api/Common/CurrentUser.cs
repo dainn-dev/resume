@@ -8,6 +8,7 @@ public interface ICurrentUser
     Guid? SessionId { get; }
     Guid RequireUserId();
     string? Email { get; }
+    string? DisplayName { get; }
 }
 
 public sealed class CurrentUser : ICurrentUser
@@ -39,6 +40,10 @@ public sealed class CurrentUser : ICurrentUser
     public string? Email =>
         _accessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email)
         ?? _accessor.HttpContext?.User?.FindFirstValue("email");
+
+    public string? DisplayName =>
+        _accessor.HttpContext?.User?.FindFirstValue("unique_name")
+        ?? _accessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
 
     public Guid RequireUserId() =>
         UserId ?? throw new UnauthorizedAccessException("Authenticated user id missing from token.");

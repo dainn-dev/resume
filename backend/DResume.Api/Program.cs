@@ -94,6 +94,7 @@ if (stripeEnabled)
 }
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection("Billing"));
 builder.Services.AddScoped<IPlanService, PlanService>();
+builder.Services.AddScoped<IBillingNotifier, BillingNotifier>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:3000" };

@@ -87,6 +87,11 @@ export default function NavBar() {
           {mounted && <LanguageSwitcher />}
           {mounted && user && (
             <>
+              {user.email === "admin@dainn.online" && (
+                <Link href="/admin/analytics" className="hidden sm:block text-amber-400 hover:text-amber-300 text-xs font-semibold border border-amber-500/40 hover:border-amber-500 px-2.5 py-1 rounded-lg transition-colors" title="Admin">
+                  Admin
+                </Link>
+              )}
               <Link href="/account" className="hidden sm:block p-1.5 text-gray-400 hover:text-white transition-colors" title={t("account.title")}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               </Link>

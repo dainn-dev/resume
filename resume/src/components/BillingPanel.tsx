@@ -24,12 +24,61 @@ interface Plan {
   limits: PlanLimits;
 }
 
+interface PaymentMethodInfo {
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
+interface InvoiceInfo {
+  id: string;
+  number: string | null;
+  status: string;
+  amountPaid: number;
+  amountDue: number;
+  currency: string;
+  created: number;
+  hostedInvoiceUrl: string | null;
+  description: string | null;
+}
+
 interface MyPlan {
   plan: { code: string; name: string; lookupKey: string };
   status: string;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
   stripeSubscriptionId: string | null;
+  paymentMethod: PaymentMethodInfo | null;
+  invoices: InvoiceInfo[];
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch { return iso; }
+}
+
+function formatUnixDate(unix: number): string {
+  try {
+    return new Date(unix * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch { return String(unix); }
+}
+
+function formatAmount(cents: number, currency: string): string {
+  const amount = (cents / 100).toFixed(2);
+  const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
+  return `${symbol}${amount}`;
+}
+
+function cardBrandIcon(brand: string): string {
+  const b = brand.toLowerCase();
+  if (b === "visa") return "VISA";
+  if (b === "mastercard") return "MC";
+  if (b === "amex") return "AMEX";
+  if (b === "discover") return "DISC";
+  return brand.toUpperCase();
 }
 
 function formatPrice(cents: number, currency: string) {
@@ -78,10 +127,13 @@ export default function BillingPanel() {
         setError(data?.error ?? "Failed to start checkout.");
         return;
       }
-      if (data.data?.url) {
+      if (data.data?.updated) {
+        // In-place subscription swap — no Stripe redirect needed
+        await load();
+      } else if (data.data?.url) {
         window.location.href = data.data.url;
       } else {
-        setError("Stripe did not return a checkout URL.");
+        setError("Unexpected response from billing service.");
       }
     } finally {
       setBusyCode(null);
@@ -105,6 +157,22 @@ export default function BillingPanel() {
     }
   }
 
+  async function resume() {
+    setError(null);
+    setBusyCode("resume");
+    try {
+      const res = await fetch("/api/billing/resume", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        setError(data?.error ?? "Failed to resume.");
+        return;
+      }
+      await load();
+    } finally {
+      setBusyCode(null);
+    }
+  }
+
   if (loading) {
     return <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 animate-pulse h-64" />;
   }
@@ -120,10 +188,53 @@ export default function BillingPanel() {
         {me && (
           <span className="text-xs text-gray-400">
             Current: <span className="text-white font-medium">{me.plan.name}</span>
-            {me.cancelAtPeriodEnd && <span className="ml-2 text-amber-400">(cancels at period end)</span>}
           </span>
         )}
       </div>
+
+      {/* Subscription status banner */}
+      {me && me.currentPeriodEnd && me.plan.code !== "Free" && (
+        <div className={`rounded-xl border p-3 text-xs flex items-center justify-between gap-3 ${
+          me.cancelAtPeriodEnd
+            ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+            : "bg-blue-500/10 border-blue-500/30 text-blue-200"
+        }`}>
+          <span>
+            {me.cancelAtPeriodEnd ? (
+              <>Your plan will be <span className="font-semibold">canceled</span> on {formatDate(me.currentPeriodEnd)}.</>
+            ) : (
+              <>Your plan will <span className="font-semibold">renew</span> on {formatDate(me.currentPeriodEnd)}.</>
+            )}
+          </span>
+          {me.cancelAtPeriodEnd && (
+            <button
+              onClick={resume}
+              disabled={busyCode === "resume"}
+              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+            >
+              {busyCode === "resume" ? "…" : "Resume subscription"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Payment method */}
+      {me?.paymentMethod && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="px-2.5 py-1 rounded bg-gray-800 text-gray-200 text-[10px] font-bold tracking-wider">
+              {cardBrandIcon(me.paymentMethod.brand)}
+            </span>
+            <div>
+              <p className="text-sm text-white font-medium">•••• {me.paymentMethod.last4}</p>
+              <p className="text-[11px] text-gray-500">
+                Expires {String(me.paymentMethod.expMonth).padStart(2, "0")}/{me.paymentMethod.expYear}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] text-gray-600 uppercase tracking-wider">Default payment</span>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>
@@ -161,6 +272,10 @@ export default function BillingPanel() {
                   <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
                     Current plan
                   </button>
+                ) : me?.cancelAtPeriodEnd ? (
+                  <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
+                    Cancellation scheduled
+                  </button>
                 ) : (
                   <button
                     onClick={cancel}
@@ -187,6 +302,42 @@ export default function BillingPanel() {
           );
         })}
       </div>
+
+      {/* Billing history */}
+      {me && me.invoices.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h3 className="text-sm font-semibold text-white mb-3">Billing history</h3>
+          <div className="space-y-1.5">
+            {me.invoices.map(inv => {
+              const statusColor =
+                inv.status === "paid" ? "text-green-400 bg-green-500/10 border-green-500/30"
+                : inv.status === "open" ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                : inv.status === "void" || inv.status === "uncollectible" ? "text-gray-500 bg-gray-500/10 border-gray-500/30"
+                : "text-blue-400 bg-blue-500/10 border-blue-500/30";
+              return (
+                <div key={inv.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-b-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs text-gray-400 w-24 shrink-0">{formatUnixDate(inv.created)}</span>
+                    <span className="text-sm text-white font-medium">
+                      {formatAmount(inv.amountPaid > 0 ? inv.amountPaid : inv.amountDue, inv.currency)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border uppercase ${statusColor}`}>
+                      {inv.status}
+                    </span>
+                    {inv.hostedInvoiceUrl && (
+                      <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300">
+                        View →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

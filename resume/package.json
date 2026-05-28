@@ -20,10 +20,16 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^15.0.0",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.1"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@parcel/watcher", "@swc/core", "core-js", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "core-js",
+      "unrs-resolver"
+    ]
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
