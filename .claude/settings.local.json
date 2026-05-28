@@ -9,7 +9,8 @@
       "PowerShell(Test-Path *)",
       "Bash(Get-ChildItem -Path E:\\\\Projects\\\\DResume -Recurse -Include \"*.ts\" -ErrorAction SilentlyContinue)",
       "Bash(Select-String -Pattern \"prisma|sqlite|mongodb|dynamodb|database|postgres|mysql\")",
-      "Bash(Select-Object -First 20)"
+      "Bash(Select-Object -First 20)",
+      "Bash(dotnet build *)"
     ]
   }
 }

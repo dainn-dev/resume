@@ -22,6 +22,7 @@ const tabs = [
   { label: "interviewCoach", href: "/interview-coach" },
   { label: "careerCoach", href: "/career-coach" },
   { label: "calendar", href: "/calendar" },
+  { label: "companyReview", href: "/company-review" },
 ];
 
 export default function NavBar() {

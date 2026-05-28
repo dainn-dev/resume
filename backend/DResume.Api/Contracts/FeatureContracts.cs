@@ -82,3 +82,49 @@ public sealed record BulkTask(string Id, string MilestoneId, string Title, strin
 public sealed record GenerateTasksRequest(Guid MilestoneId, string GoalTitle, string MilestoneTitle, string StartDate, string EndDate, string? Context);
 public sealed record GeneratedTaskDto(string Title, string Date);
 public sealed record GenerateTasksAiResponse(List<GeneratedTaskDto> Tasks);
+
+// Company Review
+public sealed record CompanyReviewRequest(string CompanyName);
+
+public sealed record CompanyInfoDto(
+    string Name,
+    double? Rating,
+    int? EmployeeCount,
+    string? Industry,
+    string? Headquarters,
+    List<BenefitDto>? Benefits = null);
+
+public sealed record BenefitDto(string Name, bool Highlight, string? Category);
+
+public sealed record ReviewItemDto(
+    string Source,
+    string? ReviewerName,
+    string? ReviewerPosition,
+    double? Rating,
+    string? Pros,
+    string? Cons,
+    string? Date,
+    string? Url);
+
+public sealed record SourceStatusDto(string Source, string Status, int ReviewCount, string? Error);
+
+public sealed record CompanyReviewResponse(
+    CompanyInfoDto Info,
+    List<ReviewItemDto> Reviews,
+    List<SourceStatusDto> Sources,
+    bool FromCache,
+    int LimitApplied,
+    int TotalAvailable);
+
+public sealed record TopTechCompanyDto(
+    string Name,
+    double? Rating,
+    string? Industry,
+    string? Headquarters,
+    string? Summary,
+    List<string> Perks);
+
+public sealed record TopTechResponse(
+    List<TopTechCompanyDto> Companies,
+    string Region,
+    bool FromCache);

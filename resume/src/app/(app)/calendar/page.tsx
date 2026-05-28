@@ -228,19 +228,19 @@ export default function CalendarPage() {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }
 
-  async function generateTasks(msId: string, dueDate: string) {
+  async function generateTasks(msId: string, startDate: string, endDate: string) {
     const ms = milestones.find((m) => m.id === msId);
     if (!ms) return;
     const goal = goals.find((g) => g.id === ms.goalId);
     if (!goal) return;
 
-    if (!dueDate) {
+    if (!startDate || !endDate) {
       setDueDatePromptMs(msId);
       return;
     }
 
-    if (ms.dueDate !== dueDate) {
-      setMilestones((prev) => prev.map((m) => (m.id === msId ? { ...m, dueDate } : m)));
+    if (ms.dueDate !== endDate) {
+      setMilestones((prev) => prev.map((m) => (m.id === msId ? { ...m, dueDate: endDate } : m)));
     }
 
     setGeneratingMs(msId);
@@ -249,7 +249,7 @@ export default function CalendarPage() {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       await saveToApi({
         goals,
-        milestones: milestones.map((m) => (m.id === msId ? { ...m, dueDate } : m)),
+        milestones: milestones.map((m) => (m.id === msId ? { ...m, dueDate: endDate } : m)),
         tasks,
       });
 
@@ -268,8 +268,8 @@ export default function CalendarPage() {
           milestoneId: freshMs.id,
           goalTitle: freshGoal.title,
           milestoneTitle: freshMs.title,
-          startDate: todayStr(),
-          endDate: dueDate,
+          startDate,
+          endDate,
           context: freshGoal.description || null,
         }),
       });
@@ -439,11 +439,12 @@ export default function CalendarPage() {
                                   <div className="border-t border-gray-700 bg-gray-900 px-3 pb-3 pt-2 space-y-1.5">
                                     {isGenerating && <LoadingSpinner message={t("calendar.generating")} />}
 
-                                    {/* DueDate prompt for AI generate */}
+                                    {/* Date range prompt for AI generate */}
                                     {dueDatePromptMs === ms.id && (
-                                      <DueDatePrompt
-                                        defaultDate={ms.dueDate || defaultDueDate()}
-                                        onConfirm={(date) => generateTasks(ms.id, date)}
+                                      <DateRangePrompt
+                                        defaultStart={todayStr()}
+                                        defaultEnd={ms.dueDate || defaultDueDate()}
+                                        onConfirm={(start, end) => generateTasks(ms.id, start, end)}
                                         onCancel={() => setDueDatePromptMs(null)}
                                         t={t}
                                       />
@@ -489,7 +490,7 @@ export default function CalendarPage() {
                                               + {t("calendar.addTask")}
                                             </button>
                                             <button
-                                              onClick={() => generateTasks(ms.id, ms.dueDate)}
+                                              onClick={() => setDueDatePromptMs(ms.id)}
                                               className="text-xs bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 px-2 py-1 rounded-md transition-colors"
                                             >
                                               {t("calendar.generateTasks")}
@@ -629,14 +630,25 @@ export default function CalendarPage() {
   );
 }
 
-function DueDatePrompt({ defaultDate, onConfirm, onCancel, t }: { defaultDate: string; onConfirm: (date: string) => void; onCancel: () => void; t: (k: string) => string }) {
-  const [date, setDate] = useState(defaultDate);
+function DateRangePrompt({ defaultStart, defaultEnd, onConfirm, onCancel, t }: { defaultStart: string; defaultEnd: string; onConfirm: (start: string, end: string) => void; onCancel: () => void; t: (k: string) => string }) {
+  const [start, setStart] = useState(defaultStart);
+  const [end, setEnd] = useState(defaultEnd);
+  const invalid = !start || !end || start > end;
   return (
     <div className="bg-gray-800 border border-purple-500/30 rounded-lg p-3 space-y-2">
-      <p className="text-xs text-purple-300">{t("calendar.setDueDateFirst")}</p>
-      <input type="date" className={inputClass("text-sm")} value={date} onChange={(e) => setDate(e.target.value)} />
+      <p className="text-xs text-purple-300">{t("calendar.setDateRangeFirst")}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelClass()}>{t("calendar.startDate")}</label>
+          <input type="date" max={end || undefined} className={inputClass("text-sm")} value={start} onChange={(e) => setStart(e.target.value)} />
+        </div>
+        <div>
+          <label className={labelClass()}>{t("calendar.endDate")}</label>
+          <input type="date" min={start || undefined} className={inputClass("text-sm")} value={end} onChange={(e) => setEnd(e.target.value)} />
+        </div>
+      </div>
       <div className="flex gap-2">
-        <button onClick={() => date && onConfirm(date)} disabled={!date} className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+        <button onClick={() => !invalid && onConfirm(start, end)} disabled={invalid} className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
           {t("calendar.generateTasks")}
         </button>
         <button onClick={onCancel} className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">Cancel</button>

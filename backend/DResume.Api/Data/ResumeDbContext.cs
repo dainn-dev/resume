@@ -19,6 +19,7 @@ public class ResumeDbContext : DbContext
     public DbSet<CalendarGoal> CalendarGoals => Set<CalendarGoal>();
     public DbSet<CalendarMilestone> CalendarMilestones => Set<CalendarMilestone>();
     public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
+    public DbSet<CompanyReviewCacheRecord> CompanyReviewCaches => Set<CompanyReviewCacheRecord>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -134,6 +135,15 @@ public class ResumeDbContext : DbContext
             e.HasIndex(x => x.StripeSubscriptionId);
             e.Property(x => x.PlanCode).HasConversion<int>();
             e.Property(x => x.Status).HasMaxLength(40);
+        });
+
+        b.Entity<CompanyReviewCacheRecord>(e =>
+        {
+            e.ToTable("company_review_cache");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.CompanyKey).IsUnique();
+            e.Property(x => x.CompanyKey).HasMaxLength(200);
+            e.Property(x => x.DataJson).HasColumnType("jsonb");
         });
     }
 }

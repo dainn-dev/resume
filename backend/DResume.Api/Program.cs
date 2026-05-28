@@ -17,6 +17,8 @@ using DResume.Api.Features.JobMatch;
 using DResume.Api.Features.Resumes;
 using DResume.Api.Features.Salary;
 using DResume.Api.Features.Calendar;
+using DResume.Api.Features.CompanyReview;
+using DResume.Api.Features.CompanyReview.Sources;
 using DResume.Api.Features.Translation;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -57,6 +59,13 @@ builder.Services.AddDbContext<ResumeDbContext>(o =>
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("Anthropic"));
 builder.Services.AddHttpClient<IAnthropicClient, AnthropicClient>();
 builder.Services.AddHttpClient("jd-scraper");
+builder.Services.AddHttpClient("company-scraper", c => c.Timeout = TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.Brotli,
+        UseCookies = true,
+        CookieContainer = new System.Net.CookieContainer(),
+    });
 
 builder.Services.AddSingleton<IDocumentParser, DocumentParser>();
 builder.Services.AddScoped<IResumeAnalysisService, ResumeAnalysisService>();
@@ -68,6 +77,9 @@ builder.Services.AddScoped<IInterviewCoachService, InterviewCoachService>();
 builder.Services.AddScoped<ISalaryEstimateService, SalaryEstimateService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ITaskGeneratorService, TaskGeneratorService>();
+builder.Services.AddScoped<ICompanyReviewSource, ClaudeSynthesisSource>();
+builder.Services.AddScoped<ICompanyReviewSource, ITViecSource>();
+builder.Services.AddScoped<ICompanyReviewService, CompanyReviewService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();

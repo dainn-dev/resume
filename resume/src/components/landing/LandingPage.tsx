@@ -12,6 +12,8 @@ const FEATURES = [
   { key: "feature5", icon: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" },
   { key: "feature6", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
   { key: "feature7", icon: "M22 12h-4l-3 9L9 3l-3 9H2" },
+  { key: "feature8", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
+  { key: "feature9", icon: "M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" },
 ];
 
 export default function LandingPage() {
@@ -66,8 +68,8 @@ export default function LandingPage() {
             <p className="text-gray-400">{t("landing.featuresSubtitle")}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((f, idx) => (
-              <div key={f.key} className={`bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-colors ${idx === 6 ? "sm:col-span-2 lg:col-span-1" : ""}`}>
+            {FEATURES.map((f) => (
+              <div key={f.key} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-blue-600/10 flex items-center justify-center mb-4">
                   <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d={f.icon} />
