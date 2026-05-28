@@ -117,7 +117,7 @@ export default function LandingPage() {
             {([
               { name: "Free", price: "$0", period: "", desc: t("landing.pricingFreeTitle"), cta: t("landing.pricingFreeCta"), isPro: false, limits: { resumes: 2, aiCalls: 5, jobMatch: false, coverLetter: false, careerCoach: false, interviewCoach: false, salaryEstimator: false, priorityQueue: false } },
               { name: "Pro", price: "$9.99", period: "/mo", desc: t("landing.pricingProTitle"), cta: t("landing.pricingProCta"), isPro: true, limits: { resumes: 50, aiCalls: 200, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: false } },
-              { name: "Enterprise", price: "$29.99", period: "/mo", desc: t("landing.pricingEnterpriseTitle"), cta: t("landing.pricingEnterpriseCta"), isPro: false, limits: { resumes: null, aiCalls: null, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: true } },
+              { name: "Premium", price: "$19.99", period: "/mo", desc: t("landing.pricingPremiumTitle"), cta: t("landing.pricingPremiumCta"), isPro: false, limits: { resumes: null, aiCalls: null, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: true } },
             ]).map(plan => (
               <div key={plan.name} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 flex flex-col ${plan.isPro ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
                 {plan.isPro && (

@@ -18,6 +18,13 @@ public interface IPlanService
         bool cancelAtPeriodEnd,
         DateTime? currentPeriodEnd,
         CancellationToken ct = default);
+    Task<UserSubscription> GrantPlanAsync(
+        Guid userId,
+        PlanCode plan,
+        string grantedByEmail,
+        DateTime? expiresAt,
+        string? note,
+        CancellationToken ct = default);
     Task<UserSubscription?> FindByStripeSubscriptionAsync(string subscriptionId, CancellationToken ct = default);
     bool IsAdmin();
 }
@@ -62,7 +69,7 @@ public sealed class PlanService : IPlanService
 
     public async Task<PlanDefinition> GetCurrentPlanAsync(Guid userId, CancellationToken ct = default)
     {
-        if (IsAdmin()) return PlanCatalog.Enterprise;
+        if (IsAdmin()) return PlanCatalog.Premium;
 
         var sub = await GetOrCreateAsync(userId, ct);
         var isActive = sub.Status is "active" or "trialing";
@@ -93,4 +100,26 @@ public sealed class PlanService : IPlanService
 
     public Task<UserSubscription?> FindByStripeSubscriptionAsync(string subscriptionId, CancellationToken ct = default) =>
         _db.UserSubscriptions.FirstOrDefaultAsync(x => x.StripeSubscriptionId == subscriptionId, ct);
+
+    public async Task<UserSubscription> GrantPlanAsync(
+        Guid userId,
+        PlanCode plan,
+        string grantedByEmail,
+        DateTime? expiresAt,
+        string? note,
+        CancellationToken ct = default)
+    {
+        var sub = await GetOrCreateAsync(userId, ct);
+        sub.PlanCode = plan;
+        sub.Status = plan == PlanCode.Free ? "canceled" : "active";
+        sub.CancelAtPeriodEnd = false;
+        sub.CurrentPeriodEnd = expiresAt;
+        sub.IsAdminGranted = plan != PlanCode.Free;
+        sub.GrantedByEmail = plan == PlanCode.Free ? null : grantedByEmail;
+        sub.GrantedAt = plan == PlanCode.Free ? null : DateTime.UtcNow;
+        sub.GrantNote = plan == PlanCode.Free ? null : note;
+        sub.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return sub;
+    }
 }

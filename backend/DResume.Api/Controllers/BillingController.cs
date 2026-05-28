@@ -164,7 +164,7 @@ public sealed class BillingController : ControllerBase
     public async Task<IActionResult> Checkout([FromBody] CheckoutRequest req, CancellationToken ct)
     {
         if (!Enum.TryParse<PlanCode>(req.PlanCode, true, out var planCode) || planCode == PlanCode.Free)
-            throw new ArgumentException("Specify a paid plan: Pro or Enterprise.");
+            throw new ArgumentException("Specify a paid plan: Pro or Premium.");
 
         var plan = PlanCatalog.Get(planCode);
         var userId = _current.RequireUserId();

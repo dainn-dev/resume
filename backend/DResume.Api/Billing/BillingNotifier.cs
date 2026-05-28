@@ -10,6 +10,7 @@ public interface IBillingNotifier
     Task SendCancellationScheduledAsync(string email, string name, PlanDefinition plan, DateTime? endDate, CancellationToken ct = default);
     Task SendResumedAsync(string email, string name, PlanDefinition plan, DateTime? renewDate, CancellationToken ct = default);
     Task SendSubscriptionEndedAsync(string email, string name, PlanDefinition previousPlan, CancellationToken ct = default);
+    Task SendAdminGrantedAsync(string email, string name, PlanDefinition plan, DateTime? expiresAt, string? note, CancellationToken ct = default);
 }
 
 public sealed class BillingNotifier : IBillingNotifier
@@ -241,6 +242,45 @@ public sealed class BillingNotifier : IBillingNotifier
             </div>
 
             {ManageButton("Resubscribe")}
+            """);
+        return SendSafelyAsync(email, subject, html, ct);
+    }
+
+    public Task SendAdminGrantedAsync(string email, string name, PlanDefinition plan, DateTime? expiresAt, string? note, CancellationToken ct = default)
+    {
+        var subject = $"You've been granted DResume {plan.Name} 🎁";
+        var expiry = expiresAt?.ToString("MMM d, yyyy") ?? "no expiration";
+        var noteBlock = string.IsNullOrWhiteSpace(note) ? "" : $"""
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 8px; font-size: 13px; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.5px;">Note from the team</h3>
+              <p style="margin: 0; font-size: 13px; color: #d1d5db; line-height: 1.5; font-style: italic;">"{Escape(note)}"</p>
+            </div>
+            """;
+        var features = BuildFeatureList(plan);
+
+        var html = Wrap("#7c3aed", $"{plan.Name} Plan Granted", $"""
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">Good news — our team has granted you complimentary access to the <strong style="color:#fff">{plan.Name}</strong> plan. No payment needed.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.5px;">Grant details</h3>
+              {Row("Plan", $"<strong>{plan.Name}</strong>")}
+              {Row("Cost", "<span style=\"color:#34d399\">Free (complimentary)</span>")}
+              {Row("Valid until", expiry)}
+              {Row("Status", "<span style=\"color:#34d399\">● Active</span>")}
+            </div>
+
+            {noteBlock}
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.5px;">What you can do now</h3>
+              {features}
+            </div>
+
+            {ManageButton("Start exploring")}
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              This is a complimentary grant from the DResume team — you won't be charged. If you have questions, reply to this email.
+            </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
     }

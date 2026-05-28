@@ -26,7 +26,7 @@ interface AnalyticsData {
 const PLAN_COLORS: Record<string, string> = {
   Free: "#6b7280",
   Pro: "#3b82f6",
-  Enterprise: "#f59e0b",
+  Premium: "#f59e0b",
 };
 
 const FEATURE_COLORS = {

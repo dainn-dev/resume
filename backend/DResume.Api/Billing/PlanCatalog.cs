@@ -1,6 +1,6 @@
 namespace DResume.Api.Billing;
 
-public enum PlanCode { Free = 0, Pro = 1, Enterprise = 2 }
+public enum PlanCode { Free = 0, Pro = 1, Premium = 2 }
 
 public sealed record PlanDefinition(
     PlanCode Code,
@@ -60,12 +60,12 @@ public static class PlanCatalog
             SalaryEstimatorEnabled: true,
             PriorityQueue: false));
 
-    public static readonly PlanDefinition Enterprise = new(
-        PlanCode.Enterprise,
-        LookupKey: "dresume_enterprise",
-        Name: "Enterprise",
-        Description: "Unlimited usage with priority processing for teams.",
-        MonthlyPriceCents: 2999,
+    public static readonly PlanDefinition Premium = new(
+        PlanCode.Premium,
+        LookupKey: "dresume_premium",
+        Name: "Premium",
+        Description: "Unlimited usage with priority processing.",
+        MonthlyPriceCents: 1999,
         Currency: "usd",
         Limits: new PlanLimits(
             MaxResumes: int.MaxValue,
@@ -77,13 +77,13 @@ public static class PlanCatalog
             SalaryEstimatorEnabled: true,
             PriorityQueue: true));
 
-    public static readonly IReadOnlyList<PlanDefinition> All = new[] { Free, Pro, Enterprise };
+    public static readonly IReadOnlyList<PlanDefinition> All = new[] { Free, Pro, Premium };
 
     public static PlanDefinition Get(PlanCode code) => code switch
     {
         PlanCode.Free => Free,
         PlanCode.Pro => Pro,
-        PlanCode.Enterprise => Enterprise,
+        PlanCode.Premium => Premium,
         _ => Free
     };
 

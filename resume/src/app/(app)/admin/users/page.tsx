@@ -26,7 +26,7 @@ interface ListResponse {
 }
 
 function planColor(plan: string): string {
-  if (plan === "Enterprise") return "text-amber-300 bg-amber-500/10 border-amber-500/30";
+  if (plan === "Premium") return "text-amber-300 bg-amber-500/10 border-amber-500/30";
   if (plan === "Pro") return "text-blue-400 bg-blue-500/10 border-blue-500/30";
   return "text-gray-400 bg-gray-800 border-gray-700";
 }

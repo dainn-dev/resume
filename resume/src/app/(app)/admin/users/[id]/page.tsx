@@ -12,14 +12,14 @@ interface UserDetail {
     createdAt: string; updatedAt: string; lastLoginAt: string | null;
   };
   profile: { firstName: string; lastName: string; displayName: string; avatarUrl: string; language: string; timezone: string; bio: string; website: string } | null;
-  subscription: { plan: string; status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null; stripeCustomerId: string | null; stripeSubscriptionId: string | null; updatedAt: string } | null;
+  subscription: { plan: string; status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null; stripeCustomerId: string | null; stripeSubscriptionId: string | null; updatedAt: string; isAdminGranted: boolean; grantedByEmail: string | null; grantedAt: string | null; grantNote: string | null } | null;
   totals: { resumes: number; jobMatches: number; coverLetters: number; careerCoach: number; interviewCoach: number; salaryEstimates: number };
   resumes: Array<{ id: string; title: string | null; sourceFileName: string | null; createdAt: string; updatedAt: string; hasParsedData: boolean; latestAnalysis: { id: string; score: number; createdAt: string } | null }>;
   invoices: Array<{ id: string; number: string | null; status: string; amountPaid: number; amountDue: number; currency: string; created: number; hostedInvoiceUrl: string | null }> | null;
 }
 
 function planColor(plan: string): string {
-  if (plan === "Enterprise") return "text-amber-300 bg-amber-500/10 border-amber-500/30";
+  if (plan === "Premium") return "text-amber-300 bg-amber-500/10 border-amber-500/30";
   if (plan === "Pro") return "text-blue-400 bg-blue-500/10 border-blue-500/30";
   return "text-gray-400 bg-gray-800 border-gray-700";
 }
@@ -56,15 +56,22 @@ export default function AdminUserDetailPage() {
 
   useEffect(() => { if (id) void load(); }, [id, load]);
 
+  const [grantDuration, setGrantDuration] = useState(12);
+  const [grantNote, setGrantNote] = useState("");
+
   async function grantPlan(planCode: string) {
-    if (!confirm(`Grant ${planCode} plan to this user (bypassing Stripe)?`)) return;
+    const durationText = grantDuration === 0 ? "forever (no expiration)" : `${grantDuration} month${grantDuration > 1 ? "s" : ""}`;
+    if (!confirm(`Grant ${planCode} plan for ${durationText}? User will be notified via email.`)) return;
     setBusy(`plan-${planCode}`);
     try {
       const res = await fetch(`/api/admin/users/${id}/plan`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planCode }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planCode, durationMonths: grantDuration, note: grantNote.trim() || null }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Failed.");
+      setGrantNote("");
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "An error occurred."); }
     finally { setBusy(null); }
@@ -198,21 +205,50 @@ export default function AdminUserDetailPage() {
 
       {/* Plan management */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-        <h2 className="text-sm font-semibold text-white mb-3">Plan management</h2>
-        <p className="text-xs text-gray-500 mb-3">Grant plan directly (bypasses Stripe billing — for support/comp).</p>
+        <h2 className="text-sm font-semibold text-white mb-3">Plan management (Admin grant)</h2>
+        <p className="text-xs text-gray-500 mb-4">Grant complimentary access (bypasses Stripe). User gets email notification.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Duration</label>
+            <select
+              value={grantDuration}
+              onChange={(e) => setGrantDuration(Number(e.target.value))}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+            >
+              <option value={1}>1 month</option>
+              <option value={3}>3 months</option>
+              <option value={6}>6 months</option>
+              <option value={12}>12 months (default)</option>
+              <option value={24}>24 months</option>
+              <option value={0}>Permanent (no expiry)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Note (visible to user in email)</label>
+            <input
+              type="text"
+              value={grantNote}
+              onChange={(e) => setGrantNote(e.target.value)}
+              placeholder="e.g. Compensation for outage, beta tester, partner..."
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
         <div className="flex gap-2">
-          {["Free", "Pro", "Enterprise"].map(p => (
+          {["Free", "Pro", "Premium"].map(p => (
             <button
               key={p}
               onClick={() => grantPlan(p)}
-              disabled={busy?.startsWith("plan-") || (data.subscription?.plan === p)}
+              disabled={busy?.startsWith("plan-") || (data.subscription?.plan === p && !data.subscription?.isAdminGranted)}
               className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors ${
-                data.subscription?.plan === p
+                data.subscription?.plan === p && !data.subscription?.isAdminGranted
                   ? "bg-blue-600/40 text-blue-200 cursor-default"
                   : "border border-gray-700 hover:border-blue-500 hover:bg-blue-500/10 text-gray-300"
               }`}
             >
-              {busy === `plan-${p}` ? "…" : `Grant ${p}`}
+              {busy === `plan-${p}` ? "…" : (p === "Free" ? "Revoke to Free" : `Grant ${p}`)}
             </button>
           ))}
         </div>
@@ -221,14 +257,33 @@ export default function AdminUserDetailPage() {
       {/* Subscription */}
       {data.subscription && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-          <h2 className="text-sm font-semibold text-white mb-3">Subscription</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white">Subscription</h2>
+            {data.subscription.isAdminGranted && (
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded border border-purple-500/40 bg-purple-500/10 text-purple-300">
+                🎁 Admin granted
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div><p className="text-xs text-gray-500 mb-1">Plan</p><p className="text-gray-200">{data.subscription.plan}</p></div>
             <div><p className="text-xs text-gray-500 mb-1">Status</p><p className="text-gray-200">{data.subscription.status}</p></div>
             <div><p className="text-xs text-gray-500 mb-1">Cancel at period end</p><p className="text-gray-200">{data.subscription.cancelAtPeriodEnd ? "Yes" : "No"}</p></div>
-            <div><p className="text-xs text-gray-500 mb-1">Period end</p><p className="text-gray-200">{data.subscription.currentPeriodEnd ? new Date(data.subscription.currentPeriodEnd).toLocaleDateString() : "—"}</p></div>
-            <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Stripe Customer</p><p className="text-gray-200 font-mono text-xs">{data.subscription.stripeCustomerId ?? "—"}</p></div>
-            <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Stripe Subscription</p><p className="text-gray-200 font-mono text-xs">{data.subscription.stripeSubscriptionId ?? "—"}</p></div>
+            <div><p className="text-xs text-gray-500 mb-1">{data.subscription.isAdminGranted ? "Expires" : "Period end"}</p><p className="text-gray-200">{data.subscription.currentPeriodEnd ? new Date(data.subscription.currentPeriodEnd).toLocaleDateString() : "—"}</p></div>
+            {data.subscription.isAdminGranted ? (
+              <>
+                <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Granted by</p><p className="text-gray-200 text-xs">{data.subscription.grantedByEmail ?? "—"}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Granted at</p><p className="text-gray-200 text-xs">{data.subscription.grantedAt ? new Date(data.subscription.grantedAt).toLocaleString() : "—"}</p></div>
+                {data.subscription.grantNote && (
+                  <div className="col-span-4"><p className="text-xs text-gray-500 mb-1">Note</p><p className="text-gray-200 text-xs italic">"{data.subscription.grantNote}"</p></div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Stripe Customer</p><p className="text-gray-200 font-mono text-xs">{data.subscription.stripeCustomerId ?? "—"}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Stripe Subscription</p><p className="text-gray-200 font-mono text-xs">{data.subscription.stripeSubscriptionId ?? "—"}</p></div>
+              </>
+            )}
           </div>
         </div>
       )}

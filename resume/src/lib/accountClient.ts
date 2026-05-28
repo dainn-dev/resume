@@ -12,7 +12,7 @@ export interface AccountSummaryUser {
 }
 
 export interface AccountSummaryPlan {
-  code: "Free" | "Pro" | "Enterprise";
+  code: "Free" | "Pro" | "Premium";
   name: string;
   lookupKey: string;
   isPaid: boolean;

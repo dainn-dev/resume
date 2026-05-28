@@ -13,4 +13,10 @@ public class UserSubscription
     public DateTime? CurrentPeriodEnd { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Admin-granted (comped) subscription tracking
+    public bool IsAdminGranted { get; set; }
+    public string? GrantedByEmail { get; set; }
+    public DateTime? GrantedAt { get; set; }
+    public string? GrantNote { get; set; }
 }

@@ -22,6 +22,7 @@ public sealed class AdminController : ControllerBase
     private readonly IPlanService _plans;
     private readonly IProfileService _profile;
     private readonly IAuthenticationService _auth;
+    private readonly ICurrentUser _current;
     private static readonly PasswordHasher<User> _hasher = new();
 
     public AdminController(
@@ -29,13 +30,15 @@ public sealed class AdminController : ControllerBase
         ResumeDbContext resumeDb,
         IPlanService plans,
         IProfileService profile,
-        IAuthenticationService auth)
+        IAuthenticationService auth,
+        ICurrentUser current)
     {
         _userDb = userDb;
         _resumeDb = resumeDb;
         _plans = plans;
         _profile = profile;
         _auth = auth;
+        _current = current;
     }
 
     [HttpGet("users")]
@@ -188,6 +191,10 @@ public sealed class AdminController : ControllerBase
                 sub.StripeCustomerId,
                 sub.StripeSubscriptionId,
                 sub.UpdatedAt,
+                sub.IsAdminGranted,
+                sub.GrantedByEmail,
+                sub.GrantedAt,
+                sub.GrantNote,
             },
             totals,
             resumes,
@@ -195,26 +202,45 @@ public sealed class AdminController : ControllerBase
         }));
     }
 
-    public sealed record GrantPlanRequest(string PlanCode);
+    public sealed record GrantPlanRequest(string PlanCode, int? DurationMonths, string? Note);
 
     [HttpPost("users/{id:guid}/plan")]
-    public async Task<IActionResult> GrantPlan(Guid id, [FromBody] GrantPlanRequest req, CancellationToken ct)
+    public async Task<IActionResult> GrantPlan(Guid id, [FromBody] GrantPlanRequest req, [FromServices] IBillingNotifier notifier, CancellationToken ct)
     {
         if (!Enum.TryParse<PlanCode>(req.PlanCode, true, out var planCode))
-            return BadRequest(ApiResult.Fail("Invalid plan code. Use Free, Pro, or Enterprise."));
+            return BadRequest(ApiResult.Fail("Invalid plan code. Use Free, Pro, or Premium."));
 
-        var sub = await _plans.GetOrCreateAsync(id, ct);
-        await _plans.SetPlanAsync(
-            id,
-            planCode,
-            sub.StripeCustomerId,
-            sub.StripeSubscriptionId,
-            status: planCode == PlanCode.Free ? "canceled" : "active",
-            cancelAtPeriodEnd: false,
-            currentPeriodEnd: planCode == PlanCode.Free ? null : DateTime.UtcNow.AddYears(1),
-            ct);
+        // Duration: 0 = permanent (no expiry), default 12 months. Valid values: 0/1/3/6/12/24.
+        var months = req.DurationMonths ?? 12;
+        DateTime? expiresAt = (planCode == PlanCode.Free || months == 0) ? null : DateTime.UtcNow.AddMonths(months);
+        var adminEmail = _current.Email ?? "admin";
 
-        return Ok(ApiResult.Ok(new { granted = true, plan = planCode.ToString() }));
+        await _plans.GrantPlanAsync(id, planCode, adminEmail, expiresAt, req.Note, ct);
+
+        // Notify granted user (skip for Free which is effectively a revoke)
+        if (planCode != PlanCode.Free)
+        {
+            var user = await _userDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+            if (user is not null && !string.IsNullOrWhiteSpace(user.Email))
+            {
+                await notifier.SendAdminGrantedAsync(
+                    user.Email,
+                    string.IsNullOrWhiteSpace(user.Username) ? "there" : user.Username,
+                    PlanCatalog.Get(planCode),
+                    expiresAt,
+                    req.Note,
+                    ct);
+            }
+        }
+
+        return Ok(ApiResult.Ok(new
+        {
+            granted = true,
+            plan = planCode.ToString(),
+            expiresAt,
+            durationMonths = months,
+            grantedBy = adminEmail,
+        }));
     }
 
     public sealed record LockoutRequest(bool Locked, int? Minutes);
@@ -344,9 +370,15 @@ public sealed class AdminController : ControllerBase
 
         var planCountsRaw = await _resumeDb.UserSubscriptions
             .AsNoTracking()
+            .Where(s => !s.IsAdminGranted)
             .GroupBy(s => s.PlanCode)
             .Select(g => new { Plan = g.Key, Count = g.Count() })
             .ToListAsync(ct);
+
+        var grantedCount = await _resumeDb.UserSubscriptions
+            .AsNoTracking()
+            .Where(s => s.IsAdminGranted && s.PlanCode != PlanCode.Free)
+            .CountAsync(ct);
         var planDistribution = planCountsRaw
             .Select(x => new { plan = x.Plan.ToString(), count = x.Count })
             .ToList();
@@ -422,7 +454,7 @@ public sealed class AdminController : ControllerBase
             .ToList();
 
         // Revenue: monthly recurring (active paid subs × plan price)
-        var planPrices = new Dictionary<PlanCode, long> { { PlanCode.Pro, 999 }, { PlanCode.Enterprise, 2999 } };
+        var planPrices = new Dictionary<PlanCode, long> { { PlanCode.Pro, 999 }, { PlanCode.Premium, 1999 } };
         long mrr = 0;
         var revenueByPlan = new List<object>();
         foreach (var p in planCountsRaw)
@@ -439,6 +471,7 @@ public sealed class AdminController : ControllerBase
         {
             totals,
             planDistribution,
+            grantedCount,
             signupsByDay,
             featureUsageByDay,
             scoreBuckets,

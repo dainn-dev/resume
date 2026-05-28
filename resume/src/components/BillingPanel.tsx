@@ -178,7 +178,7 @@ export default function BillingPanel() {
   }
 
   const currentCode = me?.plan.code ?? "Free";
-  const tierOrder: Record<string, number> = { Free: 0, Pro: 1, Enterprise: 2 };
+  const tierOrder: Record<string, number> = { Free: 0, Pro: 1, Premium: 2 };
   const currentTier = tierOrder[currentCode] ?? 0;
 
   return (
