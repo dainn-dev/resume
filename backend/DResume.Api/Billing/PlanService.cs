@@ -47,8 +47,17 @@ public sealed class PlanService : IPlanService
         if (sub is not null) return sub;
         sub = new UserSubscription { UserId = userId, PlanCode = PlanCode.Free, Status = "active" };
         _db.UserSubscriptions.Add(sub);
-        await _db.SaveChangesAsync(ct);
-        return sub;
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+            return sub;
+        }
+        catch (DbUpdateException)
+        {
+            // Race: another concurrent call inserted the row first. Detach our duplicate and re-fetch.
+            _db.Entry(sub).State = EntityState.Detached;
+            return await _db.UserSubscriptions.FirstAsync(x => x.UserId == userId, ct);
+        }
     }
 
     public async Task<PlanDefinition> GetCurrentPlanAsync(Guid userId, CancellationToken ct = default)

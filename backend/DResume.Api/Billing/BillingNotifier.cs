@@ -29,30 +29,93 @@ public sealed class BillingNotifier : IBillingNotifier
         var subject = $"Welcome to DResume {plan.Name} 🎉";
         var price = FormatPrice(amountPaidCents, currency);
         var renew = renewDate?.ToString("MMM d, yyyy") ?? "the end of your billing period";
-        var invoiceLine = invoiceUrl is null ? "" : $"<p style=\"margin: 0 0 16px;\"><a href=\"{invoiceUrl}\" style=\"color: #60a5fa;\">View invoice →</a></p>";
+        var features = BuildFeatureList(plan);
+        var receiptBlock = invoiceUrl is null ? "" : $"""
+            <div style="text-align: center; margin: 16px 0;">
+              <a href="{invoiceUrl}" style="display: inline-block; border: 1px solid #374151; color: #9ca3af; padding: 8px 18px; border-radius: 8px; text-decoration: none; font-size: 12px;">📄 View receipt</a>
+            </div>
+            """;
+
         var html = Wrap("#2563eb", $"Welcome to {plan.Name}", $"""
-            <p style="margin: 0 0 16px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px;">Your subscription to <strong>{plan.Name}</strong> is now active. Thanks for upgrading!</p>
-            {Detail("Plan", plan.Name)}
-            {Detail("Amount charged", price)}
-            {Detail("Next billing", renew)}
-            {invoiceLine}
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">Your subscription to <strong style="color:#fff">{plan.Name}</strong> is now active. Thanks for upgrading — here's a summary of your new benefits and the charge details.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;">Billing summary</h3>
+              {Row("Plan", $"<strong>{plan.Name}</strong>")}
+              {Row("Amount charged", $"<strong>{price}</strong>")}
+              {Row("Next billing date", renew)}
+              {Row("Status", "<span style=\"color:#34d399\">● Active</span>")}
+            </div>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;">What you can do now</h3>
+              {features}
+            </div>
+
+            {receiptBlock}
             {ManageButton()}
+
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              Need help? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.<br>
+              You can cancel anytime — your access continues until the end of the period.
+            </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
     }
+
+    private static string BuildFeatureList(PlanDefinition plan)
+    {
+        var items = new List<string>();
+        var limits = plan.Limits;
+        items.Add($"<strong>{(limits.MaxResumes == int.MaxValue ? "Unlimited" : limits.MaxResumes.ToString())}</strong> resumes stored");
+        items.Add($"<strong>{(limits.MonthlyAiCalls == int.MaxValue ? "Unlimited" : limits.MonthlyAiCalls.ToString())}</strong> AI calls per month");
+        if (limits.JobMatchEnabled) items.Add("Job Match analysis with ATS scoring");
+        if (limits.CoverLetterEnabled) items.Add("AI-generated cover letters");
+        if (limits.CareerCoachEnabled) items.Add("AI Career Coach roadmap");
+        if (limits.InterviewCoachEnabled) items.Add("Interview prep with mock questions");
+        if (limits.SalaryEstimatorEnabled) items.Add("Salary estimator for any role");
+        if (limits.PriorityQueue) items.Add("⚡ Priority AI processing queue");
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var it in items)
+            sb.Append($"<p style=\"margin: 6px 0; font-size: 13px; color: #d1d5db;\">✓ {it}</p>");
+        return sb.ToString();
+    }
+
+    private static string Row(string label, string value) =>
+        $"<div style=\"display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;\"><span style=\"color: #9ca3af;\">{label}</span><span style=\"color: #e5e7eb;\">{value}</span></div>";
 
     public Task SendUpgradedAsync(string email, string name, PlanDefinition fromPlan, PlanDefinition toPlan, DateTime? renewDate, CancellationToken ct = default)
     {
         var subject = $"You upgraded to {toPlan.Name}";
         var renew = renewDate?.ToString("MMM d, yyyy") ?? "the next billing period";
+        var newFeatures = BuildPlanDiff(fromPlan, toPlan, isUpgrade: true);
+
         var html = Wrap("#16a34a", $"Upgraded to {toPlan.Name}", $"""
-            <p style="margin: 0 0 16px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px;">You moved up from <strong>{fromPlan.Name}</strong> to <strong>{toPlan.Name}</strong>. Stripe charged the prorated difference to your card on file.</p>
-            {Detail("Previous plan", fromPlan.Name)}
-            {Detail("New plan", toPlan.Name)}
-            {Detail("Next full billing", renew)}
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">You moved up from <strong>{fromPlan.Name}</strong> to <strong style="color:#fff">{toPlan.Name}</strong>. Stripe charged the prorated difference to the card on file — you have access to the new tier immediately.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.5px;">Plan change</h3>
+              {Row("Previous", fromPlan.Name)}
+              {Row("New", $"<strong>{toPlan.Name}</strong>")}
+              {Row("Billing", "Prorated difference charged now")}
+              {Row("Next full billing", renew)}
+              {Row("Status", "<span style=\"color:#34d399\">● Active</span>")}
+            </div>
+
+            {(string.IsNullOrEmpty(newFeatures) ? "" : $"""
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.5px;">What's new for you</h3>
+              {newFeatures}
+            </div>
+            """)}
+
             {ManageButton()}
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              Need help? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.
+            </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
     }
@@ -61,13 +124,32 @@ public sealed class BillingNotifier : IBillingNotifier
     {
         var subject = $"You downgraded to {toPlan.Name}";
         var renew = renewDate?.ToString("MMM d, yyyy") ?? "the next billing period";
+        var lostFeatures = BuildPlanDiff(fromPlan, toPlan, isUpgrade: false);
+
         var html = Wrap("#f59e0b", $"Downgraded to {toPlan.Name}", $"""
-            <p style="margin: 0 0 16px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px;">Your subscription was switched from <strong>{fromPlan.Name}</strong> to <strong>{toPlan.Name}</strong>. Any unused time on {fromPlan.Name} has been credited as proration.</p>
-            {Detail("Previous plan", fromPlan.Name)}
-            {Detail("New plan", toPlan.Name)}
-            {Detail("Next billing", renew)}
-            {ManageButton()}
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">Your subscription was switched from <strong>{fromPlan.Name}</strong> to <strong style="color:#fff">{toPlan.Name}</strong>. Any unused time on {fromPlan.Name} was credited back as proration — you'll see it on your next invoice.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px;">Plan change</h3>
+              {Row("Previous", fromPlan.Name)}
+              {Row("New", $"<strong>{toPlan.Name}</strong>")}
+              {Row("Billing", "Prorated credit applied")}
+              {Row("Next billing", renew)}
+              {Row("Status", "<span style=\"color:#34d399\">● Active</span>")}
+            </div>
+
+            {(string.IsNullOrEmpty(lostFeatures) ? "" : $"""
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px;">What changed</h3>
+              {lostFeatures}
+            </div>
+            """)}
+
+            {ManageButton("Manage / re-upgrade")}
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              You can return to {fromPlan.Name} anytime from your account page.
+            </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
     }
@@ -76,13 +158,29 @@ public sealed class BillingNotifier : IBillingNotifier
     {
         var subject = "Your subscription is scheduled to cancel";
         var end = endDate?.ToString("MMM d, yyyy") ?? "the end of your current period";
+
         var html = Wrap("#dc2626", "Cancellation scheduled", $"""
-            <p style="margin: 0 0 16px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px;">We've scheduled your <strong>{plan.Name}</strong> subscription to end on <strong>{end}</strong>. You'll keep full access until that date.</p>
-            <p style="margin: 0 0 24px;">Changed your mind? You can resume anytime before the end date.</p>
-            {Detail("Plan", plan.Name)}
-            {Detail("Access until", end)}
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">We've scheduled your <strong>{plan.Name}</strong> subscription to end. You'll keep <strong style="color:#fff">full access until {end}</strong> — no further charges after that.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.5px;">Cancellation details</h3>
+              {Row("Current plan", plan.Name)}
+              {Row("Access until", $"<strong>{end}</strong>")}
+              {Row("Auto-renew", "<span style=\"color:#f87171\">Off</span>")}
+              {Row("Status", "<span style=\"color:#fbbf24\">● Ends at period end</span>")}
+            </div>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <p style="margin: 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">
+                💡 <strong style="color:#fff">Changed your mind?</strong> You can resume your subscription anytime before {end}. Your access never lapses, and there are no extra charges.
+              </p>
+            </div>
+
             {ManageButton("Resume subscription")}
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              All resumes, analyses, and history are preserved even after the subscription ends.
+            </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
     }
@@ -91,12 +189,23 @@ public sealed class BillingNotifier : IBillingNotifier
     {
         var subject = $"Your {plan.Name} subscription was resumed";
         var renew = renewDate?.ToString("MMM d, yyyy") ?? "the next billing period";
+
         var html = Wrap("#2563eb", "Subscription resumed", $"""
-            <p style="margin: 0 0 16px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px;">Glad to have you back. Your <strong>{plan.Name}</strong> subscription will continue to renew automatically.</p>
-            {Detail("Plan", plan.Name)}
-            {Detail("Next billing", renew)}
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">Glad to have you back! 🎉 Your <strong style="color:#fff">{plan.Name}</strong> subscription will continue to renew automatically — auto-renew is now back on.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;">Subscription</h3>
+              {Row("Plan", $"<strong>{plan.Name}</strong>")}
+              {Row("Next billing date", renew)}
+              {Row("Auto-renew", "<span style=\"color:#34d399\">On</span>")}
+              {Row("Status", "<span style=\"color:#34d399\">● Active</span>")}
+            </div>
+
             {ManageButton()}
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              Need help? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.
+            </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
     }
@@ -104,13 +213,75 @@ public sealed class BillingNotifier : IBillingNotifier
     public Task SendSubscriptionEndedAsync(string email, string name, PlanDefinition previousPlan, CancellationToken ct = default)
     {
         var subject = "Your subscription has ended";
+        var lostFeatures = BuildPlanDiff(previousPlan, PlanCatalog.Free, isUpgrade: false);
+
         var html = Wrap("#6b7280", "Subscription ended", $"""
-            <p style="margin: 0 0 16px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px;">Your <strong>{previousPlan.Name}</strong> subscription ended. You've been moved to the Free plan.</p>
-            <p style="margin: 0 0 24px;">Anything you created remains accessible. To regain {previousPlan.Name} features, you can resubscribe anytime.</p>
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">Your <strong>{previousPlan.Name}</strong> subscription has ended. You've been moved to the <strong style="color:#fff">Free plan</strong> — all your resumes, analyses, and history remain saved.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Account status</h3>
+              {Row("Previous plan", previousPlan.Name)}
+              {Row("Current plan", "<strong>Free</strong>")}
+              {Row("Ended", DateTime.UtcNow.ToString("MMM d, yyyy"))}
+              {Row("Status", "<span style=\"color:#9ca3af\">● Free tier</span>")}
+            </div>
+
+            {(string.IsNullOrEmpty(lostFeatures) ? "" : $"""
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">What's no longer available</h3>
+              {lostFeatures}
+            </div>
+            """)}
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <p style="margin: 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">
+                💡 Resubscribe anytime to restore {previousPlan.Name} features. Your data stays where it is.
+              </p>
+            </div>
+
             {ManageButton("Resubscribe")}
             """);
         return SendSafelyAsync(email, subject, html, ct);
+    }
+
+    private static string BuildPlanDiff(PlanDefinition from, PlanDefinition to, bool isUpgrade)
+    {
+        var sb = new System.Text.StringBuilder();
+        var fl = from.Limits;
+        var tl = to.Limits;
+        var prefix = isUpgrade ? "✓" : "▸";
+        var color = isUpgrade ? "#86efac" : "#fcd34d";
+
+        void Line(string text) =>
+            sb.Append($"<p style=\"margin: 6px 0; font-size: 13px; color: #d1d5db;\"><span style=\"color:{color}\">{prefix}</span> {text}</p>");
+
+        if (fl.MaxResumes != tl.MaxResumes)
+        {
+            var fromN = fl.MaxResumes == int.MaxValue ? "Unlimited" : fl.MaxResumes.ToString();
+            var toN = tl.MaxResumes == int.MaxValue ? "Unlimited" : tl.MaxResumes.ToString();
+            Line(isUpgrade ? $"Resume storage: {fromN} → <strong>{toN}</strong>" : $"Resume limit reduced: {fromN} → {toN}");
+        }
+        if (fl.MonthlyAiCalls != tl.MonthlyAiCalls)
+        {
+            var fromN = fl.MonthlyAiCalls == int.MaxValue ? "Unlimited" : fl.MonthlyAiCalls.ToString();
+            var toN = tl.MonthlyAiCalls == int.MaxValue ? "Unlimited" : tl.MonthlyAiCalls.ToString();
+            Line(isUpgrade ? $"AI calls / month: {fromN} → <strong>{toN}</strong>" : $"AI calls / month reduced: {fromN} → {toN}");
+        }
+        if (!fl.JobMatchEnabled && tl.JobMatchEnabled) Line("Job Match analysis now unlocked");
+        if (fl.JobMatchEnabled && !tl.JobMatchEnabled) Line("Job Match no longer available");
+        if (!fl.CoverLetterEnabled && tl.CoverLetterEnabled) Line("AI Cover Letter generator unlocked");
+        if (fl.CoverLetterEnabled && !tl.CoverLetterEnabled) Line("Cover Letter no longer available");
+        if (!fl.CareerCoachEnabled && tl.CareerCoachEnabled) Line("AI Career Coach roadmap unlocked");
+        if (fl.CareerCoachEnabled && !tl.CareerCoachEnabled) Line("Career Coach no longer available");
+        if (!fl.InterviewCoachEnabled && tl.InterviewCoachEnabled) Line("Interview prep unlocked");
+        if (fl.InterviewCoachEnabled && !tl.InterviewCoachEnabled) Line("Interview Coach no longer available");
+        if (!fl.SalaryEstimatorEnabled && tl.SalaryEstimatorEnabled) Line("Salary Estimator unlocked");
+        if (fl.SalaryEstimatorEnabled && !tl.SalaryEstimatorEnabled) Line("Salary Estimator no longer available");
+        if (!fl.PriorityQueue && tl.PriorityQueue) Line("⚡ Priority AI processing queue");
+        if (fl.PriorityQueue && !tl.PriorityQueue) Line("Priority queue no longer available");
+
+        return sb.ToString();
     }
 
     private async Task SendSafelyAsync(string email, string subject, string html, CancellationToken ct)

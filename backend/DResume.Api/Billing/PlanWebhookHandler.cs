@@ -1,5 +1,6 @@
 using DainnStripe.Data;
 using DainnStripe.Interfaces;
+using DainnUser.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 using Stripe.Checkout;
@@ -10,6 +11,8 @@ public sealed class PlanWebhookHandler : IStripeWebhookHandler
 {
     private readonly IPlanService _plans;
     private readonly DainnStripeDbContext _stripeDb;
+    private readonly DainnUserDbContext _userDb;
+    private readonly IBillingNotifier _notifier;
     private readonly ILogger<PlanWebhookHandler> _logger;
 
     private static readonly string[] Handled =
@@ -20,11 +23,25 @@ public sealed class PlanWebhookHandler : IStripeWebhookHandler
         "customer.subscription.deleted",
     };
 
-    public PlanWebhookHandler(IPlanService plans, DainnStripeDbContext stripeDb, ILogger<PlanWebhookHandler> logger)
+    public PlanWebhookHandler(
+        IPlanService plans,
+        DainnStripeDbContext stripeDb,
+        DainnUserDbContext userDb,
+        IBillingNotifier notifier,
+        ILogger<PlanWebhookHandler> logger)
     {
         _plans = plans;
         _stripeDb = stripeDb;
+        _userDb = userDb;
+        _notifier = notifier;
         _logger = logger;
+    }
+
+    private async Task<(string? Email, string Name)> GetUserContactAsync(Guid userId, CancellationToken ct)
+    {
+        var user = await _userDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null) return (null, "there");
+        return (user.Email, string.IsNullOrWhiteSpace(user.Username) ? "there" : user.Username);
     }
 
     public bool CanHandle(string eventType) => Handled.Contains(eventType);
@@ -57,6 +74,9 @@ public sealed class PlanWebhookHandler : IStripeWebhookHandler
         if (session.Mode != "subscription" || string.IsNullOrEmpty(session.SubscriptionId)) return;
 
         var plan = ResolvePlanFromMetadata(session.Metadata) ?? PlanCode.Pro;
+        var existing = await _plans.GetOrCreateAsync(userId, ct);
+        var previousPlanCode = existing.PlanCode; // snapshot before SetPlanAsync mutates entity
+
         await _plans.SetPlanAsync(
             userId,
             plan,
@@ -66,12 +86,54 @@ public sealed class PlanWebhookHandler : IStripeWebhookHandler
             cancelAtPeriodEnd: false,
             currentPeriodEnd: null,
             ct);
+
+        // Notify only on the actual Free → Paid transition
+        if (previousPlanCode == PlanCode.Free && plan != PlanCode.Free)
+        {
+            var (email, name) = await GetUserContactAsync(userId, ct);
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                // Enrich with subscription period end + invoice URL
+                DateTime? periodEnd = null;
+                string? invoiceUrl = null;
+                try
+                {
+                    var subSvc = new Stripe.SubscriptionService();
+                    var fullSub = await subSvc.GetAsync(session.SubscriptionId, cancellationToken: ct);
+                    periodEnd = fullSub.Items?.Data?.FirstOrDefault()?.CurrentPeriodEnd;
+                }
+                catch (Exception ex) { _logger.LogDebug(ex, "Failed to fetch subscription detail for email"); }
+                try
+                {
+                    if (!string.IsNullOrEmpty(session.InvoiceId))
+                    {
+                        var inv = await new Stripe.InvoiceService().GetAsync(session.InvoiceId, cancellationToken: ct);
+                        invoiceUrl = inv.HostedInvoiceUrl;
+                    }
+                }
+                catch (Exception ex) { _logger.LogDebug(ex, "Failed to fetch invoice for email"); }
+
+                await _notifier.SendSubscribedAsync(
+                    email!, name, PlanCatalog.Get(plan),
+                    session.AmountTotal ?? 0,
+                    session.Currency ?? "usd",
+                    periodEnd,
+                    invoiceUrl,
+                    ct);
+            }
+        }
     }
 
     private async Task OnSubscriptionChangedAsync(Subscription sub, CancellationToken ct)
     {
         var (userId, plan) = await ResolveAsync(sub, ct);
         if (userId is null) return;
+
+        var previous = await _plans.GetOrCreateAsync(userId.Value, ct);
+        // Snapshot BEFORE SetPlanAsync mutates the tracked entity in place.
+        var prevPlanCode = previous.PlanCode;
+        var prevSubId = previous.StripeSubscriptionId;
+        var prevCancelAtEnd = previous.CancelAtPeriodEnd;
 
         var status = sub.Status?.ToLowerInvariant() ?? "active";
         var periodEnd = sub.Items?.Data?.FirstOrDefault()?.CurrentPeriodEnd;
@@ -85,12 +147,39 @@ public sealed class PlanWebhookHandler : IStripeWebhookHandler
             sub.CancelAtPeriodEnd,
             periodEnd,
             ct);
+
+        var (email, name) = await GetUserContactAsync(userId.Value, ct);
+        if (string.IsNullOrWhiteSpace(email)) return;
+
+        // Plan change (upgrade/downgrade) on the SAME subscription
+        if (prevPlanCode != plan && prevSubId == sub.Id && prevPlanCode != PlanCode.Free)
+        {
+            var from = PlanCatalog.Get(prevPlanCode);
+            var to = PlanCatalog.Get(plan);
+            if ((int)plan > (int)prevPlanCode)
+                await _notifier.SendUpgradedAsync(email!, name, from, to, periodEnd, ct);
+            else
+                await _notifier.SendDowngradedAsync(email!, name, from, to, periodEnd, ct);
+        }
+        // Cancellation scheduled
+        else if (!prevCancelAtEnd && sub.CancelAtPeriodEnd)
+        {
+            await _notifier.SendCancellationScheduledAsync(email!, name, PlanCatalog.Get(plan), periodEnd, ct);
+        }
+        // Resumed (uncancelled)
+        else if (prevCancelAtEnd && !sub.CancelAtPeriodEnd)
+        {
+            await _notifier.SendResumedAsync(email!, name, PlanCatalog.Get(plan), periodEnd, ct);
+        }
     }
 
     private async Task OnSubscriptionDeletedAsync(Subscription sub, CancellationToken ct)
     {
         var (userId, _) = await ResolveAsync(sub, ct);
         if (userId is null) return;
+
+        var previous = await _plans.GetOrCreateAsync(userId.Value, ct);
+        var prevPlanCode = previous.PlanCode; // snapshot
 
         await _plans.SetPlanAsync(
             userId.Value,
@@ -101,6 +190,13 @@ public sealed class PlanWebhookHandler : IStripeWebhookHandler
             cancelAtPeriodEnd: false,
             currentPeriodEnd: null,
             ct);
+
+        if (prevPlanCode != PlanCode.Free)
+        {
+            var (email, name) = await GetUserContactAsync(userId.Value, ct);
+            if (!string.IsNullOrWhiteSpace(email))
+                await _notifier.SendSubscriptionEndedAsync(email!, name, PlanCatalog.Get(prevPlanCode), ct);
+        }
     }
 
     private async Task<(Guid? UserId, PlanCode Plan)> ResolveAsync(Subscription sub, CancellationToken ct)

@@ -1,0 +1,71 @@
+name: dresume-backend
+
+# Production compose: real SMTP, no MailHog, ASPNETCORE_ENVIRONMENT=Production.
+# Run with:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Required .env.prod variables:
+#   SMTP_HOST              SMTP server (e.g. smtp.sendgrid.net, email-smtp.us-east-1.amazonaws.com)
+#   SMTP_PORT              587 (STARTTLS) or 465 (SSL)
+#   SMTP_USERNAME          From your SMTP provider
+#   SMTP_PASSWORD          From your SMTP provider
+#   SMTP_ENABLE_SSL        true / false
+#   FROM_EMAIL             noreply@yourdomain.com
+#   FROM_NAME              DResume
+#   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
+#   FRONTEND_ORIGIN        https://app.yourdomain.com  (for CORS + email links)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dresume-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - dresume-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # Do NOT expose 5432 publicly in production — only internal network
+
+  api:
+    build:
+      context: ./DResume.Api
+      dockerfile: Dockerfile
+    container_name: dresume-api
+    ports:
+      - "5267:5267"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5267
+      DainnUser__Database__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Resume__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      DainnStripe__Database__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__DainnStripe: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      # Real SMTP — replace MailHog
+      DainnUser__Email__SmtpHost: ${SMTP_HOST}
+      DainnUser__Email__SmtpPort: ${SMTP_PORT}
+      DainnUser__Email__SmtpUsername: ${SMTP_USERNAME}
+      DainnUser__Email__SmtpPassword: ${SMTP_PASSWORD}
+      DainnUser__Email__EnableSsl: ${SMTP_ENABLE_SSL}
+      DainnUser__Email__FromEmail: ${FROM_EMAIL}
+      DainnUser__Email__FromName: ${FROM_NAME}
+      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
+      # Billing redirect URLs (replace localhost with public frontend URL)
+      Billing__SuccessUrl: "${FRONTEND_ORIGIN}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+      Billing__CancelUrl: "${FRONTEND_ORIGIN}/account?checkout=cancel"
+    volumes:
+      - ./DResume.Api/appsettings.json:/app/appsettings.json:ro
+      - dresume-dp-keys:/root/.aspnet/DataProtection-Keys
+    restart: unless-stopped
+
+volumes:
+  dresume-pg:
+  dresume-dp-keys:

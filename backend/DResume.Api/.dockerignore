@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+.git/
+*.md
+appsettings.Development.json
+Data/Migrations/*.cs.bak
