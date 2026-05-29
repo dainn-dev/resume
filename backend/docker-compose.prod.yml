@@ -4,6 +4,14 @@ name: dresume-backend
 # Run with:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 #
 # Required .env.prod variables:
+#   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
+#   JWT_SECRET             base64 secret (>=64 bytes) for signing JWTs  (REQUIRED)
+#   ANTHROPIC_API_KEY      key for the Anthropic-compatible AI endpoint (REQUIRED)
+#   STRIPE_ENABLED         true / false
+#   STRIPE_SECRET_KEY      sk_live_... (required if STRIPE_ENABLED=true)
+#   STRIPE_PUBLISHABLE_KEY pk_live_...
+#   STRIPE_WEBHOOK_SECRET  whsec_...
+#   BANK_WEBHOOK_SECRET    secret used to verify bank-QR payment webhooks
 #   SMTP_HOST              SMTP server (e.g. smtp.sendgrid.net, email-smtp.us-east-1.amazonaws.com)
 #   SMTP_PORT              587 (STARTTLS) or 465 (SSL)
 #   SMTP_USERNAME          From your SMTP provider
@@ -11,7 +19,6 @@ name: dresume-backend
 #   SMTP_ENABLE_SSL        true / false
 #   FROM_EMAIL             noreply@yourdomain.com
 #   FROM_NAME              DResume
-#   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
 #   FRONTEND_ORIGIN        https://app.yourdomain.com  (for CORS + email links)
 
 services:
@@ -49,6 +56,17 @@ services:
       Resume__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       DainnStripe__Database__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__DainnStripe: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      # Auth — JWT signing secret (REQUIRED, else token signing fails)
+      DainnUser__Jwt__Secret: ${JWT_SECRET}
+      # AI — Anthropic-compatible API key (REQUIRED, else all AI features fail)
+      Anthropic__ApiKey: ${ANTHROPIC_API_KEY}
+      # Billing — Stripe (card payments). Set DainnStripe__Enabled=false to disable.
+      DainnStripe__Enabled: ${STRIPE_ENABLED}
+      DainnStripe__SecretKey: ${STRIPE_SECRET_KEY}
+      DainnStripe__PublishableKey: ${STRIPE_PUBLISHABLE_KEY}
+      DainnStripe__WebhookSigningSecret: ${STRIPE_WEBHOOK_SECRET}
+      # Billing — bank QR webhook verification secret
+      Billing__BankWebhookSecret: ${BANK_WEBHOOK_SECRET}
       # Real SMTP — replace MailHog
       DainnUser__Email__SmtpHost: ${SMTP_HOST}
       DainnUser__Email__SmtpPort: ${SMTP_PORT}
