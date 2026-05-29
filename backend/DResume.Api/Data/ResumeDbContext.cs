@@ -21,6 +21,7 @@ public class ResumeDbContext : DbContext
     public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
     public DbSet<CompanyReviewCacheRecord> CompanyReviewCaches => Set<CompanyReviewCacheRecord>();
     public DbSet<PlanRecord> Plans => Set<PlanRecord>();
+    public DbSet<BankPricingTier> BankPricingTiers => Set<BankPricingTier>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<BankPayment> BankPayments => Set<BankPayment>();
     public DbSet<BugReport> BugReports => Set<BugReport>();
@@ -161,6 +162,14 @@ public class ResumeDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(80);
             e.Property(x => x.Currency).HasMaxLength(8);
             e.Property(x => x.ActiveStripePriceId).HasMaxLength(128);
+        });
+
+        b.Entity<BankPricingTier>(e =>
+        {
+            e.ToTable("bank_pricing_tiers");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PlanCode).HasConversion<int>();
+            e.HasIndex(x => new { x.PlanCode, x.Months }).IsUnique();
         });
 
         b.Entity<BankAccount>(e =>

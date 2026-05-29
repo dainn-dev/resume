@@ -41,33 +41,43 @@ public sealed class BillingController : ControllerBase
 
     [HttpGet("plans")]
     [AllowAnonymous]
-    public async Task<IActionResult> ListPlans([FromServices] IPlanCatalogService catalog, CancellationToken ct)
+    public async Task<IActionResult> ListPlans([FromServices] IPlanCatalogService catalog,
+        [FromServices] IBankPricingService pricing, CancellationToken ct)
     {
         var plans = await catalog.GetAllAsync(ct);
-        var view = plans.Select(p => new
+        var view = new List<object>();
+        foreach (var p in plans)
         {
-            code = p.Code.ToString(),
-            lookupKey = p.LookupKey,
-            name = p.Name,
-            description = p.Description,
-            monthlyPriceCents = p.MonthlyPriceCents,
-            currency = p.Currency,
-            monthlyPriceVnd = p.MonthlyPriceVnd,
-            isPaid = p.IsPaid,
-            limits = new
+            var tiers = p.IsPaid
+                ? (await pricing.GetActiveTiersAsync(p.Code, ct))
+                    .Select(t => new { months = t.Months, discountPercent = t.DiscountPercent })
+                : Enumerable.Empty<object>();
+            view.Add(new
             {
-                maxResumes = p.Limits.MaxResumes == int.MaxValue ? (int?)null : p.Limits.MaxResumes,
-                monthlyAiCalls = p.Limits.MonthlyAiCalls == int.MaxValue ? (int?)null : p.Limits.MonthlyAiCalls,
-                p.Limits.JobMatchEnabled,
-                p.Limits.CoverLetterEnabled,
-                p.Limits.CareerCoachEnabled,
-                p.Limits.InterviewCoachEnabled,
-                p.Limits.SalaryEstimatorEnabled,
-                p.Limits.CalendarEnabled,
-                p.Limits.CompanyReviewEnabled,
-                p.Limits.PriorityQueue,
-            }
-        });
+                code = p.Code.ToString(),
+                lookupKey = p.LookupKey,
+                name = p.Name,
+                description = p.Description,
+                monthlyPriceCents = p.MonthlyPriceCents,
+                currency = p.Currency,
+                monthlyPriceVnd = p.MonthlyPriceVnd,
+                isPaid = p.IsPaid,
+                bankTiers = tiers,
+                limits = new
+                {
+                    maxResumes = p.Limits.MaxResumes == int.MaxValue ? (int?)null : p.Limits.MaxResumes,
+                    monthlyAiCalls = p.Limits.MonthlyAiCalls == int.MaxValue ? (int?)null : p.Limits.MonthlyAiCalls,
+                    p.Limits.JobMatchEnabled,
+                    p.Limits.CoverLetterEnabled,
+                    p.Limits.CareerCoachEnabled,
+                    p.Limits.InterviewCoachEnabled,
+                    p.Limits.SalaryEstimatorEnabled,
+                    p.Limits.CalendarEnabled,
+                    p.Limits.CompanyReviewEnabled,
+                    p.Limits.PriorityQueue,
+                }
+            });
+        }
         return Ok(ApiResult.Ok(view));
     }
 

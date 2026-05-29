@@ -17,6 +17,11 @@ interface PlanLimits {
   priorityQueue: boolean;
 }
 
+interface BankTier {
+  months: number;
+  discountPercent: number;
+}
+
 interface Plan {
   code: string;
   lookupKey: string;
@@ -26,15 +31,9 @@ interface Plan {
   currency: string;
   monthlyPriceVnd: number;
   isPaid: boolean;
+  bankTiers: BankTier[];
   limits: PlanLimits;
 }
-
-const DURATION_OPTIONS = [
-  { months: 1, discountPct: 0 },
-  { months: 3, discountPct: 10 },
-  { months: 6, discountPct: 20 },
-  { months: 12, discountPct: 30 },
-];
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -403,15 +402,15 @@ export default function BillingPanel() {
                       {busyCode === plan.code ? "…" : interpolate(t("billing.payWithCard"), { price: formatPrice(plan.monthlyPriceCents, plan.currency) })}
                     </button>
                   )}
-                  {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && (
+                  {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && plan.bankTiers.length > 0 && (
                     <button
-                      onClick={() => { setBankModalPlan(plan); setBankMonths(1); }}
+                      onClick={() => { setBankModalPlan(plan); setBankMonths(plan.bankTiers[0]?.months ?? 1); }}
                       className="w-full border border-purple-500/40 hover:bg-purple-500/10 text-purple-300 text-sm font-semibold py-2 rounded-lg transition-colors"
                     >
                       {interpolate(t("billing.payWithBankQr"), { price: formatVnd(plan.monthlyPriceVnd) })}
                     </button>
                   )}
-                  {!methods.cardPaymentsEnabled && !(methods.bankQrEnabled && plan.monthlyPriceVnd > 0) && (
+                  {!methods.cardPaymentsEnabled && !(methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && plan.bankTiers.length > 0) && (
                     <p className="text-xs text-gray-500 text-center py-2">{t("billing.noPaymentMethod")}</p>
                   )}
                 </div>
@@ -440,14 +439,14 @@ export default function BillingPanel() {
 
             <div className="grid grid-cols-2 gap-2">
               {(methods.testPlanEnabled && bankModalPlan.code === "Pro"
-                ? [{ months: 0, discountPct: 0 }, ...DURATION_OPTIONS]
-                : DURATION_OPTIONS
+                ? [{ months: 0, discountPercent: 0 }, ...bankModalPlan.bankTiers]
+                : bankModalPlan.bankTiers
               ).map(opt => {
                 const isTest = opt.months === 0;
                 const isSelected = bankMonths === opt.months;
                 const total = isTest
                   ? (methods.testPlanPriceVnd ?? 2000)
-                  : computeBankAmount(bankModalPlan.monthlyPriceVnd, opt.months, opt.discountPct);
+                  : computeBankAmount(bankModalPlan.monthlyPriceVnd, opt.months, opt.discountPercent);
                 return (
                   <button
                     key={opt.months}
@@ -462,9 +461,9 @@ export default function BillingPanel() {
                       <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
                         {t("billing.testBadge")}
                       </span>
-                    ) : opt.discountPct > 0 && (
+                    ) : opt.discountPercent > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        -{opt.discountPct}%
+                        -{opt.discountPercent}%
                       </span>
                     )}
                     <p className="text-white text-sm font-semibold">{durationLabel(opt.months)}</p>

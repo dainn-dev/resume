@@ -17,8 +17,8 @@ public interface IBankPaymentService
     Task<(BankPayment? payment, string reason)> MatchAndConfirmAsync(BankWebhookRequest webhook, string rawJson, CancellationToken ct = default);
     Task<int> SweepExpiredAsync(Guid? userId = null, CancellationToken ct = default);
     string BuildQrUrl(BankAccount account, long amount, string transactionCode);
-    long ComputeAmount(long monthlyVnd, int months);
-    int DiscountPercent(int months);
+    /// <summary>Net VND for a gross (monthly × months) after applying a discount %, rounded to 1,000.</summary>
+    long ComputeAmount(long monthlyVnd, int months, int discountPercent);
 }
 
 public sealed class BankPaymentService : IBankPaymentService
@@ -26,6 +26,7 @@ public sealed class BankPaymentService : IBankPaymentService
     private readonly ResumeDbContext _db;
     private readonly IPlanService _plans;
     private readonly IPlanCatalogService _catalog;
+    private readonly IBankPricingService _pricing;
     private readonly IBillingNotifier _notifier;
     private readonly DainnUserDbContext _userDb;
     private readonly ILogger<BankPaymentService> _logger;
@@ -40,6 +41,7 @@ public sealed class BankPaymentService : IBankPaymentService
         ResumeDbContext db,
         IPlanService plans,
         IPlanCatalogService catalog,
+        IBankPricingService pricing,
         IBillingNotifier notifier,
         DainnUserDbContext userDb,
         ILogger<BankPaymentService> logger,
@@ -48,26 +50,18 @@ public sealed class BankPaymentService : IBankPaymentService
         _db = db;
         _plans = plans;
         _catalog = catalog;
+        _pricing = pricing;
         _notifier = notifier;
         _userDb = userDb;
         _logger = logger;
         _options = options.Value;
     }
 
-    public int DiscountPercent(int months) => months switch
-    {
-        12 => 30,
-        6 => 20,
-        3 => 10,
-        _ => 0,
-    };
-
-    public long ComputeAmount(long monthlyVnd, int months)
+    public long ComputeAmount(long monthlyVnd, int months, int discountPercent)
     {
         if (months <= 0) months = 1;
         var gross = monthlyVnd * months;
-        var discount = DiscountPercent(months);
-        var net = gross * (100 - discount) / 100;
+        var net = gross * (100 - discountPercent) / 100;
         // Round to nearest 1,000 VND for cleaner UX
         return (long)Math.Round(net / 1000.0) * 1000;
     }
@@ -79,12 +73,20 @@ public sealed class BankPaymentService : IBankPaymentService
         var isTest = durationMonths == TestDurationSentinel;
         if (isTest && !_options.TestPlanEnabled)
             throw new ArgumentException("Test plan is not enabled.");
-        if (!isTest && durationMonths is not (1 or 3 or 6 or 12))
-            throw new ArgumentException("DurationMonths must be 1, 3, 6, or 12.");
 
         var plan = await _catalog.GetAsync(planCode, ct);
-        if (!isTest && plan.MonthlyPriceVnd <= 0)
-            throw new InvalidOperationException($"Plan {planCode} has no VND price configured. Set MonthlyPriceVnd in plans table.");
+
+        // Non-test durations must match an active admin-configured pricing tier for this plan.
+        int discountPercent = 0;
+        if (!isTest)
+        {
+            if (plan.MonthlyPriceVnd <= 0)
+                throw new InvalidOperationException($"Plan {planCode} has no VND price configured. Set MonthlyPriceVnd in plans table.");
+            var tierDiscount = await _pricing.GetDiscountPercentAsync(planCode, durationMonths, ct);
+            if (tierDiscount is null)
+                throw new ArgumentException($"No active {durationMonths}-month option for the {planCode} plan.");
+            discountPercent = tierDiscount.Value;
+        }
 
         var account = await _db.BankAccounts.AsNoTracking()
             .Where(a => a.IsActive)
@@ -93,7 +95,7 @@ public sealed class BankPaymentService : IBankPaymentService
             .FirstOrDefaultAsync(ct)
             ?? throw new InvalidOperationException("No active bank account configured. Admin must add one.");
 
-        var amount = isTest ? _options.TestPlanPriceVnd : ComputeAmount(plan.MonthlyPriceVnd, durationMonths);
+        var amount = isTest ? _options.TestPlanPriceVnd : ComputeAmount(plan.MonthlyPriceVnd, durationMonths, discountPercent);
         var code = GenerateTransactionCode();
 
         var payment = new BankPayment

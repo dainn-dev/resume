@@ -358,14 +358,20 @@ public sealed class AdminController : ControllerBase
     }
 
     [HttpGet("plans")]
-    public async Task<IActionResult> ListPlans([FromServices] IPlanCatalogService catalog, CancellationToken ct)
+    public async Task<IActionResult> ListPlans([FromServices] IPlanCatalogService catalog,
+        [FromServices] IBankPricingService pricing, CancellationToken ct)
     {
         var plans = await catalog.GetAllAsync(ct);
         var records = await _resumeDb.Plans.AsNoTracking().OrderBy(p => p.Code).ToListAsync(ct);
-        var view = plans.Select(p =>
+        var view = new List<object>();
+        foreach (var p in plans)
         {
             var r = records.FirstOrDefault(x => x.Code == p.Code);
-            return new
+            var tiers = p.IsPaid
+                ? (await pricing.GetAllTiersAsync(p.Code, ct))
+                    .Select(t => new { id = t.Id, months = t.Months, discountPercent = t.DiscountPercent, active = t.Active })
+                : Enumerable.Empty<object>();
+            view.Add(new
             {
                 code = p.Code.ToString(),
                 lookupKey = p.LookupKey,
@@ -373,6 +379,8 @@ public sealed class AdminController : ControllerBase
                 description = p.Description,
                 monthlyPriceCents = p.MonthlyPriceCents,
                 currency = p.Currency,
+                monthlyPriceVnd = p.MonthlyPriceVnd,
+                bankTiers = tiers,
                 limits = new
                 {
                     maxResumes = p.Limits.MaxResumes,
@@ -388,8 +396,8 @@ public sealed class AdminController : ControllerBase
                 },
                 activeStripePriceId = r?.ActiveStripePriceId,
                 updatedAt = r?.UpdatedAt,
-            };
-        });
+            });
+        }
         return Ok(ApiResult.Ok(view));
     }
 
@@ -474,6 +482,51 @@ public sealed class AdminController : ControllerBase
             failed = result.FailedCount,
             failedSubscriptionIds = result.FailedSubscriptionIds,
         }));
+    }
+
+    // ───────── Bank-transfer pricing tiers (per plan) ─────────
+
+    [HttpGet("plans/{code}/bank-tiers")]
+    public async Task<IActionResult> ListBankTiers(string code,
+        [FromServices] IBankPricingService pricing, CancellationToken ct)
+    {
+        if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
+            return BadRequest(ApiResult.Fail("Invalid plan code."));
+        var tiers = await pricing.GetAllTiersAsync(planCode, ct);
+        return Ok(ApiResult.Ok(tiers.Select(t => new
+        {
+            id = t.Id, months = t.Months, discountPercent = t.DiscountPercent, active = t.Active,
+        })));
+    }
+
+    public sealed record AddBankTierRequest(int Months, int DiscountPercent);
+
+    [HttpPost("plans/{code}/bank-tiers")]
+    public async Task<IActionResult> AddBankTier(string code, [FromBody] AddBankTierRequest req,
+        [FromServices] IBankPricingService pricing, CancellationToken ct)
+    {
+        if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
+            return BadRequest(ApiResult.Fail("Invalid plan code."));
+        var tier = await pricing.AddTierAsync(planCode, req.Months, req.DiscountPercent, ct);
+        return Ok(ApiResult.Ok(new { id = tier.Id, months = tier.Months, discountPercent = tier.DiscountPercent, active = tier.Active }));
+    }
+
+    public sealed record UpdateBankTierRequest(int? DiscountPercent, bool? Active);
+
+    [HttpPatch("plans/{code}/bank-tiers/{id:guid}")]
+    public async Task<IActionResult> UpdateBankTier(string code, Guid id, [FromBody] UpdateBankTierRequest req,
+        [FromServices] IBankPricingService pricing, CancellationToken ct)
+    {
+        var tier = await pricing.UpdateTierAsync(id, req.DiscountPercent, req.Active, ct);
+        return Ok(ApiResult.Ok(new { id = tier.Id, months = tier.Months, discountPercent = tier.DiscountPercent, active = tier.Active }));
+    }
+
+    [HttpDelete("plans/{code}/bank-tiers/{id:guid}")]
+    public async Task<IActionResult> DeleteBankTier(string code, Guid id,
+        [FromServices] IBankPricingService pricing, CancellationToken ct)
+    {
+        await pricing.DeleteTierAsync(id, ct);
+        return Ok(ApiResult.Ok(new { deleted = true, id }));
     }
 
     [HttpGet("analytics")]

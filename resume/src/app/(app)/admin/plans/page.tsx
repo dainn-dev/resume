@@ -3,6 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
+interface BankTier {
+  id: string;
+  months: number;
+  discountPercent: number;
+  active: boolean;
+}
+
 interface Plan {
   code: "Free" | "Pro" | "Premium";
   lookupKey: string;
@@ -10,6 +17,8 @@ interface Plan {
   description: string;
   monthlyPriceCents: number;
   currency: string;
+  monthlyPriceVnd: number;
+  bankTiers: BankTier[];
   limits: {
     maxResumes: number;
     monthlyAiCalls: number;
@@ -39,6 +48,15 @@ interface StripePrice {
 function formatPrice(cents: number, currency: string) {
   const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
   return `${symbol}${(cents / 100).toFixed(2)}`;
+}
+
+function formatVnd(amount: number): string {
+  return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+}
+
+function computeBankAmount(monthlyVnd: number, months: number, discountPct: number): number {
+  const net = (monthlyVnd * months * (100 - discountPct)) / 100;
+  return Math.round(net / 1000) * 1000;
 }
 
 function MAX(v: number) { return v === 2147483647 ? "Unlimited" : v.toLocaleString(); }
@@ -82,6 +100,7 @@ export default function AdminPlansPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: p.name, description: p.description,
+          monthlyPriceVnd: p.monthlyPriceVnd,
           maxResumes: p.limits.maxResumes, monthlyAiCalls: p.limits.monthlyAiCalls,
           jobMatchEnabled: p.limits.jobMatchEnabled,
           coverLetterEnabled: p.limits.coverLetterEnabled,
@@ -169,6 +188,48 @@ export default function AdminPlansPage() {
     finally { setBusy(null); }
   }
 
+  async function addTier(code: string, months: number, discountPercent: number) {
+    setBusy(`tier-add-${code}`);
+    try {
+      const res = await fetch(`/api/admin/plans/${code}/bank-tiers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ months, discountPercent }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Failed to add tier.");
+      await load();
+    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
+    finally { setBusy(null); }
+  }
+
+  async function updateTier(code: string, id: string, patch: { discountPercent?: number; active?: boolean }) {
+    setBusy(`tier-${id}`);
+    try {
+      const res = await fetch(`/api/admin/plans/${code}/bank-tiers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Failed to update tier.");
+      await load();
+    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
+    finally { setBusy(null); }
+  }
+
+  async function deleteTier(code: string, id: string) {
+    if (!confirm("Delete this duration option? Existing payments are unaffected.")) return;
+    setBusy(`tier-${id}`);
+    try {
+      const res = await fetch(`/api/admin/plans/${code}/bank-tiers/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Failed to delete tier.");
+      await load();
+    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
+    finally { setBusy(null); }
+  }
+
   if (loading) return <main className="max-w-5xl mx-auto px-4 py-10"><div className="h-40 bg-gray-900 rounded-2xl animate-pulse" /></main>;
   if (error) return <main className="max-w-5xl mx-auto px-4 py-10"><div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400">{error}</div></main>;
 
@@ -197,6 +258,9 @@ export default function AdminPlansPage() {
             <div className="text-right">
               <p className="text-2xl font-bold text-white">{formatPrice(p.monthlyPriceCents, p.currency)}</p>
               <p className="text-xs text-gray-500">/mo</p>
+              {p.code !== "Free" && (
+                <p className="text-xs text-purple-300 mt-1">{formatVnd(p.monthlyPriceVnd)}<span className="text-gray-500">/mo</span></p>
+              )}
             </div>
           </div>
 
@@ -262,6 +326,17 @@ export default function AdminPlansPage() {
               </div>
             </div>
           )}
+
+          {/* Bank-transfer duration tiers */}
+          {p.code !== "Free" && (
+            <BankTierEditor
+              plan={p}
+              busy={busy}
+              onAdd={addTier}
+              onUpdate={updateTier}
+              onDelete={deleteTier}
+            />
+          )}
         </div>
       ))}
 
@@ -301,6 +376,83 @@ function PriceForm({ planCode, currentCents, onChange, busy }: { planCode: strin
   );
 }
 
+function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
+  plan: Plan;
+  busy: string | null;
+  onAdd: (code: string, months: number, discountPercent: number) => void;
+  onUpdate: (code: string, id: string, patch: { discountPercent?: number; active?: boolean }) => void;
+  onDelete: (code: string, id: string) => void;
+}) {
+  const [newMonths, setNewMonths] = useState("");
+  const [newDiscount, setNewDiscount] = useState("0");
+
+  function submitNew(e: React.FormEvent) {
+    e.preventDefault();
+    const m = parseInt(newMonths, 10);
+    const d = parseInt(newDiscount, 10);
+    if (isNaN(m) || m < 1) { alert("Months must be ≥ 1"); return; }
+    if (isNaN(d) || d < 0 || d > 100) { alert("Discount must be 0–100"); return; }
+    onAdd(plan.code, m, d);
+    setNewMonths(""); setNewDiscount("0");
+  }
+
+  return (
+    <div className="mt-4 bg-gray-800/40 rounded-lg p-3">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2 tracking-wider">
+        Bank transfer durations ({plan.bankTiers.length})
+      </h3>
+      <p className="text-[10px] text-gray-600 mb-3">
+        Total = monthly VND × months × (100 − discount)%, rounded to 1,000₫. Edit monthly VND via “Edit info &amp; limits”.
+      </p>
+      <div className="space-y-1.5">
+        {plan.bankTiers.map(t => {
+          const total = computeBankAmount(plan.monthlyPriceVnd, t.months, t.discountPercent);
+          return (
+            <div key={t.id} className={`flex items-center gap-2 border-b border-gray-800 last:border-0 py-1.5 text-sm ${t.active ? "" : "opacity-50"}`}>
+              <span className="text-white font-medium w-20">{t.months} mo</span>
+              <label className="flex items-center gap-1 text-xs text-gray-400">
+                <span>-</span>
+                <input
+                  type="number" min="0" max="100" defaultValue={t.discountPercent}
+                  onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!isNaN(v) && v !== t.discountPercent) onUpdate(plan.code, t.id, { discountPercent: v }); }}
+                  className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white"
+                />
+                <span>%</span>
+              </label>
+              <span className="text-purple-300 font-semibold flex-1">{formatVnd(total)}</span>
+              <button onClick={() => onUpdate(plan.code, t.id, { active: !t.active })} disabled={busy === `tier-${t.id}`}
+                className={`text-[10px] px-2 py-1 rounded ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
+                {t.active ? "Disable" : "Enable"}
+              </button>
+              <button onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
+                className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1">Delete</button>
+            </div>
+          );
+        })}
+        {plan.bankTiers.length === 0 && (
+          <p className="text-xs text-gray-500 py-2">No durations configured — bank transfer is hidden for this plan.</p>
+        )}
+      </div>
+      <form onSubmit={submitNew} className="flex items-end gap-2 mt-3 pt-3 border-t border-gray-800">
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-0.5">Months</label>
+          <input type="number" min="1" value={newMonths} onChange={(e) => setNewMonths(e.target.value)} placeholder="e.g. 24"
+            className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
+        </div>
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-0.5">Discount %</label>
+          <input type="number" min="0" max="100" value={newDiscount} onChange={(e) => setNewDiscount(e.target.value)}
+            className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
+        </div>
+        <button type="submit" disabled={busy === `tier-add-${plan.code}`}
+          className="text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50">
+          {busy === `tier-add-${plan.code}` ? "…" : "Add duration"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function EditModal({ plan, onClose, onSave, busy }: { plan: Plan; onClose: () => void; onSave: (p: Plan) => void; busy: boolean }) {
   const [p, setP] = useState<Plan>(plan);
   return (
@@ -316,6 +468,15 @@ function EditModal({ plan, onClose, onSave, busy }: { plan: Plan; onClose: () =>
             <label className="block text-xs text-gray-400 mb-1">Description</label>
             <textarea value={p.description} onChange={(e) => setP({ ...p, description: e.target.value })} rows={2} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
           </div>
+          {plan.code !== "Free" && (
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Monthly price (VND) — base for bank transfer</label>
+              <input type="number" min="0" step="1000" value={p.monthlyPriceVnd}
+                onChange={(e) => setP({ ...p, monthlyPriceVnd: Number(e.target.value) })}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
+              <p className="text-[10px] text-gray-500 mt-1">{formatVnd(p.monthlyPriceVnd)} / month. Stripe (USD) price is changed separately.</p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Max resumes</label>

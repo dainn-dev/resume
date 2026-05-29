@@ -105,6 +105,7 @@ builder.Services.AddScoped<IPlanCatalogService, PlanCatalogService>();
 builder.Services.AddScoped<IStripePriceManager, StripePriceManager>();
 builder.Services.AddScoped<IPlanService, PlanService>();
 builder.Services.AddScoped<IUsageService, UsageService>();
+builder.Services.AddScoped<IBankPricingService, BankPricingService>();
 builder.Services.AddScoped<IBankPaymentService, BankPaymentService>();
 builder.Services.AddScoped<IBillingNotifier, BillingNotifier>();
 
@@ -173,6 +174,10 @@ await using (var scope = app.Services.CreateAsyncScope())
     // Bootstrap plans table from PlanCatalog defaults if empty
     try { await scope.ServiceProvider.GetRequiredService<IPlanCatalogService>().SeedIfEmptyAsync(); }
     catch (Exception ex) { app.Logger.LogWarning(ex, "Plan catalog seed skipped."); }
+
+    // Bootstrap bank-transfer pricing tiers (1/3/6/12 months) for paid plans if none exist
+    try { await scope.ServiceProvider.GetRequiredService<IBankPricingService>().SeedDefaultsIfEmptyAsync(); }
+    catch (Exception ex) { app.Logger.LogWarning(ex, "Bank pricing tier seed skipped."); }
 
     var dainnDb = scope.ServiceProvider.GetService<DainnUserDbContext>();
     if (dainnDb is null)
