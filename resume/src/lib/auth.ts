@@ -22,11 +22,11 @@ export function isAuthenticated(): boolean {
   return getAuthUser() !== null;
 }
 
-export async function loginRequest(email: string, password: string): Promise<{ user?: AuthUser; error?: string; requiresTwoFactor?: boolean }> {
+export async function loginRequest(email: string, password: string, recaptchaToken?: string | null): Promise<{ user?: AuthUser; error?: string; requiresTwoFactor?: boolean }> {
   const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, recaptchaToken }),
   });
   const data = await res.json().catch(() => ({ error: "Login failed." }));
   if (!res.ok || !data?.success) return { error: data?.error ?? "Login failed." };
@@ -34,11 +34,11 @@ export async function loginRequest(email: string, password: string): Promise<{ u
   return { user: data.user };
 }
 
-export async function registerRequest(name: string, email: string, password: string): Promise<{ ok: boolean; message?: string; error?: string }> {
+export async function registerRequest(name: string, email: string, password: string, recaptchaToken?: string | null): Promise<{ ok: boolean; message?: string; error?: string }> {
   const res = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, recaptchaToken }),
   });
   const data = await res.json().catch(() => ({ error: "Registration failed." }));
   if (!res.ok || !data?.success) return { ok: false, error: data?.error ?? "Registration failed." };

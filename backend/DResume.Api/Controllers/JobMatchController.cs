@@ -14,7 +14,7 @@ namespace DResume.Api.Controllers;
 [ApiController]
 [Route("api/job-match")]
 [Authorize]
-[RequiresPlan(PlanCode.Pro)]
+[RequiresFeature(Feature.JobMatch)]
 public sealed class JobMatchController : ControllerBase
 {
     private readonly IJobMatchService _service;
@@ -30,6 +30,7 @@ public sealed class JobMatchController : ControllerBase
     }
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Match([FromBody] JobMatchRequest req, CancellationToken ct)
     {
         var (analysis, jd) = await _service.AnalyzeAsync(req.ResumeText, req.JobDescription, req.LinkedinUrl, ct);

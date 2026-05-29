@@ -10,7 +10,11 @@ export async function POST(request: Request) {
   };
   const res = await callBackend<{ success: boolean; data?: { userId: string; email: string; message: string }; error?: string }>(
     "/api/auth/register",
-    { method: "POST", body: payload }
+    {
+      method: "POST",
+      body: payload,
+      headers: body.recaptchaToken ? { "X-Recaptcha-Token": body.recaptchaToken } : undefined,
+    }
   );
 
   if (!res.ok || !res.data?.success) {

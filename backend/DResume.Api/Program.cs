@@ -18,6 +18,7 @@ using DResume.Api.Features.Resumes;
 using DResume.Api.Features.Salary;
 using DResume.Api.Features.Calendar;
 using DResume.Api.Features.CompanyReview;
+using DResume.Api.Security;
 using DResume.Api.Features.CompanyReview.Sources;
 using DResume.Api.Features.Translation;
 using Microsoft.AspNetCore.Http.Features;
@@ -29,6 +30,10 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Local-only secret overrides (git-ignored). Keeps real keys/connection strings out of the
+// committed appsettings.json. Optional so deployments relying on env vars are unaffected.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 builder.Services.Configure<KestrelServerOptions>(o => o.Limits.MaxRequestBodySize = 15 * 1024 * 1024);
 builder.Services.Configure<FormOptions>(o =>
@@ -58,6 +63,8 @@ builder.Services.AddDbContext<ResumeDbContext>(o =>
 
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("Anthropic"));
 builder.Services.AddHttpClient<IAnthropicClient, AnthropicClient>();
+builder.Services.Configure<RecaptchaOptions>(builder.Configuration.GetSection("Recaptcha"));
+builder.Services.AddHttpClient<IRecaptchaVerifier, RecaptchaVerifier>();
 builder.Services.AddHttpClient("jd-scraper");
 builder.Services.AddHttpClient("company-scraper", c => c.Timeout = TimeSpan.FromSeconds(15))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
@@ -93,7 +100,12 @@ if (stripeEnabled)
     builder.Services.AddScoped<IStripeWebhookHandler, PlanWebhookHandler>();
 }
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection("Billing"));
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IPlanCatalogService, PlanCatalogService>();
+builder.Services.AddScoped<IStripePriceManager, StripePriceManager>();
 builder.Services.AddScoped<IPlanService, PlanService>();
+builder.Services.AddScoped<IUsageService, UsageService>();
+builder.Services.AddScoped<IBankPaymentService, BankPaymentService>();
 builder.Services.AddScoped<IBillingNotifier, BillingNotifier>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -157,6 +169,10 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var resumeDb = scope.ServiceProvider.GetRequiredService<ResumeDbContext>();
     await resumeDb.Database.MigrateAsync();
+
+    // Bootstrap plans table from PlanCatalog defaults if empty
+    try { await scope.ServiceProvider.GetRequiredService<IPlanCatalogService>().SeedIfEmptyAsync(); }
+    catch (Exception ex) { app.Logger.LogWarning(ex, "Plan catalog seed skipped."); }
 
     var dainnDb = scope.ServiceProvider.GetService<DainnUserDbContext>();
     if (dainnDb is null)

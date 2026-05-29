@@ -14,7 +14,7 @@ namespace DResume.Api.Controllers;
 [ApiController]
 [Route("api/cover-letters")]
 [Authorize]
-[RequiresPlan(PlanCode.Pro)]
+[RequiresFeature(Feature.CoverLetter)]
 public sealed class CoverLettersController : ControllerBase
 {
     private readonly ICoverLetterService _service;
@@ -30,6 +30,7 @@ public sealed class CoverLettersController : ControllerBase
     }
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Create([FromBody] CoverLetterFormDataDto req, CancellationToken ct)
     {
         var text = await _service.GenerateAsync(req, ct);
@@ -72,7 +73,7 @@ public sealed class CoverLettersController : ControllerBase
 [ApiController]
 [Route("api/cover-letter")]
 [Authorize]
-[RequiresPlan(PlanCode.Pro)]
+[RequiresFeature(Feature.CoverLetter)]
 public sealed class LegacyCoverLetterController : ControllerBase
 {
     private readonly ICoverLetterService _service;
@@ -88,6 +89,7 @@ public sealed class LegacyCoverLetterController : ControllerBase
     }
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Create([FromBody] CoverLetterFormDataDto req, CancellationToken ct)
     {
         var text = await _service.GenerateAsync(req, ct);

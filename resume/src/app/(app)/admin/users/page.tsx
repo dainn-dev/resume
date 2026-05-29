@@ -66,7 +66,13 @@ export default function AdminUsersPage() {
           <h1 className="text-2xl font-bold text-white">Admin · Users</h1>
           <p className="text-gray-400 text-sm mt-1">Manage user accounts, plans, and resumes.</p>
         </div>
-        <Link href="/admin/analytics" className="text-blue-400 text-sm hover:text-blue-300">Analytics →</Link>
+        <div className="flex gap-3 text-sm">
+          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">Analytics</Link>
+          <Link href="/admin/plans" className="text-blue-400 hover:text-blue-300">Plans</Link>
+          <Link href="/admin/bank-accounts" className="text-blue-400 hover:text-blue-300">Bank Accounts</Link>
+          <Link href="/admin/bank-payments" className="text-blue-400 hover:text-blue-300">Bank Payments</Link>
+          <Link href="/admin/bug-reports" className="text-blue-400 hover:text-blue-300">Bug Reports</Link>
+        </div>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4">

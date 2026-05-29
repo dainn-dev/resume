@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type ReCAPTCHA from "react-google-recaptcha";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/components/TranslationProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Recaptcha, { RECAPTCHA_ENABLED } from "@/components/Recaptcha";
 import { loginRequest } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -16,6 +19,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => {
     if (authMounted && isAuthenticated) router.replace("/dashboard");
@@ -29,9 +34,10 @@ export default function LoginPage() {
     setError(null);
     if (!email.trim()) { setError(t("auth.errorEmailRequired")); return; }
     if (password.length < 6) { setError(t("auth.errorPasswordMin")); return; }
+    if (RECAPTCHA_ENABLED && !captchaToken) { setError(t("auth.errorCaptchaRequired")); return; }
     setBusy(true);
     try {
-      const result = await loginRequest(email.trim(), password);
+      const result = await loginRequest(email.trim(), password, captchaToken);
       if (result.error) { setError(result.error); return; }
       if (result.requiresTwoFactor) { setError("Two-factor authentication is not yet supported in this UI."); return; }
       if (result.user) {
@@ -41,13 +47,17 @@ export default function LoginPage() {
       }
     } finally {
       setBusy(false);
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
     }
   }
 
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="flex items-center justify-between h-14 px-4 max-w-6xl mx-auto w-full">
-        <Link href="/" className="text-blue-400 font-semibold text-sm">{t("nav.title")}</Link>
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
+        </Link>
         <LanguageSwitcher />
       </nav>
       <div className="flex-1 flex items-center justify-center px-4">
@@ -85,9 +95,10 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
               </div>
+              <Recaptcha ref={captchaRef} onChange={setCaptchaToken} className="flex justify-center" />
               <button
                 type="submit"
-                disabled={busy}
+                disabled={busy || (RECAPTCHA_ENABLED && !captchaToken)}
                 className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
               >
                 {busy ? "…" : t("auth.loginButton")}

@@ -20,6 +20,11 @@ public class ResumeDbContext : DbContext
     public DbSet<CalendarMilestone> CalendarMilestones => Set<CalendarMilestone>();
     public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
     public DbSet<CompanyReviewCacheRecord> CompanyReviewCaches => Set<CompanyReviewCacheRecord>();
+    public DbSet<PlanRecord> Plans => Set<PlanRecord>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+    public DbSet<BankPayment> BankPayments => Set<BankPayment>();
+    public DbSet<BugReport> BugReports => Set<BugReport>();
+    public DbSet<AiUsageRecord> AiUsages => Set<AiUsageRecord>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -145,6 +150,72 @@ public class ResumeDbContext : DbContext
             e.Property(x => x.CompanyKey).HasMaxLength(200);
             e.Property(x => x.DataJson).HasColumnType("jsonb");
         });
+
+        b.Entity<PlanRecord>(e =>
+        {
+            e.ToTable("plans");
+            e.HasKey(x => x.Code);
+            e.Property(x => x.Code).HasConversion<int>();
+            e.HasIndex(x => x.LookupKey).IsUnique();
+            e.Property(x => x.LookupKey).HasMaxLength(60);
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.Property(x => x.Currency).HasMaxLength(8);
+            e.Property(x => x.ActiveStripePriceId).HasMaxLength(128);
+        });
+
+        b.Entity<BankAccount>(e =>
+        {
+            e.ToTable("bank_accounts");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.BankBin).HasMaxLength(16);
+            e.Property(x => x.BankCode).HasMaxLength(16);
+            e.Property(x => x.BankName).HasMaxLength(120);
+            e.Property(x => x.AccountNumber).HasMaxLength(40);
+            e.Property(x => x.AccountHolder).HasMaxLength(120);
+            e.HasIndex(x => x.IsDefault);
+            e.HasIndex(x => x.IsActive);
+        });
+
+        b.Entity<BankPayment>(e =>
+        {
+            e.ToTable("bank_payments");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PlanCode).HasConversion<int>();
+            e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.TransactionCode).HasMaxLength(40);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.TransactionCode).IsUnique();
+            e.HasIndex(x => x.Status);
+            e.Property(x => x.WebhookRaw).HasColumnType("jsonb");
+            e.Property(x => x.Notes).HasColumnType("text");
+            e.HasOne(x => x.BankAccount).WithMany().HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<AiUsageRecord>(e =>
+        {
+            e.ToTable("ai_usage");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.UserId, x.Period }).IsUnique();
+            e.Property(x => x.Period).HasMaxLength(6);
+        });
+
+        b.Entity<BugReport>(e =>
+        {
+            e.ToTable("bug_reports");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Severity).HasConversion<int>();
+            e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.ReporterEmail).HasMaxLength(256);
+            e.Property(x => x.Category).HasMaxLength(40);
+            e.Property(x => x.PageUrl).HasMaxLength(2048);
+            e.Property(x => x.UserAgent).HasMaxLength(512);
+            e.Property(x => x.Description).HasColumnType("text");
+            e.Property(x => x.AdminNotes).HasColumnType("text");
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.CreatedAt);
+        });
     }
 }
 
@@ -156,6 +227,7 @@ public class ResumeDbContextFactory : Microsoft.EntityFrameworkCore.Design.IDesi
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: true)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddJsonFile("appsettings.Local.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 

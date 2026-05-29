@@ -106,7 +106,9 @@ export default function AdminAnalyticsPage() {
           <p className="text-gray-400 text-sm mt-1">Site-wide usage and revenue metrics.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/admin/users" className="text-blue-400 text-sm hover:text-blue-300">Users →</Link>
+          <Link href="/admin/users" className="text-blue-400 text-sm hover:text-blue-300">Users</Link>
+          <Link href="/admin/plans" className="text-blue-400 text-sm hover:text-blue-300">Plans</Link>
+          <Link href="/admin/bug-reports" className="text-blue-400 text-sm hover:text-blue-300">Bug Reports</Link>
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}

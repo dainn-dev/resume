@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using DResume.Api.Ai;
+using DResume.Api.Billing;
 using DResume.Api.Common;
 using DResume.Api.Contracts;
 using DResume.Api.Data;
@@ -33,6 +34,7 @@ public sealed class BuildController : ControllerBase
     }
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Build([FromBody] BuildRequest req, CancellationToken ct)
     {
         var userId = _current.RequireUserId();
@@ -41,7 +43,10 @@ public sealed class BuildController : ControllerBase
         var cached = await _db.ResumeBuilds
             .FirstOrDefaultAsync(b => b.UserId == userId && b.InputHash == inputHash, ct);
         if (cached is not null)
+        {
+            ConsumesAiCallAttribute.SkipConsumption(HttpContext); // served from cache, no AI call
             return Ok(ApiResult.Ok(new BuildResponse(cached.Markdown)));
+        }
 
         var markdown = await _service.BuildAsync(req.Resume, ct);
 
@@ -65,6 +70,7 @@ public sealed class BuildController : ControllerBase
     private sealed record ImproveAiResponse(ResumeFormDataDto Resume, Dictionary<string, int> Scores);
 
     [HttpPost("improve")]
+    [ConsumesAiCall]
     public async Task<IActionResult> Improve([FromBody] ImproveRequest req, CancellationToken ct)
     {
         var tips = req.Analysis.Sections;
@@ -105,6 +111,43 @@ public sealed class BuildController : ControllerBase
         var comparison = new ScoreComparison(
             req.Analysis.OverallScore, WeightedScore(afterSections),
             beforeSections, afterSections);
+
+        return Ok(ApiResult.Ok(new { resume = aiResult.Resume, comparison }));
+    }
+
+    public sealed record ImproveForJobRequest(ResumeFormDataDto Resume, JobMatchAnalysisDto JobMatch);
+
+    public sealed record JobMatchComparison(int BeforeScore, int AfterScore);
+
+    private sealed record ImproveForJobAiResponse(ResumeFormDataDto Resume, int EstimatedMatchScore);
+
+    [HttpPost("improve-for-job")]
+    [ConsumesAiCall]
+    public async Task<IActionResult> ImproveForJob([FromBody] ImproveForJobRequest req, CancellationToken ct)
+    {
+        var formJson = JsonSerializer.Serialize(req.Resume, JsonOptions);
+        var jobMatchJson = JsonSerializer.Serialize(new
+        {
+            req.JobMatch.JobTitle,
+            req.JobMatch.Company,
+            req.JobMatch.MatchScore,
+            req.JobMatch.Summary,
+            req.JobMatch.Gaps,
+            req.JobMatch.Suggestions,
+            MissingKeywords = req.JobMatch.KeywordMatch?.Missing ?? new List<string>(),
+            MatchedKeywords = req.JobMatch.KeywordMatch?.Matched ?? new List<string>(),
+        }, JsonOptions);
+
+        var raw = await _ai.CompleteAsync(
+            PromptLibrary.ImproveForJobSystem,
+            PromptLibrary.ImproveForJobUser(formJson, jobMatchJson),
+            8000, ct);
+
+        var aiResult = JsonSerializer.Deserialize<ImproveForJobAiResponse>(JsonExtractor.Extract(raw), JsonOptions)
+            ?? throw new InvalidOperationException("AI returned empty improved resume.");
+
+        var afterScore = Math.Clamp(aiResult.EstimatedMatchScore, req.JobMatch.MatchScore, 100);
+        var comparison = new JobMatchComparison(req.JobMatch.MatchScore, afterScore);
 
         return Ok(ApiResult.Ok(new { resume = aiResult.Resume, comparison }));
     }

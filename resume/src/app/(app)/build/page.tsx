@@ -106,6 +106,7 @@ export default function BuildPage() {
     beforeOverall: number; afterOverall: number;
     beforeSections: Record<string, number>; afterSections: Record<string, number>;
   } | null>(null);
+  const [expandedWork, setExpandedWork] = useState<Set<number>>(new Set([0]));
   const hydratedRef = useRef(false);
   const resumePreviewRef = useRef<HTMLDivElement>(null);
 
@@ -303,6 +304,32 @@ export default function BuildPage() {
     }));
   }
 
+  function toggleWork(idx: number) {
+    setExpandedWork(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
+
+  function addWorkEntry() {
+    const newIdx = form.workEntries.length;
+    setForm(prev => ({ ...prev, workEntries: [...prev.workEntries, { ...EMPTY_WORK, bullets: [""] }] }));
+    setExpandedWork(prev => new Set(prev).add(newIdx));
+  }
+
+  function removeWorkEntry(idx: number) {
+    setForm(prev => ({ ...prev, workEntries: prev.workEntries.filter((_, i) => i !== idx) }));
+    setExpandedWork(prev => {
+      const next = new Set<number>();
+      prev.forEach(i => {
+        if (i < idx) next.add(i);
+        else if (i > idx) next.add(i - 1);
+      });
+      return next;
+    });
+  }
+
   function updateEducation(idx: number, field: keyof EducationEntry, value: string) {
     setForm(prev => ({
       ...prev,
@@ -324,6 +351,16 @@ export default function BuildPage() {
       if (!data.success) throw new Error(data.error ?? "Generation failed.");
       setMarkdown(data.data.markdown);
       setBuiltResumeMarkdown(data.data.markdown);
+      setParsedResumeForm(form);
+
+      const resumeId = getCurrentResumeId();
+      if (resumeId) {
+        void fetch(`/api/resumes/${resumeId}/parsed`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        }).catch(() => { /* best-effort sync */ });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -671,53 +708,79 @@ export default function BuildPage() {
         {step === 2 && (
           <div className="space-y-6">
             <h2 className="text-base font-semibold text-white">{t("build.workExperienceSection")}</h2>
-            {form.workEntries.map((entry, idx) => (
-              <div key={idx} className="border border-gray-700 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-300">{t("build.positionPrefix")} {idx + 1}</span>
-                  {form.workEntries.length > 1 && (
-                    <button onClick={() => setForm(prev => ({ ...prev, workEntries: prev.workEntries.filter((_, i) => i !== idx) }))} className="text-xs text-red-400 hover:text-red-300">{t("build.removeWork")}</button>
+            {form.workEntries.map((entry, idx) => {
+              const isOpen = expandedWork.has(idx);
+              const preview = [entry.company, entry.title].filter(Boolean).join(" · ");
+              return (
+                <div key={idx} className="border border-gray-700 rounded-xl overflow-hidden">
+                  <div
+                    onClick={() => toggleWork(idx)}
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-800/40 transition-colors"
+                  >
+                    <svg
+                      className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-300 shrink-0">{t("build.positionPrefix")} {idx + 1}</span>
+                    {preview && !isOpen && (
+                      <span className="text-xs text-gray-500 truncate">— {preview}</span>
+                    )}
+                    <div className="flex-1" />
+                    {form.workEntries.length > 1 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeWorkEntry(idx); }}
+                        className="text-xs text-red-400 hover:text-red-300 shrink-0"
+                      >
+                        {t("build.removeWork")}
+                      </button>
+                    )}
+                  </div>
+                  {isOpen && (
+                    <div className="border-t border-gray-800 p-4 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelClass()}>{t("build.companyRequired")}</label>
+                          <input className={inputClass()} placeholder={t("build.companyPlaceholder")} value={entry.company} onChange={e => updateWork(idx, "company", e.target.value)} />
+                        </div>
+                        <div>
+                          <label className={labelClass()}>{t("build.titleRequired")}</label>
+                          <input className={inputClass()} placeholder={t("build.titlePlaceholder")} value={entry.title} onChange={e => updateWork(idx, "title", e.target.value)} />
+                        </div>
+                        <div className="col-span-2">
+                          <label className={labelClass()}>{t("build.projectName")}</label>
+                          <input className={inputClass()} placeholder={t("build.projectNamePlaceholder")} value={entry.projectName ?? ""} onChange={e => updateWork(idx, "projectName", e.target.value)} />
+                        </div>
+                        <div>
+                          <label className={labelClass()}>{t("build.startDate")}</label>
+                          <input className={inputClass()} placeholder={t("build.startDatePlaceholder")} value={entry.startDate} onChange={e => updateWork(idx, "startDate", e.target.value)} />
+                        </div>
+                        <div>
+                          <label className={labelClass()}>{t("build.endDate")}</label>
+                          <input className={inputClass()} placeholder={t("build.endDatePlaceholder")} value={entry.endDate} onChange={e => updateWork(idx, "endDate", e.target.value)} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelClass()}>{t("build.achievementBullets")}</label>
+                        <div className="space-y-2">
+                          {entry.bullets.map((bullet, bIdx) => (
+                            <div key={bIdx} className="flex gap-2">
+                              <input className={inputClass("flex-1")} placeholder={t("build.bulletPlaceholder")} value={bullet} onChange={e => updateBullet(idx, bIdx, e.target.value)} />
+                              {entry.bullets.length > 1 && (
+                                <button onClick={() => removeBullet(idx, bIdx)} className="text-gray-500 hover:text-red-400 px-2">✕</button>
+                              )}
+                            </div>
+                          ))}
+                          <button onClick={() => addBullet(idx)} className="text-xs text-blue-400 hover:text-blue-300">{t("build.addBulletButton")}</button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass()}>{t("build.companyRequired")}</label>
-                    <input className={inputClass()} placeholder={t("build.companyPlaceholder")} value={entry.company} onChange={e => updateWork(idx, "company", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass()}>{t("build.titleRequired")}</label>
-                    <input className={inputClass()} placeholder={t("build.titlePlaceholder")} value={entry.title} onChange={e => updateWork(idx, "title", e.target.value)} />
-                  </div>
-                  <div className="col-span-2">
-                    <label className={labelClass()}>{t("build.projectName")}</label>
-                    <input className={inputClass()} placeholder={t("build.projectNamePlaceholder")} value={entry.projectName ?? ""} onChange={e => updateWork(idx, "projectName", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass()}>{t("build.startDate")}</label>
-                    <input className={inputClass()} placeholder={t("build.startDatePlaceholder")} value={entry.startDate} onChange={e => updateWork(idx, "startDate", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass()}>{t("build.endDate")}</label>
-                    <input className={inputClass()} placeholder={t("build.endDatePlaceholder")} value={entry.endDate} onChange={e => updateWork(idx, "endDate", e.target.value)} />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass()}>{t("build.achievementBullets")}</label>
-                  <div className="space-y-2">
-                    {entry.bullets.map((bullet, bIdx) => (
-                      <div key={bIdx} className="flex gap-2">
-                        <input className={inputClass("flex-1")} placeholder={t("build.bulletPlaceholder")} value={bullet} onChange={e => updateBullet(idx, bIdx, e.target.value)} />
-                        {entry.bullets.length > 1 && (
-                          <button onClick={() => removeBullet(idx, bIdx)} className="text-gray-500 hover:text-red-400 px-2">✕</button>
-                        )}
-                      </div>
-                    ))}
-                    <button onClick={() => addBullet(idx)} className="text-xs text-blue-400 hover:text-blue-300">{t("build.addBulletButton")}</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button onClick={() => setForm(prev => ({ ...prev, workEntries: [...prev.workEntries, { ...EMPTY_WORK, bullets: [""] }] }))} className="text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-4 py-2 w-full">
+              );
+            })}
+            <button onClick={addWorkEntry} className="text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-4 py-2 w-full">
               {t("build.addPositionButton")}
             </button>
           </div>

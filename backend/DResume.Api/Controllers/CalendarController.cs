@@ -137,7 +137,8 @@ public sealed class CalendarController : ControllerBase
     // --- AI Generate Tasks ---
 
     [HttpPost("generate-tasks")]
-    [RequiresPlan(PlanCode.Pro)]
+    [RequiresFeature(Feature.Calendar)]
+    [ConsumesAiCall]
     public async Task<IActionResult> GenerateTasks([FromBody] GenerateTasksRequest req, CancellationToken ct)
     {
         var userId = _current.RequireUserId();

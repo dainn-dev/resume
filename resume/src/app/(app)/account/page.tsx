@@ -18,7 +18,6 @@ import {
   clearPipeline,
   setCurrentResumeId,
   setResumeAnalysis,
-  setParsedResumeForm,
 } from "@/lib/pipeline";
 
 function scoreColor(score: number) {
@@ -110,7 +109,6 @@ export default function AccountPage() {
       clearPipeline();
       setCurrentResumeId(detail.id);
       if (detail.latestAnalysis) setResumeAnalysis(detail.latestAnalysis, detail.rawText);
-      if (detail.parsed) setParsedResumeForm(detail.parsed);
       router.push("/results");
     } finally {
       setBusyId(null);

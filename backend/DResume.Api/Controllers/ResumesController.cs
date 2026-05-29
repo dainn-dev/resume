@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using DResume.Api.Billing;
 using DResume.Api.Common;
 using DResume.Api.Contracts;
 using DResume.Api.Data;
@@ -21,14 +22,30 @@ public sealed class ResumesController : ControllerBase
     private readonly ICurrentUser _current;
     private readonly IResumeAnalysisService _analysis;
     private readonly IDocumentParser _parser;
+    private readonly IPlanService _plans;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public ResumesController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser)
+    public ResumesController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser, IPlanService plans)
     {
         _db = db;
         _current = current;
         _analysis = analysis;
         _parser = parser;
+        _plans = plans;
+    }
+
+    private async Task EnsureResumeQuotaAsync(Guid userId, CancellationToken ct)
+    {
+        var plan = await _plans.GetCurrentPlanAsync(userId, ct);
+        var max = plan.Limits.MaxResumes;
+        if (max == int.MaxValue) return; // unlimited
+
+        var count = await _db.Resumes.CountAsync(r => r.UserId == userId, ct);
+        if (count >= max)
+        {
+            throw new PlanLimitExceededException(
+                $"You have reached the limit of {max} resumes on the {plan.Name} plan. Upgrade or delete a resume to add more.");
+        }
     }
 
     [HttpGet]
@@ -78,6 +95,7 @@ public sealed class ResumesController : ControllerBase
 
     [HttpPost]
     [RequestSizeLimit(15 * 1024 * 1024)]
+    [ConsumesAiCall]
     public async Task<IActionResult> Upload(IFormFile file, [FromForm] string? title, CancellationToken ct)
     {
         if (file is null || file.Length == 0) throw new ArgumentException("File is required.");
@@ -85,7 +103,13 @@ public sealed class ResumesController : ControllerBase
 
         var fileHash = await ComputeFileHashAsync(file, ct);
         var existing = await FindByHashAsync(userId, fileHash, ct);
-        if (existing is not null) return Ok(ApiResult.Ok(existing));
+        if (existing is not null)
+        {
+            ConsumesAiCallAttribute.SkipConsumption(HttpContext); // served from cache, no AI call
+            return Ok(ApiResult.Ok(existing));
+        }
+
+        await EnsureResumeQuotaAsync(userId, ct);
 
         await using var stream = file.OpenReadStream();
         var text = await _parser.ExtractAsync(stream, file.ContentType, file.FileName, ct);
@@ -121,6 +145,7 @@ public sealed class ResumesController : ControllerBase
     }
 
     [HttpPost("parse")]
+    [ConsumesAiCall]
     public async Task<IActionResult> ParseText([FromBody] ParseResumeRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.ResumeText)) throw new ArgumentException("resumeText is required.");
@@ -128,7 +153,23 @@ public sealed class ResumesController : ControllerBase
         return Ok(ApiResult.Ok(parsed));
     }
 
+    [HttpPut("{id:guid}/parsed")]
+    public async Task<IActionResult> UpdateParsed(Guid id, [FromBody] ResumeFormDataDto parsed, CancellationToken ct)
+    {
+        var userId = _current.RequireUserId();
+        var resume = await _db.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct)
+            ?? throw new KeyNotFoundException("Resume not found.");
+
+        resume.ParsedDataJson = JsonSerializer.Serialize(parsed, JsonOptions);
+        resume.Title = parsed.FullName ?? resume.Title;
+        resume.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(ApiResult.Ok(new { updated = true }));
+    }
+
     [HttpPost("{id:guid}/analyze")]
+    [ConsumesAiCall]
     public async Task<IActionResult> AnalyzeExisting(Guid id, CancellationToken ct)
     {
         var userId = _current.RequireUserId();
@@ -204,18 +245,35 @@ public sealed class LegacyAnalyzeController : ControllerBase
     private readonly ICurrentUser _current;
     private readonly IResumeAnalysisService _analysis;
     private readonly IDocumentParser _parser;
+    private readonly IPlanService _plans;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public LegacyAnalyzeController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser)
+    public LegacyAnalyzeController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser, IPlanService plans)
     {
         _db = db;
         _current = current;
         _analysis = analysis;
         _parser = parser;
+        _plans = plans;
+    }
+
+    private async Task EnsureResumeQuotaAsync(Guid userId, CancellationToken ct)
+    {
+        var plan = await _plans.GetCurrentPlanAsync(userId, ct);
+        var max = plan.Limits.MaxResumes;
+        if (max == int.MaxValue) return; // unlimited
+
+        var count = await _db.Resumes.CountAsync(r => r.UserId == userId, ct);
+        if (count >= max)
+        {
+            throw new PlanLimitExceededException(
+                $"You have reached the limit of {max} resumes on the {plan.Name} plan. Upgrade or delete a resume to add more.");
+        }
     }
 
     [HttpPost]
     [RequestSizeLimit(15 * 1024 * 1024)]
+    [ConsumesAiCall]
     public async Task<IActionResult> Upload(IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0) throw new ArgumentException("File is required.");
@@ -226,6 +284,7 @@ public sealed class LegacyAnalyzeController : ControllerBase
             .FirstOrDefaultAsync(r => r.UserId == userId && r.FileHash == fileHash, ct);
         if (existing is not null)
         {
+            ConsumesAiCallAttribute.SkipConsumption(HttpContext); // served from cache, no AI call
             var latestAnalysis = await _db.ResumeAnalyses
                 .Where(a => a.ResumeId == existing.Id)
                 .OrderByDescending(a => a.CreatedAt)
@@ -246,6 +305,8 @@ public sealed class LegacyAnalyzeController : ControllerBase
                 error = (string?)null,
             });
         }
+
+        await EnsureResumeQuotaAsync(userId, ct);
 
         await using var stream = file.OpenReadStream();
         var text = await _parser.ExtractAsync(stream, file.ContentType, file.FileName, ct);
@@ -302,6 +363,7 @@ public sealed class LegacyParseController : ControllerBase
     public LegacyParseController(IResumeAnalysisService analysis) => _analysis = analysis;
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Parse([FromBody] ParseResumeRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.ResumeText)) throw new ArgumentException("resumeText is required.");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface PlanLimits {
   maxResumes: number | null;
@@ -10,6 +11,8 @@ interface PlanLimits {
   careerCoachEnabled: boolean;
   interviewCoachEnabled: boolean;
   salaryEstimatorEnabled: boolean;
+  calendarEnabled: boolean;
+  companyReviewEnabled: boolean;
   priorityQueue: boolean;
 }
 
@@ -20,8 +23,26 @@ interface Plan {
   description: string;
   monthlyPriceCents: number;
   currency: string;
+  monthlyPriceVnd: number;
   isPaid: boolean;
   limits: PlanLimits;
+}
+
+const DURATION_OPTIONS = [
+  { months: 1, discountPct: 0 },
+  { months: 3, discountPct: 10 },
+  { months: 6, discountPct: 20 },
+  { months: 12, discountPct: 30 },
+];
+
+function formatVnd(amount: number): string {
+  return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+}
+
+function computeBankAmount(monthlyVnd: number, months: number, discountPct: number): number {
+  const gross = monthlyVnd * months;
+  const net = (gross * (100 - discountPct)) / 100;
+  return Math.round(net / 1000) * 1000;
 }
 
 interface PaymentMethodInfo {
@@ -89,11 +110,21 @@ function formatPrice(cents: number, currency: string) {
 }
 
 export default function BillingPanel() {
+  const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [me, setMe] = useState<MyPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bankModalPlan, setBankModalPlan] = useState<Plan | null>(null);
+  const [bankMonths, setBankMonths] = useState<number>(1);
+  const [bankBusy, setBankBusy] = useState(false);
+  const [methods, setMethods] = useState<{
+    cardPaymentsEnabled: boolean;
+    bankQrEnabled: boolean;
+    testPlanEnabled?: boolean;
+    testPlanPriceVnd?: number;
+  }>({ cardPaymentsEnabled: true, bankQrEnabled: true });
 
   useEffect(() => {
     void load();
@@ -102,12 +133,14 @@ export default function BillingPanel() {
   async function load() {
     setLoading(true);
     try {
-      const [plansRes, meRes] = await Promise.all([
+      const [plansRes, meRes, cfgRes] = await Promise.all([
         fetch("/api/billing/plans").then(r => r.json()).catch(() => ({ success: false })),
         fetch("/api/billing/me").then(r => r.json()).catch(() => ({ success: false })),
+        fetch("/api/billing/config").then(r => r.json()).catch(() => ({ success: false })),
       ]);
       if (plansRes?.success) setPlans(plansRes.data ?? []);
       if (meRes?.success) setMe(meRes.data ?? null);
+      if (cfgRes?.success && cfgRes.data) setMethods(cfgRes.data);
     } finally {
       setLoading(false);
     }
@@ -137,6 +170,31 @@ export default function BillingPanel() {
       }
     } finally {
       setBusyCode(null);
+    }
+  }
+
+  async function bankCheckout() {
+    if (!bankModalPlan) return;
+    setBankBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/bank/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planCode: bankModalPlan.code, durationMonths: bankMonths }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        setError(data?.error ?? "Failed to start bank checkout.");
+        return;
+      }
+      const paymentId = data.data?.paymentId;
+      if (paymentId) {
+        setBankModalPlan(null);
+        router.push(`/billing/bank/${paymentId}`);
+      }
+    } finally {
+      setBankBusy(false);
     }
   }
 
@@ -180,6 +238,8 @@ export default function BillingPanel() {
   const currentCode = me?.plan.code ?? "Free";
   const tierOrder: Record<string, number> = { Free: 0, Pro: 1, Premium: 2 };
   const currentTier = tierOrder[currentCode] ?? 0;
+  // Bank QR / non-Stripe paid plan: no auto-renew, no subscription to cancel — it simply ends.
+  const isBankPlan = !!me && me.plan.code !== "Free" && !me.stripeSubscriptionId;
 
   return (
     <div className="space-y-4">
@@ -195,18 +255,20 @@ export default function BillingPanel() {
       {/* Subscription status banner */}
       {me && me.currentPeriodEnd && me.plan.code !== "Free" && (
         <div className={`rounded-xl border p-3 text-xs flex items-center justify-between gap-3 ${
-          me.cancelAtPeriodEnd
+          me.cancelAtPeriodEnd || isBankPlan
             ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
             : "bg-blue-500/10 border-blue-500/30 text-blue-200"
         }`}>
           <span>
-            {me.cancelAtPeriodEnd ? (
+            {isBankPlan ? (
+              <>Your plan will <span className="font-semibold">end</span> on {formatDate(me.currentPeriodEnd)}.</>
+            ) : me.cancelAtPeriodEnd ? (
               <>Your plan will be <span className="font-semibold">canceled</span> on {formatDate(me.currentPeriodEnd)}.</>
             ) : (
               <>Your plan will <span className="font-semibold">renew</span> on {formatDate(me.currentPeriodEnd)}.</>
             )}
           </span>
-          {me.cancelAtPeriodEnd && (
+          {!isBankPlan && me.cancelAtPeriodEnd && (
             <button
               onClick={resume}
               disabled={busyCode === "resume"}
@@ -244,6 +306,15 @@ export default function BillingPanel() {
         {plans.map(plan => {
           const isCurrent = plan.code === currentCode;
           const isFree = !plan.isPaid;
+          const featureRows = [
+            { label: "Job Match", on: plan.limits.jobMatchEnabled },
+            { label: "Cover Letter", on: plan.limits.coverLetterEnabled },
+            { label: "Career Coach", on: plan.limits.careerCoachEnabled },
+            { label: "Interview Coach", on: plan.limits.interviewCoachEnabled },
+            { label: "Salary Estimator", on: plan.limits.salaryEstimatorEnabled },
+            { label: "Goals & Tasks", on: plan.limits.calendarEnabled },
+            { label: "Company Reviews", on: plan.limits.companyReviewEnabled },
+          ].sort((a, b) => Number(b.on) - Number(a.on));
           return (
             <div
               key={plan.code}
@@ -259,16 +330,18 @@ export default function BillingPanel() {
               <ul className="text-xs text-gray-300 space-y-1 mb-4 flex-1">
                 <li>• Resumes: {plan.limits.maxResumes ?? "Unlimited"}</li>
                 <li>• AI calls/month: {plan.limits.monthlyAiCalls ?? "Unlimited"}</li>
-                <li className={plan.limits.jobMatchEnabled ? "text-gray-300" : "text-gray-600 line-through"}>• Job Match</li>
-                <li className={plan.limits.coverLetterEnabled ? "text-gray-300" : "text-gray-600 line-through"}>• Cover Letter</li>
-                <li className={plan.limits.careerCoachEnabled ? "text-gray-300" : "text-gray-600 line-through"}>• Career Coach</li>
-                <li className={plan.limits.interviewCoachEnabled ? "text-gray-300" : "text-gray-600 line-through"}>• Interview Coach</li>
-                <li className={plan.limits.salaryEstimatorEnabled ? "text-gray-300" : "text-gray-600 line-through"}>• Salary Estimator</li>
+                {featureRows.map(f => (
+                  <li key={f.label} className={f.on ? "text-gray-300" : "text-gray-600 line-through"}>• {f.label}</li>
+                ))}
                 {plan.limits.priorityQueue && <li className="text-amber-300">• Priority queue</li>}
               </ul>
 
               {isCurrent ? (
                 isFree ? (
+                  <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
+                    Current plan
+                  </button>
+                ) : isBankPlan ? (
                   <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
                     Current plan
                   </button>
@@ -290,18 +363,115 @@ export default function BillingPanel() {
                   Default
                 </button>
               ) : (
-                <button
-                  onClick={() => upgrade(plan.code)}
-                  disabled={busyCode === plan.code}
-                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-                >
-                  {busyCode === plan.code ? "…" : `${(tierOrder[plan.code] ?? 0) < currentTier ? "Downgrade" : "Upgrade"} to ${plan.name}`}
-                </button>
+                <div className="space-y-2">
+                  {methods.cardPaymentsEnabled && (
+                    <button
+                      onClick={() => upgrade(plan.code)}
+                      disabled={busyCode === plan.code}
+                      className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+                    >
+                      {busyCode === plan.code ? "…" : `Pay with Card (${formatPrice(plan.monthlyPriceCents, plan.currency)})`}
+                    </button>
+                  )}
+                  {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && (
+                    <button
+                      onClick={() => { setBankModalPlan(plan); setBankMonths(1); }}
+                      className="w-full border border-purple-500/40 hover:bg-purple-500/10 text-purple-300 text-sm font-semibold py-2 rounded-lg transition-colors"
+                    >
+                      Pay with Bank QR ({formatVnd(plan.monthlyPriceVnd)}/mo)
+                    </button>
+                  )}
+                  {!methods.cardPaymentsEnabled && !(methods.bankQrEnabled && plan.monthlyPriceVnd > 0) && (
+                    <p className="text-xs text-gray-500 text-center py-2">No payment method available. Contact support.</p>
+                  )}
+                </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Bank QR duration picker modal */}
+      {bankModalPlan && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => !bankBusy && setBankModalPlan(null)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-white font-semibold text-lg">Pay with Bank Transfer</h3>
+              <p className="text-gray-400 text-sm mt-1">
+                Select duration for <span className="text-white font-medium">{bankModalPlan.name}</span> plan
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {(methods.testPlanEnabled && bankModalPlan.code === "Pro"
+                ? [{ months: 0, discountPct: 0 }, ...DURATION_OPTIONS]
+                : DURATION_OPTIONS
+              ).map(opt => {
+                const isTest = opt.months === 0;
+                const isSelected = bankMonths === opt.months;
+                const total = isTest
+                  ? (methods.testPlanPriceVnd ?? 2000)
+                  : computeBankAmount(bankModalPlan.monthlyPriceVnd, opt.months, opt.discountPct);
+                return (
+                  <button
+                    key={opt.months}
+                    onClick={() => setBankMonths(opt.months)}
+                    className={`relative rounded-xl border p-3 text-left transition-colors ${
+                      isSelected
+                        ? "border-purple-500 bg-purple-500/10"
+                        : "border-gray-700 hover:border-gray-600 bg-gray-800/40"
+                    }`}
+                  >
+                    {isTest ? (
+                      <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        TEST
+                      </span>
+                    ) : opt.discountPct > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        -{opt.discountPct}%
+                      </span>
+                    )}
+                    <p className="text-white text-sm font-semibold">{isTest ? "1 day" : `${opt.months} month${opt.months > 1 ? "s" : ""}`}</p>
+                    <p className="text-purple-300 text-sm font-bold mt-1">{formatVnd(total)}</p>
+                    {opt.months > 1 && (
+                      <p className="text-gray-500 text-[10px] mt-0.5">
+                        ~{formatVnd(Math.round(total / opt.months / 1000) * 1000)}/mo
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-red-400 text-xs">{error}</div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBankModalPlan(null)}
+                disabled={bankBusy}
+                className="flex-1 border border-gray-700 hover:bg-gray-800 text-gray-300 text-sm font-semibold py-2.5 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={bankCheckout}
+                disabled={bankBusy}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+              >
+                {bankBusy ? "Generating QR…" : "Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Billing history */}
       {me && me.invoices.length > 0 && (
