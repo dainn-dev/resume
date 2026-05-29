@@ -161,7 +161,7 @@ export default function HelpCenterPage() {
               onClick={openReportBug}
               className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm"
             >
-              {t("help.ctaButton")}
+              {t("reportBug.title")}
             </button>
           </div>
         </div>

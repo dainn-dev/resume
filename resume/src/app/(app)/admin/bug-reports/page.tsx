@@ -2,6 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useTranslation } from "@/components/TranslationProvider";
+
+function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
+}
+
+const SEVERITY_KEYS = ["severityLow", "severityMedium", "severityHigh", "severityCritical"];
+const STATUS_KEYS = ["statusNew", "statusInProgress", "statusResolved", "statusClosed"];
 
 interface BugReportRow {
   id: string;
@@ -27,9 +35,6 @@ interface ListResponse {
   reports: BugReportRow[];
 }
 
-const SEVERITY_LABELS = ["Low", "Medium", "High", "Critical"];
-const STATUS_LABELS = ["New", "In Progress", "Resolved", "Closed"];
-
 function severityColor(s: number): string {
   switch (s) {
     case 3: return "text-red-400 bg-red-500/10 border-red-500/30";
@@ -49,6 +54,7 @@ function statusColor(s: number): string {
 }
 
 export default function AdminBugReportsPage() {
+  const { t } = useTranslation();
   const [data, setData] = useState<ListResponse | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
@@ -66,13 +72,14 @@ export default function AdminBugReportsPage() {
       if (severityFilter) params.set("severity", severityFilter);
       const res = await fetch(`/api/admin/bug-reports?${params}`);
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Failed to load bug reports.");
+      if (!json.success) throw new Error(json.error ?? t("adminBugReports.loadFailed"));
       setData(json.data as ListResponse);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      setError(err instanceof Error ? err.message : t("adminBugReports.errorOccurred"));
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter, severityFilter]);
 
   useEffect(() => { void load(); }, [load]);
@@ -84,19 +91,19 @@ export default function AdminBugReportsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">
-            Admin · Bug Reports
+            {t("adminBugReports.title")}
             {data && data.newCount > 0 && (
               <span className="ml-3 align-middle text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-full">
-                {data.newCount} new
+                {interpolate(t("adminBugReports.newBadge"), { count: data.newCount })}
               </span>
             )}
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Triage and resolve user-submitted bug reports.</p>
+          <p className="text-gray-400 text-sm mt-1">{t("adminBugReports.subtitle")}</p>
         </div>
         <div className="flex gap-3 text-sm">
-          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">Analytics</Link>
-          <Link href="/admin/users" className="text-blue-400 hover:text-blue-300">Users</Link>
-          <Link href="/admin/plans" className="text-blue-400 hover:text-blue-300">Plans</Link>
+          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">{t("adminBugReports.navAnalytics")}</Link>
+          <Link href="/admin/users" className="text-blue-400 hover:text-blue-300">{t("adminBugReports.navUsers")}</Link>
+          <Link href="/admin/plans" className="text-blue-400 hover:text-blue-300">{t("adminBugReports.navPlans")}</Link>
         </div>
       </div>
 
@@ -106,16 +113,16 @@ export default function AdminBugReportsPage() {
           onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
           className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
         >
-          <option value="">All statuses</option>
-          {STATUS_LABELS.map((label, i) => <option key={i} value={i}>{label}</option>)}
+          <option value="">{t("adminBugReports.allStatuses")}</option>
+          {STATUS_KEYS.map((key, i) => <option key={i} value={i}>{t(`adminBugReports.${key}`)}</option>)}
         </select>
         <select
           value={severityFilter}
           onChange={(e) => { setPage(1); setSeverityFilter(e.target.value); }}
           className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
         >
-          <option value="">All severities</option>
-          {SEVERITY_LABELS.map((label, i) => <option key={i} value={i}>{label}</option>)}
+          <option value="">{t("adminBugReports.allSeverities")}</option>
+          {SEVERITY_KEYS.map((key, i) => <option key={i} value={i}>{t(`adminBugReports.${key}`)}</option>)}
         </select>
       </div>
 
@@ -125,17 +132,17 @@ export default function AdminBugReportsPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Severity</th>
-              <th className="text-left px-4 py-3 font-medium">Title</th>
-              <th className="text-left px-4 py-3 font-medium">Reporter</th>
-              <th className="text-left px-4 py-3 font-medium">Category</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-left px-4 py-3 font-medium">Submitted</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colSeverity")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colTitle")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colReporter")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colCategory")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colStatus")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colSubmitted")}</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={6} className="text-center text-gray-500 py-12">Loading…</td></tr>}
-            {!loading && data && data.reports.length === 0 && <tr><td colSpan={6} className="text-center text-gray-500 py-12">No bug reports found.</td></tr>}
+            {loading && <tr><td colSpan={6} className="text-center text-gray-500 py-12">{t("adminBugReports.loading")}</td></tr>}
+            {!loading && data && data.reports.length === 0 && <tr><td colSpan={6} className="text-center text-gray-500 py-12">{t("adminBugReports.empty")}</td></tr>}
             {!loading && data && data.reports.map((r) => (
               <tr
                 key={r.id}
@@ -143,13 +150,13 @@ export default function AdminBugReportsPage() {
                 className="border-t border-gray-800 hover:bg-gray-800/30 transition-colors cursor-pointer"
               >
                 <td className="px-4 py-3">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${severityColor(r.severity)}`}>{SEVERITY_LABELS[r.severity]}</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${severityColor(r.severity)}`}>{t(`adminBugReports.${SEVERITY_KEYS[r.severity]}`)}</span>
                 </td>
                 <td className="px-4 py-3 text-white font-medium max-w-xs truncate">{r.title}</td>
-                <td className="px-4 py-3 text-gray-300 text-xs">{r.reporterEmail ?? "Anonymous"}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs">{r.category ?? "—"}</td>
+                <td className="px-4 py-3 text-gray-300 text-xs">{r.reporterEmail ?? t("adminBugReports.anonymous")}</td>
+                <td className="px-4 py-3 text-gray-400 text-xs">{r.category ?? t("adminBugReports.dash")}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${statusColor(r.status)}`}>{STATUS_LABELS[r.status]}</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${statusColor(r.status)}`}>{t(`adminBugReports.${STATUS_KEYS[r.status]}`)}</span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs">{new Date(r.createdAt).toLocaleString()}</td>
               </tr>
@@ -160,10 +167,10 @@ export default function AdminBugReportsPage() {
 
       {data && totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
-          <span className="text-gray-500">Page {page} of {totalPages} · {data.total} reports</span>
+          <span className="text-gray-500">{interpolate(t("adminBugReports.pageInfo"), { page, total: totalPages, count: data.total })}</span>
           <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">Prev</button>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">Next</button>
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminBugReports.prev")}</button>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminBugReports.next")}</button>
           </div>
         </div>
       )}
@@ -188,6 +195,7 @@ function ReportDetail({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState(report.status);
   const [notes, setNotes] = useState(report.adminNotes ?? "");
   const [saving, setSaving] = useState(false);
@@ -203,28 +211,28 @@ function ReportDetail({
         body: JSON.stringify({ status, adminNotes: notes }),
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) throw new Error(json?.error ?? "Failed to save.");
+      if (!res.ok || !json?.success) throw new Error(json?.error ?? t("adminBugReports.saveFailed"));
       onChanged();
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "An error occurred.");
+      setErr(e instanceof Error ? e.message : t("adminBugReports.errorOccurred"));
     } finally {
       setSaving(false);
     }
   }
 
   async function remove() {
-    if (!confirm("Delete this bug report permanently?")) return;
+    if (!confirm(t("adminBugReports.deleteConfirm"))) return;
     setSaving(true);
     setErr(null);
     try {
       const res = await fetch(`/api/admin/bug-reports/${report.id}`, { method: "DELETE" });
       const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) throw new Error(json?.error ?? "Failed to delete.");
+      if (!res.ok || !json?.success) throw new Error(json?.error ?? t("adminBugReports.deleteFailed"));
       onChanged();
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "An error occurred.");
+      setErr(e instanceof Error ? e.message : t("adminBugReports.errorOccurred"));
     } finally {
       setSaving(false);
     }
@@ -239,12 +247,12 @@ function ReportDetail({
         <div className="flex items-start justify-between p-6 border-b border-gray-800">
           <div className="pr-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${severityColor(report.severity)}`}>{SEVERITY_LABELS[report.severity]}</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${severityColor(report.severity)}`}>{t(`adminBugReports.${SEVERITY_KEYS[report.severity]}`)}</span>
               {report.category && <span className="text-xs text-gray-400">· {report.category}</span>}
             </div>
             <h2 className="text-lg font-bold text-white">{report.title}</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white" aria-label="Close">
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white" aria-label={t("adminBugReports.close")}>
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -253,42 +261,42 @@ function ReportDetail({
 
         <div className="p-6 space-y-5">
           <div>
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-1.5">Description</h3>
+            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-1.5">{t("adminBugReports.descriptionLabel")}</h3>
             <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{report.description}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            <Meta label="Reporter" value={report.reporterEmail ?? "Anonymous"} />
-            <Meta label="User ID" value={report.userId ?? "—"} />
-            <Meta label="Page" value={report.pageUrl ?? "—"} breakAll />
-            <Meta label="Submitted" value={new Date(report.createdAt).toLocaleString()} />
+            <Meta label={t("adminBugReports.metaReporter")} value={report.reporterEmail ?? t("adminBugReports.anonymous")} />
+            <Meta label={t("adminBugReports.metaUserId")} value={report.userId ?? t("adminBugReports.dash")} />
+            <Meta label={t("adminBugReports.metaPage")} value={report.pageUrl ?? t("adminBugReports.dash")} breakAll />
+            <Meta label={t("adminBugReports.metaSubmitted")} value={new Date(report.createdAt).toLocaleString()} />
           </div>
 
           {report.userAgent && (
             <div>
-              <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-1.5">User agent</h3>
+              <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-1.5">{t("adminBugReports.userAgentLabel")}</h3>
               <p className="text-xs text-gray-500 break-all">{report.userAgent}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">Status</label>
+            <label className="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">{t("adminBugReports.statusLabel")}</label>
             <select
               value={status}
               onChange={(e) => setStatus(Number(e.target.value))}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              {STATUS_LABELS.map((label, i) => <option key={i} value={i}>{label}</option>)}
+              {STATUS_KEYS.map((key, i) => <option key={i} value={i}>{t(`adminBugReports.${key}`)}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">Internal notes</label>
+            <label className="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">{t("adminBugReports.internalNotesLabel")}</label>
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Triage notes (admin only)…"
+              placeholder={t("adminBugReports.notesPlaceholder")}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-y"
             />
           </div>
@@ -297,11 +305,11 @@ function ReportDetail({
         </div>
 
         <div className="flex items-center justify-between p-6 border-t border-gray-800">
-          <button onClick={remove} disabled={saving} className="text-red-400 hover:text-red-300 text-sm font-medium disabled:opacity-50">Delete</button>
+          <button onClick={remove} disabled={saving} className="text-red-400 hover:text-red-300 text-sm font-medium disabled:opacity-50">{t("adminBugReports.delete")}</button>
           <div className="flex gap-3">
-            <button onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-gray-300 hover:text-white">Cancel</button>
+            <button onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-gray-300 hover:text-white">{t("adminBugReports.cancel")}</button>
             <button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2 rounded-lg">
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("adminBugReports.saving") : t("adminBugReports.save")}
             </button>
           </div>
         </div>

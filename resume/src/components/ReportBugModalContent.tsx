@@ -81,7 +81,7 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
     setCategory("ui");
     setSeverity("medium");
     setPageUrl(typeof window !== "undefined" ? window.location.pathname : "");
-    setEmail("");
+    if (!isLoggedIn) setEmail("");
     setStatus("idle");
     setError(null);
   }

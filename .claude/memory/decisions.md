@@ -66,9 +66,9 @@ _Thêm decisions vào đây khi chúng được đưa ra._
 
 ## Decision: Stripe billing với 3-tier plan
 
-**Date:** 2026-05-27
-**Decision:** Free (2 resumes, 5 AI calls/mo) / Pro $9.99 (50 resumes, 200 AI calls) / Enterprise $29.99 (unlimited).
-**Reason:** Freemium model — free tier cho basic resume analysis, Pro unlock advanced features (job match, cover letter, coaching).
+**Date:** 2026-05-27 (updated 2026-05-29: renamed Enterprise → Premium, repriced)
+**Decision:** Free (2 resumes, 5 AI calls/mo) / Pro $4.99 (50 resumes, 200 AI calls) / Premium $9.99 (unlimited resumes + AI calls). Mỗi paid plan thanh toán qua Stripe (card) hoặc bank QR (SePay) với chọn 1/3/6/12 tháng.
+**Reason:** Freemium model — free tier cho basic resume analysis, Pro unlock advanced features (job match, cover letter, coaching), Premium bỏ mọi giới hạn + priority queue.
 **Alternatives considered:** N/A — inferred từ PlanCatalog.cs
 
 ---

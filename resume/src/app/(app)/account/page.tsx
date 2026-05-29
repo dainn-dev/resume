@@ -20,6 +20,10 @@ import {
   setResumeAnalysis,
 } from "@/lib/pipeline";
 
+function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
+}
+
 function scoreColor(score: number) {
   if (score >= 75) return "text-green-400 bg-green-500/10 border-green-500/30";
   if (score >= 50) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
@@ -55,7 +59,7 @@ export default function AccountPage() {
     setError(null);
     try {
       const data = await fetchAccountSummary();
-      if (!data) { setError("Could not load your account."); return; }
+      if (!data) { setError(t("account.loadError")); return; }
       setSummary(data);
     } finally {
       setLoading(false);
@@ -105,7 +109,7 @@ export default function AccountPage() {
     setBusyId(resume.id);
     try {
       const detail = await fetchResumeDetail(resume.id);
-      if (!detail) { setError("Could not load that resume."); return; }
+      if (!detail) { setError(t("account.loadResumeError")); return; }
       clearPipeline();
       setCurrentResumeId(detail.id);
       if (detail.latestAnalysis) setResumeAnalysis(detail.latestAnalysis, detail.rawText);
@@ -116,11 +120,12 @@ export default function AccountPage() {
   }
 
   async function handleDelete(resume: AccountSummaryResume) {
-    if (!confirm(`Delete "${resume.title ?? resume.sourceFileName ?? "this resume"}" and all of its analysis history?`)) return;
+    const title = resume.title ?? resume.sourceFileName ?? t("account.untitledResume");
+    if (!confirm(interpolate(t("account.deleteConfirm"), { title }))) return;
     setBusyId(resume.id);
     try {
       const ok = await deleteResume(resume.id);
-      if (!ok) { setError("Failed to delete that resume."); return; }
+      if (!ok) { setError(t("account.deleteError")); return; }
       await load();
       if (expandedId === resume.id) setExpandedId(null);
     } finally {
@@ -170,7 +175,7 @@ export default function AccountPage() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
           {error}{" "}
-          <button onClick={() => void load()} className="underline">Retry</button>
+          <button onClick={() => void load()} className="underline">{t("account.retry")}</button>
         </div>
       )}
 
@@ -199,7 +204,7 @@ export default function AccountPage() {
               const isExpanded = expandedId === resume.id;
               const score = resume.latestAnalysis?.score ?? 0;
               const completed = completedCount(resume, summary.recent);
-              const title = resume.title ?? resume.sourceFileName ?? "Untitled resume";
+              const title = resume.title ?? resume.sourceFileName ?? t("account.untitledResume");
               return (
                 <div key={resume.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
                   <div className="flex items-center gap-4 px-5 py-4">
@@ -301,7 +306,7 @@ export default function AccountPage() {
                           disabled={busyId === resume.id}
                           className="border border-red-500/40 hover:bg-red-500/10 text-red-400 text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors"
                         >
-                          Delete
+                          {t("account.delete")}
                         </button>
                       </div>
                     </div>

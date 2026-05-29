@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/components/TranslationProvider";
 
 interface PlanLimits {
   maxResumes: number | null;
@@ -34,6 +35,10 @@ const DURATION_OPTIONS = [
   { months: 6, discountPct: 20 },
   { months: 12, discountPct: 30 },
 ];
+
+function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
+}
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
@@ -74,6 +79,18 @@ interface MyPlan {
   invoices: InvoiceInfo[];
 }
 
+interface BankPaymentItem {
+  id: string;
+  planCode: string;
+  durationMonths: number;
+  amountVnd: number;
+  transactionCode: string;
+  status: string;
+  paidAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   try {
@@ -102,17 +119,12 @@ function cardBrandIcon(brand: string): string {
   return brand.toUpperCase();
 }
 
-function formatPrice(cents: number, currency: string) {
-  if (cents === 0) return "Free";
-  const amount = (cents / 100).toFixed(2);
-  const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
-  return `${symbol}${amount}/mo`;
-}
-
 export default function BillingPanel() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [me, setMe] = useState<MyPlan | null>(null);
+  const [bankPayments, setBankPayments] = useState<BankPaymentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +138,24 @@ export default function BillingPanel() {
     testPlanPriceVnd?: number;
   }>({ cardPaymentsEnabled: true, bankQrEnabled: true });
 
+  function formatPrice(cents: number, currency: string) {
+    if (cents === 0) return t("billing.freePrice");
+    const amount = (cents / 100).toFixed(2);
+    const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
+    return `${symbol}${amount}${t("billing.perMonthSuffix")}`;
+  }
+
+  function durationLabel(months: number): string {
+    if (months === 0) return t("billing.oneDay");
+    if (months === 1) return t("billing.oneMonth");
+    return interpolate(t("billing.nMonths"), { count: months });
+  }
+
+  function bankStatusLabel(status: string): string {
+    const key = `billing.status${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}`;
+    return t(key, status);
+  }
+
   useEffect(() => {
     void load();
   }, []);
@@ -133,14 +163,16 @@ export default function BillingPanel() {
   async function load() {
     setLoading(true);
     try {
-      const [plansRes, meRes, cfgRes] = await Promise.all([
+      const [plansRes, meRes, cfgRes, bankRes] = await Promise.all([
         fetch("/api/billing/plans").then(r => r.json()).catch(() => ({ success: false })),
         fetch("/api/billing/me").then(r => r.json()).catch(() => ({ success: false })),
         fetch("/api/billing/config").then(r => r.json()).catch(() => ({ success: false })),
+        fetch("/api/billing/bank/payments/my").then(r => r.json()).catch(() => ({ success: false })),
       ]);
       if (plansRes?.success) setPlans(plansRes.data ?? []);
       if (meRes?.success) setMe(meRes.data ?? null);
       if (cfgRes?.success && cfgRes.data) setMethods(cfgRes.data);
+      if (bankRes?.success) setBankPayments(bankRes.data ?? []);
     } finally {
       setLoading(false);
     }
@@ -157,7 +189,7 @@ export default function BillingPanel() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.success) {
-        setError(data?.error ?? "Failed to start checkout.");
+        setError(data?.error ?? t("billing.errCheckout"));
         return;
       }
       if (data.data?.updated) {
@@ -166,7 +198,7 @@ export default function BillingPanel() {
       } else if (data.data?.url) {
         window.location.href = data.data.url;
       } else {
-        setError("Unexpected response from billing service.");
+        setError(t("billing.errUnexpected"));
       }
     } finally {
       setBusyCode(null);
@@ -185,7 +217,7 @@ export default function BillingPanel() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.success) {
-        setError(data?.error ?? "Failed to start bank checkout.");
+        setError(data?.error ?? t("billing.errBankCheckout"));
         return;
       }
       const paymentId = data.data?.paymentId;
@@ -199,14 +231,14 @@ export default function BillingPanel() {
   }
 
   async function cancel() {
-    if (!confirm("Cancel your subscription? You'll keep access until the end of the current period.")) return;
+    if (!confirm(t("billing.cancelConfirm"))) return;
     setError(null);
     setBusyCode("cancel");
     try {
       const res = await fetch("/api/billing/cancel", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.success) {
-        setError(data?.error ?? "Failed to cancel.");
+        setError(data?.error ?? t("billing.errCancel"));
         return;
       }
       await load();
@@ -222,7 +254,7 @@ export default function BillingPanel() {
       const res = await fetch("/api/billing/resume", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.success) {
-        setError(data?.error ?? "Failed to resume.");
+        setError(data?.error ?? t("billing.errResume"));
         return;
       }
       await load();
@@ -236,18 +268,16 @@ export default function BillingPanel() {
   }
 
   const currentCode = me?.plan.code ?? "Free";
-  const tierOrder: Record<string, number> = { Free: 0, Pro: 1, Premium: 2 };
-  const currentTier = tierOrder[currentCode] ?? 0;
   // Bank QR / non-Stripe paid plan: no auto-renew, no subscription to cancel — it simply ends.
   const isBankPlan = !!me && me.plan.code !== "Free" && !me.stripeSubscriptionId;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Plan & Billing</h2>
+        <h2 className="text-lg font-semibold text-white">{t("billing.heading")}</h2>
         {me && (
           <span className="text-xs text-gray-400">
-            Current: <span className="text-white font-medium">{me.plan.name}</span>
+            {t("billing.currentLabel")} <span className="text-white font-medium">{me.plan.name}</span>
           </span>
         )}
       </div>
@@ -260,13 +290,11 @@ export default function BillingPanel() {
             : "bg-blue-500/10 border-blue-500/30 text-blue-200"
         }`}>
           <span>
-            {isBankPlan ? (
-              <>Your plan will <span className="font-semibold">end</span> on {formatDate(me.currentPeriodEnd)}.</>
-            ) : me.cancelAtPeriodEnd ? (
-              <>Your plan will be <span className="font-semibold">canceled</span> on {formatDate(me.currentPeriodEnd)}.</>
-            ) : (
-              <>Your plan will <span className="font-semibold">renew</span> on {formatDate(me.currentPeriodEnd)}.</>
-            )}
+            {isBankPlan
+              ? interpolate(t("billing.willEnd"), { date: formatDate(me.currentPeriodEnd) })
+              : me.cancelAtPeriodEnd
+                ? interpolate(t("billing.willCancel"), { date: formatDate(me.currentPeriodEnd) })
+                : interpolate(t("billing.willRenew"), { date: formatDate(me.currentPeriodEnd) })}
           </span>
           {!isBankPlan && me.cancelAtPeriodEnd && (
             <button
@@ -274,7 +302,7 @@ export default function BillingPanel() {
               disabled={busyCode === "resume"}
               className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
             >
-              {busyCode === "resume" ? "…" : "Resume subscription"}
+              {busyCode === "resume" ? "…" : t("billing.resumeSubscription")}
             </button>
           )}
         </div>
@@ -290,11 +318,13 @@ export default function BillingPanel() {
             <div>
               <p className="text-sm text-white font-medium">•••• {me.paymentMethod.last4}</p>
               <p className="text-[11px] text-gray-500">
-                Expires {String(me.paymentMethod.expMonth).padStart(2, "0")}/{me.paymentMethod.expYear}
+                {interpolate(t("billing.expires"), {
+                  date: `${String(me.paymentMethod.expMonth).padStart(2, "0")}/${me.paymentMethod.expYear}`,
+                })}
               </p>
             </div>
           </div>
-          <span className="text-[10px] text-gray-600 uppercase tracking-wider">Default payment</span>
+          <span className="text-[10px] text-gray-600 uppercase tracking-wider">{t("billing.defaultPayment")}</span>
         </div>
       )}
 
@@ -307,13 +337,13 @@ export default function BillingPanel() {
           const isCurrent = plan.code === currentCode;
           const isFree = !plan.isPaid;
           const featureRows = [
-            { label: "Job Match", on: plan.limits.jobMatchEnabled },
-            { label: "Cover Letter", on: plan.limits.coverLetterEnabled },
-            { label: "Career Coach", on: plan.limits.careerCoachEnabled },
-            { label: "Interview Coach", on: plan.limits.interviewCoachEnabled },
-            { label: "Salary Estimator", on: plan.limits.salaryEstimatorEnabled },
-            { label: "Goals & Tasks", on: plan.limits.calendarEnabled },
-            { label: "Company Reviews", on: plan.limits.companyReviewEnabled },
+            { label: t("billing.featureJobMatch"), on: plan.limits.jobMatchEnabled },
+            { label: t("billing.featureCoverLetter"), on: plan.limits.coverLetterEnabled },
+            { label: t("billing.featureCareerCoach"), on: plan.limits.careerCoachEnabled },
+            { label: t("billing.featureInterviewCoach"), on: plan.limits.interviewCoachEnabled },
+            { label: t("billing.featureSalaryEstimator"), on: plan.limits.salaryEstimatorEnabled },
+            { label: t("billing.featureCalendar"), on: plan.limits.calendarEnabled },
+            { label: t("billing.featureCompanyReviews"), on: plan.limits.companyReviewEnabled },
           ].sort((a, b) => Number(b.on) - Number(a.on));
           return (
             <div
@@ -328,26 +358,26 @@ export default function BillingPanel() {
               </div>
               <p className="text-xs text-gray-400 mb-4">{plan.description}</p>
               <ul className="text-xs text-gray-300 space-y-1 mb-4 flex-1">
-                <li>• Resumes: {plan.limits.maxResumes ?? "Unlimited"}</li>
-                <li>• AI calls/month: {plan.limits.monthlyAiCalls ?? "Unlimited"}</li>
+                <li>• {t("billing.resumesLabel")}: {plan.limits.maxResumes ?? t("billing.unlimited")}</li>
+                <li>• {t("billing.aiCallsLabel")}: {plan.limits.monthlyAiCalls ?? t("billing.unlimited")}</li>
                 {featureRows.map(f => (
                   <li key={f.label} className={f.on ? "text-gray-300" : "text-gray-600 line-through"}>• {f.label}</li>
                 ))}
-                {plan.limits.priorityQueue && <li className="text-amber-300">• Priority queue</li>}
+                {plan.limits.priorityQueue && <li className="text-amber-300">• {t("billing.priorityQueue")}</li>}
               </ul>
 
               {isCurrent ? (
                 isFree ? (
                   <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
-                    Current plan
+                    {t("billing.currentPlan")}
                   </button>
                 ) : isBankPlan ? (
                   <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
-                    Current plan
+                    {t("billing.currentPlan")}
                   </button>
                 ) : me?.cancelAtPeriodEnd ? (
                   <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
-                    Cancellation scheduled
+                    {t("billing.cancellationScheduled")}
                   </button>
                 ) : (
                   <button
@@ -355,12 +385,12 @@ export default function BillingPanel() {
                     disabled={busyCode === "cancel"}
                     className="w-full border border-red-500/40 hover:bg-red-500/10 text-red-400 text-sm font-semibold py-2 rounded-lg transition-colors"
                   >
-                    {busyCode === "cancel" ? "…" : "Cancel subscription"}
+                    {busyCode === "cancel" ? "…" : t("billing.cancelSubscription")}
                   </button>
                 )
               ) : isFree ? (
                 <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
-                  Default
+                  {t("billing.defaultBadge")}
                 </button>
               ) : (
                 <div className="space-y-2">
@@ -370,7 +400,7 @@ export default function BillingPanel() {
                       disabled={busyCode === plan.code}
                       className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
                     >
-                      {busyCode === plan.code ? "…" : `Pay with Card (${formatPrice(plan.monthlyPriceCents, plan.currency)})`}
+                      {busyCode === plan.code ? "…" : interpolate(t("billing.payWithCard"), { price: formatPrice(plan.monthlyPriceCents, plan.currency) })}
                     </button>
                   )}
                   {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && (
@@ -378,11 +408,11 @@ export default function BillingPanel() {
                       onClick={() => { setBankModalPlan(plan); setBankMonths(1); }}
                       className="w-full border border-purple-500/40 hover:bg-purple-500/10 text-purple-300 text-sm font-semibold py-2 rounded-lg transition-colors"
                     >
-                      Pay with Bank QR ({formatVnd(plan.monthlyPriceVnd)}/mo)
+                      {interpolate(t("billing.payWithBankQr"), { price: formatVnd(plan.monthlyPriceVnd) })}
                     </button>
                   )}
                   {!methods.cardPaymentsEnabled && !(methods.bankQrEnabled && plan.monthlyPriceVnd > 0) && (
-                    <p className="text-xs text-gray-500 text-center py-2">No payment method available. Contact support.</p>
+                    <p className="text-xs text-gray-500 text-center py-2">{t("billing.noPaymentMethod")}</p>
                   )}
                 </div>
               )}
@@ -402,9 +432,9 @@ export default function BillingPanel() {
             onClick={e => e.stopPropagation()}
           >
             <div>
-              <h3 className="text-white font-semibold text-lg">Pay with Bank Transfer</h3>
+              <h3 className="text-white font-semibold text-lg">{t("billing.bankModalTitle")}</h3>
               <p className="text-gray-400 text-sm mt-1">
-                Select duration for <span className="text-white font-medium">{bankModalPlan.name}</span> plan
+                {interpolate(t("billing.bankModalSubtitle"), { plan: bankModalPlan.name })}
               </p>
             </div>
 
@@ -430,18 +460,18 @@ export default function BillingPanel() {
                   >
                     {isTest ? (
                       <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        TEST
+                        {t("billing.testBadge")}
                       </span>
                     ) : opt.discountPct > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
                         -{opt.discountPct}%
                       </span>
                     )}
-                    <p className="text-white text-sm font-semibold">{isTest ? "1 day" : `${opt.months} month${opt.months > 1 ? "s" : ""}`}</p>
+                    <p className="text-white text-sm font-semibold">{durationLabel(opt.months)}</p>
                     <p className="text-purple-300 text-sm font-bold mt-1">{formatVnd(total)}</p>
                     {opt.months > 1 && (
                       <p className="text-gray-500 text-[10px] mt-0.5">
-                        ~{formatVnd(Math.round(total / opt.months / 1000) * 1000)}/mo
+                        {interpolate(t("billing.perMonthApprox"), { price: formatVnd(Math.round(total / opt.months / 1000) * 1000) })}
                       </p>
                     )}
                   </button>
@@ -459,24 +489,24 @@ export default function BillingPanel() {
                 disabled={bankBusy}
                 className="flex-1 border border-gray-700 hover:bg-gray-800 text-gray-300 text-sm font-semibold py-2.5 rounded-lg transition-colors"
               >
-                Cancel
+                {t("billing.cancel")}
               </button>
               <button
                 onClick={bankCheckout}
                 disabled={bankBusy}
                 className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
               >
-                {bankBusy ? "Generating QR…" : "Continue"}
+                {bankBusy ? t("billing.generatingQr") : t("billing.continue")}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Billing history */}
+      {/* Billing history (Stripe invoices) */}
       {me && me.invoices.length > 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">Billing history</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t("billing.billingHistory")}</h3>
           <div className="space-y-1.5">
             {me.invoices.map(inv => {
               const statusColor =
@@ -498,8 +528,51 @@ export default function BillingPanel() {
                     </span>
                     {inv.hostedInvoiceUrl && (
                       <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300">
-                        View →
+                        {t("billing.view")} →
                       </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Bank transfer history */}
+      {bankPayments.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h3 className="text-sm font-semibold text-white mb-3">{t("billing.bankHistory")}</h3>
+          <div className="space-y-1.5">
+            {bankPayments.map(p => {
+              const statusColor =
+                p.status === "Confirmed" ? "text-green-400 bg-green-500/10 border-green-500/30"
+                : p.status === "Pending" ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                : p.status === "Failed" ? "text-red-400 bg-red-500/10 border-red-500/30"
+                : "text-gray-500 bg-gray-500/10 border-gray-500/30";
+              const isPending = p.status === "Pending";
+              return (
+                <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-b-0 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs text-gray-400 w-24 shrink-0">{formatDate(p.paidAt ?? p.createdAt)}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium">
+                        {formatVnd(p.amountVnd)} <span className="text-gray-500 font-normal">· {p.planCode} · {durationLabel(p.durationMonths)}</span>
+                      </p>
+                      <p className="text-[11px] text-gray-500 font-mono truncate">{p.transactionCode}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border uppercase ${statusColor}`}>
+                      {bankStatusLabel(p.status)}
+                    </span>
+                    {isPending && (
+                      <button
+                        onClick={() => router.push(`/billing/bank/${p.id}`)}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        {t("billing.view")} →
+                      </button>
                     )}
                   </div>
                 </div>
