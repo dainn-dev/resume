@@ -4,6 +4,21 @@ _Thêm decisions vào đây khi chúng được đưa ra._
 
 ---
 
+## Decision: Enforce plan perks bằng feature-flag + usage metering (không chỉ tier)
+
+**Date:** 2026-05-29
+**Decision:**
+- Gating theo **feature flag thực tế** của plan qua `[RequiresFeature(Feature.X)]` (đọc `PlanLimits.*Enabled` từ DB catalog), thay cho `[RequiresPlan(PlanCode.Pro)]` vốn chỉ so thứ hạng tier. Nay admin sửa flag trong DB là có hiệu lực ngay.
+- `CompanyReviewController` được gate bằng `[RequiresFeature(Feature.CompanyReview)]` (trước đó không có check nào).
+- `MaxResumes` enforce trong `ResumesController`/`LegacyAnalyzeController.Upload` (đếm resume trước khi tạo mới).
+- `MonthlyAiCalls` enforce qua bảng `ai_usage` (entity `AiUsageRecord`, unique `(UserId, Period yyyyMM)`) + `IUsageService` (atomic upsert `ON CONFLICT`). Attribute `[ConsumesAiCall]`: check quota trước, đếm sau khi action thành công; cache-hit gọi `ConsumesAiCallAttribute.SkipConsumption` để không tính.
+- Vượt quota → `PlanLimitExceededException` → HTTP 402 (map trong `ExceptionHandlingMiddleware`).
+- Admin = unlimited (do `GetCurrentPlanAsync` trả Premium cho admin). Translation endpoint (`/api/translate`, AllowAnonymous) KHÔNG tính quota. CompanyReview KHÔNG tính vào AI quota (cache nặng, là perk riêng).
+**Reason:** Trước đây UI/DB hiển thị ưu đãi nhưng backend không enforce: MaxResumes & MonthlyAiCalls hoàn toàn không kiểm tra, CompanyReview ai cũng gọi được, và flag editable trong DB bị `RequiresPlan` (so tier) phớt lờ.
+**Alternatives considered:** Giữ `RequiresPlan` so tier (đơn giản nhưng bỏ qua flag DB); đếm AI call trong `AnthropicClient` (không có user context).
+
+---
+
 ## Decision: Proxy architecture — Frontend không gọi AI trực tiếp
 
 **Date:** 2026-05-27
@@ -51,9 +66,9 @@ _Thêm decisions vào đây khi chúng được đưa ra._
 
 ## Decision: Stripe billing với 3-tier plan
 
-**Date:** 2026-05-27
-**Decision:** Free (2 resumes, 5 AI calls/mo) / Pro $9.99 (50 resumes, 200 AI calls) / Enterprise $29.99 (unlimited).
-**Reason:** Freemium model — free tier cho basic resume analysis, Pro unlock advanced features (job match, cover letter, coaching).
+**Date:** 2026-05-27 (updated 2026-05-29: renamed Enterprise → Premium, repriced)
+**Decision:** Free (2 resumes, 5 AI calls/mo) / Pro $4.99 (50 resumes, 200 AI calls) / Premium $9.99 (unlimited resumes + AI calls). Mỗi paid plan thanh toán qua Stripe (card) hoặc bank QR (SePay) với chọn 1/3/6/12 tháng.
+**Reason:** Freemium model — free tier cho basic resume analysis, Pro unlock advanced features (job match, cover letter, coaching), Premium bỏ mọi giới hạn + priority queue.
 **Alternatives considered:** N/A — inferred từ PlanCatalog.cs
 
 ---

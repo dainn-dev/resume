@@ -1,8 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Footer from "@/components/Footer";
+
+interface PlanFromApi {
+  code: "Free" | "Pro" | "Premium";
+  name: string;
+  monthlyPriceCents: number;
+  currency: string;
+  isPaid: boolean;
+  limits: {
+    maxResumes: number | null;
+    monthlyAiCalls: number | null;
+    jobMatchEnabled: boolean;
+    coverLetterEnabled: boolean;
+    careerCoachEnabled: boolean;
+    interviewCoachEnabled: boolean;
+    salaryEstimatorEnabled: boolean;
+    calendarEnabled: boolean;
+    companyReviewEnabled: boolean;
+    priorityQueue: boolean;
+  };
+}
+
+function formatPrice(cents: number, currency: string) {
+  if (cents === 0) return "$0";
+  const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
+  return `${symbol}${(cents / 100).toFixed(2)}`;
+}
 
 const FEATURES = [
   { key: "feature1", icon: "M3 3v18h18M18 17V9M13 17V5M8 17v-3" },
@@ -18,6 +47,15 @@ const FEATURES = [
 
 export default function LandingPage() {
   const { t, mounted } = useTranslation();
+  const [plans, setPlans] = useState<PlanFromApi[] | null>(null);
+
+  useEffect(() => {
+    if (!mounted) return;
+    fetch("/api/billing/plans")
+      .then(r => r.json())
+      .then(json => { if (json.success) setPlans(json.data as PlanFromApi[]); })
+      .catch(() => { /* fall back to nothing */ });
+  }, [mounted]);
 
   if (!mounted) return null;
 
@@ -26,7 +64,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-gray-800/50">
         <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4">
-          <span className="text-blue-400 font-semibold text-sm">{t("nav.title")}</span>
+          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <Link href="/login" className="text-gray-400 hover:text-white text-sm font-medium transition-colors">
@@ -114,46 +152,55 @@ export default function LandingPage() {
             <p className="text-gray-400">{t("landing.pricingSubtitle")}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {([
-              { name: "Free", price: "$0", period: "", desc: t("landing.pricingFreeTitle"), cta: t("landing.pricingFreeCta"), isPro: false, limits: { resumes: 2, aiCalls: 5, jobMatch: false, coverLetter: false, careerCoach: false, interviewCoach: false, salaryEstimator: false, priorityQueue: false } },
-              { name: "Pro", price: "$9.99", period: "/mo", desc: t("landing.pricingProTitle"), cta: t("landing.pricingProCta"), isPro: true, limits: { resumes: 50, aiCalls: 200, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: false } },
-              { name: "Premium", price: "$19.99", period: "/mo", desc: t("landing.pricingPremiumTitle"), cta: t("landing.pricingPremiumCta"), isPro: false, limits: { resumes: null, aiCalls: null, jobMatch: true, coverLetter: true, careerCoach: true, interviewCoach: true, salaryEstimator: true, priorityQueue: true } },
-            ]).map(plan => (
-              <div key={plan.name} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 flex flex-col ${plan.isPro ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
-                {plan.isPro && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    {t("landing.pricingProBadge")}
-                  </span>
-                )}
-                <div>
-                  <h3 className="text-white font-semibold">{plan.name}</h3>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-white">{plan.price}</span>
-                    {plan.period && <span className="text-gray-500 text-sm">{plan.period}</span>}
+            {plans === null ? (
+              [0, 1, 2].map(i => <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl h-96 animate-pulse" />)
+            ) : (
+              plans.map(p => {
+                const isFeatured = p.code === "Pro";
+                const cta = p.code === "Free" ? t("landing.pricingFreeCta") : p.code === "Pro" ? t("landing.pricingProCta") : t("landing.pricingPremiumCta");
+                const featureRows = [
+                  { label: "Job Match", on: p.limits.jobMatchEnabled },
+                  { label: "Cover Letter", on: p.limits.coverLetterEnabled },
+                  { label: "Career Coach", on: p.limits.careerCoachEnabled },
+                  { label: "Interview Coach", on: p.limits.interviewCoachEnabled },
+                  { label: "Salary Estimator", on: p.limits.salaryEstimatorEnabled },
+                  { label: "Goals & Tasks", on: p.limits.calendarEnabled },
+                  { label: "Company Reviews", on: p.limits.companyReviewEnabled },
+                ].sort((a, b) => Number(b.on) - Number(a.on));
+                return (
+                  <div key={p.code} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 flex flex-col ${isFeatured ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
+                    {isFeatured && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        {t("landing.pricingProBadge")}
+                      </span>
+                    )}
+                    <div>
+                      <h3 className="text-white font-semibold">{p.name}</h3>
+                      <div className="mt-2 flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-white">{formatPrice(p.monthlyPriceCents, p.currency)}</span>
+                        {p.isPaid && <span className="text-gray-500 text-sm">/mo</span>}
+                      </div>
+                    </div>
+                    <ul className="text-xs text-gray-300 space-y-2 flex-1">
+                      <li>• Resumes: {p.limits.maxResumes ?? "Unlimited"}</li>
+                      <li>• AI calls/month: {p.limits.monthlyAiCalls ?? "Unlimited"}</li>
+                      {featureRows.map(f => (
+                        <li key={f.label} className={f.on ? "text-gray-300" : "text-gray-600 line-through"}>• {f.label}</li>
+                      ))}
+                      {p.limits.priorityQueue && <li className="text-amber-300">• Priority queue</li>}
+                    </ul>
+                    <Link
+                      href="/register"
+                      className={`block text-center text-sm font-semibold py-2.5 rounded-lg transition-colors ${
+                        isFeatured ? "bg-blue-600 hover:bg-blue-500 text-white" : "border border-gray-700 text-gray-300 hover:bg-gray-800"
+                      }`}
+                    >
+                      {cta}
+                    </Link>
                   </div>
-                </div>
-                <ul className="text-xs text-gray-300 space-y-2 flex-1">
-                  <li>• Resumes: {plan.limits.resumes ?? "Unlimited"}</li>
-                  <li>• AI calls/month: {plan.limits.aiCalls ?? "Unlimited"}</li>
-                  <li className={plan.limits.jobMatch ? "text-gray-300" : "text-gray-600 line-through"}>• Job Match</li>
-                  <li className={plan.limits.coverLetter ? "text-gray-300" : "text-gray-600 line-through"}>• Cover Letter</li>
-                  <li className={plan.limits.careerCoach ? "text-gray-300" : "text-gray-600 line-through"}>• Career Coach</li>
-                  <li className={plan.limits.interviewCoach ? "text-gray-300" : "text-gray-600 line-through"}>• Interview Coach</li>
-                  <li className={plan.limits.salaryEstimator ? "text-gray-300" : "text-gray-600 line-through"}>• Salary Estimator</li>
-                  {plan.limits.priorityQueue && <li className="text-amber-300">• Priority queue</li>}
-                </ul>
-                <Link
-                  href="/register"
-                  className={`block text-center text-sm font-semibold py-2.5 rounded-lg transition-colors ${
-                    plan.isPro
-                      ? "bg-blue-600 hover:bg-blue-500 text-white"
-                      : "border border-gray-700 text-gray-300 hover:bg-gray-800"
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
         </div>
       </section>
@@ -170,9 +217,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-8 px-4">
-        <p className="text-center text-gray-500 text-xs">{t("landing.footerCopyright")}</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

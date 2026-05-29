@@ -2,6 +2,7 @@ using DainnUser.Core.Interfaces.Services;
 using DainnUser.Core.Models.Authentication;
 using DResume.Api.Common;
 using DResume.Api.Contracts;
+using DResume.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,6 +18,7 @@ public sealed class AuthController : ControllerBase
     public AuthController(IAuthenticationService auth) => _auth = auth;
 
     [HttpPost("register")]
+    [RequiresRecaptcha]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
     {
         var username = string.IsNullOrWhiteSpace(req.Username) ? req.Email : req.Username!;
@@ -30,6 +32,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [RequiresRecaptcha]
     public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;

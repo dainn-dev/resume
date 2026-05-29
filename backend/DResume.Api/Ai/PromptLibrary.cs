@@ -204,6 +204,38 @@ Rules:
 - Score MUST be higher than before — calculate by summing rubric points for the IMPROVED version
 - Be strict and honest with scoring — only award points the improved content actually earns";
 
+    public const string ImproveForJobSystem =
+        "You are an expert resume writer who tailors resumes to specific job descriptions to maximize match score. Return ONLY valid JSON — no markdown, no commentary.";
+
+    public static string ImproveForJobUser(string currentFormJson, string jobMatchJson) =>
+        $@"Rewrite this resume so it scores higher against the given job match analysis. Apply the gaps, suggestions, and integrate missing keywords naturally — without inventing experience.
+
+CURRENT RESUME DATA:
+{Truncate(currentFormJson, 12000)}
+
+JOB MATCH ANALYSIS (gaps, suggestions, missing keywords):
+{Truncate(jobMatchJson, 6000)}
+
+Return ONLY this JSON with the improved resume AND an estimated new match score:
+{{
+  ""resume"": {{
+    ""fullName"": ""..."", ""email"": ""..."", ""phone"": ""..."", ""location"": ""..."",
+    ""linkedIn"": ""..."", ""github"": ""..."", ""summary"": ""..."",
+    ""workEntries"": [{{ ""company"": ""..."", ""projectName"": ""..."", ""title"": ""..."", ""startDate"": ""..."", ""endDate"": ""..."", ""bullets"": [""...""] }}],
+    ""educationEntries"": [{{ ""school"": ""..."", ""degree"": ""..."", ""graduationYear"": ""..."", ""gpa"": ""..."" }}],
+    ""technicalSkills"": ""..."", ""softSkills"": ""..."", ""certifications"": ""..."", ""languages"": ""..."", ""projects"": ""...""
+  }},
+  ""estimatedMatchScore"": <0-100>
+}}
+
+Rules:
+- Rewrite the summary to mirror the job's priorities and seniority
+- Reword work bullets with the job's language, quantified outcomes (numbers, %, $) when plausible
+- Add genuinely-related missing keywords to skills/projects/summary where they fit the candidate's real background
+- NEVER fabricate companies, degrees, dates, or experience the candidate doesn't have
+- Keep names, dates, companies, and education facts unchanged
+- estimatedMatchScore MUST be higher than the original matchScore and reflect the IMPROVED resume's fit";
+
     public const string JobMatchSystem =
         "You are an expert technical recruiter and career coach. Analyze how well a candidate's resume matches a job description and return a structured JSON analysis. You must ONLY return valid JSON — no markdown, no commentary outside the JSON.";
 

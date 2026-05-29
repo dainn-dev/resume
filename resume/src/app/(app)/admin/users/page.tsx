@@ -2,6 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useTranslation } from "@/components/TranslationProvider";
+
+function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
+}
 
 interface UserRow {
   id: string;
@@ -32,6 +37,7 @@ function planColor(plan: string): string {
 }
 
 export default function AdminUsersPage() {
+  const { t } = useTranslation();
   const [data, setData] = useState<ListResponse | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -46,13 +52,14 @@ export default function AdminUsersPage() {
       if (search.trim()) params.set("search", search.trim());
       const res = await fetch(`/api/admin/users?${params}`);
       const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Failed to load users.");
+      if (!json.success) throw new Error(json.error ?? t("adminUsers.loadFailed"));
       setData(json.data as ListResponse);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      setError(err instanceof Error ? err.message : t("adminUsers.errorOccurred"));
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search]);
 
   useEffect(() => { void load(); }, [load]);
@@ -63,10 +70,16 @@ export default function AdminUsersPage() {
     <main className="max-w-6xl mx-auto px-4 py-10">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin · Users</h1>
-          <p className="text-gray-400 text-sm mt-1">Manage user accounts, plans, and resumes.</p>
+          <h1 className="text-2xl font-bold text-white">{t("adminUsers.title")}</h1>
+          <p className="text-gray-400 text-sm mt-1">{t("adminUsers.subtitle")}</p>
         </div>
-        <Link href="/admin/analytics" className="text-blue-400 text-sm hover:text-blue-300">Analytics →</Link>
+        <div className="flex gap-3 text-sm">
+          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navAnalytics")}</Link>
+          <Link href="/admin/plans" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navPlans")}</Link>
+          <Link href="/admin/bank-accounts" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navBankAccounts")}</Link>
+          <Link href="/admin/bank-payments" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navBankPayments")}</Link>
+          <Link href="/admin/bug-reports" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navBugReports")}</Link>
+        </div>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4">
@@ -75,10 +88,10 @@ export default function AdminUsersPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search email or username…"
+            placeholder={t("adminUsers.searchPlaceholder")}
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 rounded-lg">Search</button>
+          <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 rounded-lg">{t("adminUsers.search")}</button>
         </form>
       </div>
 
@@ -88,23 +101,23 @@ export default function AdminUsersPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Email</th>
-              <th className="text-left px-4 py-3 font-medium">Username</th>
-              <th className="text-left px-4 py-3 font-medium">Plan</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-right px-4 py-3 font-medium">Resumes</th>
-              <th className="text-left px-4 py-3 font-medium">Joined</th>
-              <th className="text-left px-4 py-3 font-medium">Last login</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminUsers.colEmail")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminUsers.colUsername")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminUsers.colPlan")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminUsers.colStatus")}</th>
+              <th className="text-right px-4 py-3 font-medium">{t("adminUsers.colResumes")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminUsers.colJoined")}</th>
+              <th className="text-left px-4 py-3 font-medium">{t("adminUsers.colLastLogin")}</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={7} className="text-center text-gray-500 py-12">Loading…</td></tr>}
-            {!loading && data && data.users.length === 0 && <tr><td colSpan={7} className="text-center text-gray-500 py-12">No users found.</td></tr>}
+            {loading && <tr><td colSpan={7} className="text-center text-gray-500 py-12">{t("adminUsers.loading")}</td></tr>}
+            {!loading && data && data.users.length === 0 && <tr><td colSpan={7} className="text-center text-gray-500 py-12">{t("adminUsers.empty")}</td></tr>}
             {!loading && data && data.users.map((u) => (
               <tr key={u.id} className="border-t border-gray-800 hover:bg-gray-800/30 transition-colors">
                 <td className="px-4 py-3">
                   <Link href={`/admin/users/${u.id}`} className="text-blue-400 hover:text-blue-300 font-medium">{u.email}</Link>
-                  {!u.emailVerified && <span className="ml-2 text-[10px] text-amber-400">unverified</span>}
+                  {!u.emailVerified && <span className="ml-2 text-[10px] text-amber-400">{t("adminUsers.unverified")}</span>}
                 </td>
                 <td className="px-4 py-3 text-gray-300">{u.username}</td>
                 <td className="px-4 py-3">
@@ -112,12 +125,12 @@ export default function AdminUsersPage() {
                 </td>
                 <td className="px-4 py-3">
                   {u.isLocked
-                    ? <span className="text-xs text-red-400">🔒 Locked</span>
-                    : <span className="text-xs text-green-400">Active</span>}
+                    ? <span className="text-xs text-red-400">{t("adminUsers.locked")}</span>
+                    : <span className="text-xs text-green-400">{t("adminUsers.active")}</span>}
                 </td>
                 <td className="px-4 py-3 text-right text-gray-300">{u.resumeCount}</td>
                 <td className="px-4 py-3 text-gray-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : "—"}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : t("adminUsers.dash")}</td>
               </tr>
             ))}
           </tbody>
@@ -126,10 +139,10 @@ export default function AdminUsersPage() {
 
       {data && totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
-          <span className="text-gray-500">Page {page} of {totalPages} · {data.total} users</span>
+          <span className="text-gray-500">{interpolate(t("adminUsers.pageInfo"), { page, total: totalPages, count: data.total })}</span>
           <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">Prev</button>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">Next</button>
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminUsers.prev")}</button>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminUsers.next")}</button>
           </div>
         </div>
       )}

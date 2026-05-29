@@ -16,8 +16,12 @@ interface BackendAuth {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const res = await callBackend<BackendAuth>("/api/auth/login", { method: "POST", body });
+  const { recaptchaToken, ...body } = await request.json();
+  const res = await callBackend<BackendAuth>("/api/auth/login", {
+    method: "POST",
+    body,
+    headers: recaptchaToken ? { "X-Recaptcha-Token": recaptchaToken } : undefined,
+  });
 
   if (!res.ok || !res.data?.success || !res.data.data) {
     return NextResponse.json({ success: false, error: res.data?.error ?? "Login failed." }, { status: res.status });

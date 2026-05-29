@@ -41,9 +41,10 @@ public sealed class BillingController : ControllerBase
 
     [HttpGet("plans")]
     [AllowAnonymous]
-    public IActionResult ListPlans()
+    public async Task<IActionResult> ListPlans([FromServices] IPlanCatalogService catalog, CancellationToken ct)
     {
-        var view = PlanCatalog.All.Select(p => new
+        var plans = await catalog.GetAllAsync(ct);
+        var view = plans.Select(p => new
         {
             code = p.Code.ToString(),
             lookupKey = p.LookupKey,
@@ -51,6 +52,7 @@ public sealed class BillingController : ControllerBase
             description = p.Description,
             monthlyPriceCents = p.MonthlyPriceCents,
             currency = p.Currency,
+            monthlyPriceVnd = p.MonthlyPriceVnd,
             isPaid = p.IsPaid,
             limits = new
             {
@@ -61,10 +63,28 @@ public sealed class BillingController : ControllerBase
                 p.Limits.CareerCoachEnabled,
                 p.Limits.InterviewCoachEnabled,
                 p.Limits.SalaryEstimatorEnabled,
+                p.Limits.CalendarEnabled,
+                p.Limits.CompanyReviewEnabled,
                 p.Limits.PriorityQueue,
             }
         });
         return Ok(ApiResult.Ok(view));
+    }
+
+    [HttpGet("config")]
+    [AllowAnonymous]
+    public IActionResult Config([FromServices] IConfiguration config)
+    {
+        // Card additionally requires a Stripe SecretKey to function, so fold that in here —
+        // a flag of true with no key would render a button that 500s on click.
+        var stripeKeyPresent = !string.IsNullOrWhiteSpace(config["DainnStripe:SecretKey"]);
+        return Ok(ApiResult.Ok(new
+        {
+            cardPaymentsEnabled = _options.CardPaymentsEnabled && stripeKeyPresent,
+            bankQrEnabled = _options.BankQrEnabled,
+            testPlanEnabled = _options.TestPlanEnabled,
+            testPlanPriceVnd = _options.TestPlanPriceVnd,
+        }));
     }
 
     [HttpGet("me")]
@@ -161,18 +181,33 @@ public sealed class BillingController : ControllerBase
 
     [HttpPost("checkout")]
     [Authorize]
-    public async Task<IActionResult> Checkout([FromBody] CheckoutRequest req, CancellationToken ct)
+    public async Task<IActionResult> Checkout([FromBody] CheckoutRequest req, [FromServices] IPlanCatalogService catalog, CancellationToken ct)
     {
+        if (!_options.CardPaymentsEnabled)
+            return BadRequest(ApiResult.Fail("Card payments are currently disabled."));
+
         if (!Enum.TryParse<PlanCode>(req.PlanCode, true, out var planCode) || planCode == PlanCode.Free)
             throw new ArgumentException("Specify a paid plan: Pro or Premium.");
 
-        var plan = PlanCatalog.Get(planCode);
+        var plan = await catalog.GetAsync(planCode, ct);
+        var planRecord = await catalog.GetRecordAsync(planCode, ct);
         var userId = _current.RequireUserId();
 
-        var price = await _stripeDb.Set<DainnStripe.Entities.DainnStripePrice>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.LookupKey == $"{plan.LookupKey}_monthly" && p.Active, ct)
-            ?? throw new InvalidOperationException($"Stripe price for {plan.Name} has not been seeded yet. Restart the API or call POST /api/billing/seed.");
+        // Resolve the Stripe price ID to use: prefer admin-configured ActiveStripePriceId,
+        // otherwise fall back to the latest active price matching the plan's lookup key.
+        string? activeStripePriceId = planRecord?.ActiveStripePriceId;
+        if (string.IsNullOrEmpty(activeStripePriceId))
+        {
+            var priceRecord = await _stripeDb.Set<DainnStripe.Entities.DainnStripePrice>()
+                .AsNoTracking()
+                .Where(p => p.LookupKey != null && p.LookupKey!.StartsWith(plan.LookupKey + "_monthly") && p.Active)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync(ct)
+                ?? throw new InvalidOperationException($"Stripe price for {plan.Name} has not been seeded. Restart the API or visit /admin/plans.");
+            activeStripePriceId = priceRecord.StripePriceId!;
+        }
+
+        var price = new { StripePriceId = activeStripePriceId };
 
         var current = await _plans.GetOrCreateAsync(userId, ct);
 

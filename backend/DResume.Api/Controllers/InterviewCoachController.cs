@@ -14,7 +14,7 @@ namespace DResume.Api.Controllers;
 [ApiController]
 [Route("api/interview-coach")]
 [Authorize]
-[RequiresPlan(PlanCode.Pro)]
+[RequiresFeature(Feature.InterviewCoach)]
 public sealed class InterviewCoachController : ControllerBase
 {
     private readonly IInterviewCoachService _service;
@@ -30,6 +30,7 @@ public sealed class InterviewCoachController : ControllerBase
     }
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Coach([FromBody] InterviewCoachFormDataDto req, CancellationToken ct)
     {
         var (result, analysis) = await _service.CoachAsync(req, ct);

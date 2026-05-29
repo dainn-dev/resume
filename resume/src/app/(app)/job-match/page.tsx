@@ -11,10 +11,14 @@ import {
   getJobMatchResult,
   getResumeText,
   getCurrentResumeId,
+  getParsedResumeForm,
   setJobMatchContext,
   setJobMatchInput,
   setJobMatchResult,
+  setBuilderForm,
+  setParsedResumeForm,
 } from "@/lib/pipeline";
+import type { ResumeFormData } from "@/types/builder";
 
 type InputMode = "url" | "paste";
 
@@ -63,11 +67,21 @@ function ResultView({
   result,
   onReset,
   onWriteCoverLetter,
+  onApplyAndEdit,
+  onEditResume,
+  improving,
+  improveError,
+  scoreComparison,
   t,
 }: {
   result: JobMatchAnalysis;
   onReset: () => void;
   onWriteCoverLetter: () => void;
+  onApplyAndEdit: () => void;
+  onEditResume: () => void;
+  improving: boolean;
+  improveError: string | null;
+  scoreComparison: { beforeScore: number; afterScore: number } | null;
   t: (key: string) => string;
 }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
@@ -94,6 +108,55 @@ function ResultView({
             {t("jobMatch.reanalyze")}
           </button>
         </div>
+      </div>
+
+      {/* CTA: Improve resume for this job */}
+      <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-5 py-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-purple-300">{t("jobMatch.improveCTA")}</p>
+            <p className="text-xs text-purple-400/70 mt-0.5">{t("jobMatch.improveHint")}</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={onEditResume}
+              disabled={improving}
+              className="border border-purple-500/40 hover:bg-purple-500/10 disabled:opacity-50 text-purple-300 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              {t("jobMatch.editResume")}
+            </button>
+            <button
+              onClick={onApplyAndEdit}
+              disabled={improving}
+              className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+            >
+              {improving ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  {t("jobMatch.applying")}
+                </>
+              ) : (
+                t("jobMatch.applyAndEdit")
+              )}
+            </button>
+          </div>
+        </div>
+        {improveError && (
+          <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{improveError}</div>
+        )}
+        {scoreComparison && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-gray-400">{t("jobMatch.estimatedScore")}:</span>
+            <span className="text-gray-500">{scoreComparison.beforeScore}</span>
+            <span className="text-gray-600">→</span>
+            <span className={`font-bold ${scoreComparison.afterScore > scoreComparison.beforeScore ? "text-green-400" : "text-gray-400"}`}>
+              {scoreComparison.afterScore}
+            </span>
+            {scoreComparison.afterScore > scoreComparison.beforeScore && (
+              <span className="text-green-500 font-semibold">+{scoreComparison.afterScore - scoreComparison.beforeScore}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* CTA: Write Cover Letter */}
@@ -187,6 +250,9 @@ export default function JobMatchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<JobMatchAnalysis | null>(null);
+  const [improving, setImproving] = useState(false);
+  const [improveError, setImproveError] = useState<string | null>(null);
+  const [scoreComparison, setScoreComparison] = useState<{ beforeScore: number; afterScore: number } | null>(null);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
@@ -281,6 +347,83 @@ export default function JobMatchPage() {
     router.push("/cover-letter");
   }
 
+  async function getResumeFormForImprove(): Promise<ResumeFormData | null> {
+    const cached = getParsedResumeForm();
+    if (cached) return cached;
+    const resumeId = getCurrentResumeId();
+    if (resumeId) {
+      try {
+        const res = await fetch(`/api/resumes/${resumeId}`);
+        const json = await res.json();
+        if (json.success && json.data?.parsed) {
+          setParsedResumeForm(json.data.parsed);
+          return json.data.parsed as ResumeFormData;
+        }
+        if (json.success && json.data?.rawText) {
+          const parseRes = await fetch("/api/parse-resume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ resumeText: json.data.rawText }),
+          });
+          const parseJson = await parseRes.json();
+          if (parseJson.success && parseJson.data) {
+            setParsedResumeForm(parseJson.data);
+            return parseJson.data as ResumeFormData;
+          }
+        }
+      } catch { /* fall through */ }
+    }
+    if (resumeText.trim()) {
+      try {
+        const parseRes = await fetch("/api/parse-resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText }),
+        });
+        const parseJson = await parseRes.json();
+        if (parseJson.success && parseJson.data) {
+          setParsedResumeForm(parseJson.data);
+          return parseJson.data as ResumeFormData;
+        }
+      } catch { /* fall through */ }
+    }
+    return null;
+  }
+
+  async function handleApplyAndEdit() {
+    if (!result) return;
+    setImproving(true);
+    setImproveError(null);
+    try {
+      const form = await getResumeFormForImprove();
+      if (!form) {
+        setImproveError(t("jobMatch.improveNoResume"));
+        return;
+      }
+      const res = await fetch("/api/build/improve-for-job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: form, jobMatch: result }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? "Improvement failed.");
+      const improved = data.data.resume as ResumeFormData;
+      const comparison = data.data.comparison as { beforeScore: number; afterScore: number };
+      setBuilderForm(improved);
+      setParsedResumeForm(improved);
+      setScoreComparison(comparison);
+      router.push("/build");
+    } catch (err) {
+      setImproveError(err instanceof Error ? err.message : "An error occurred.");
+    } finally {
+      setImproving(false);
+    }
+  }
+
+  function handleEditResume() {
+    router.push("/build");
+  }
+
   const canSubmit = resumeText.trim() && (mode === "url" ? linkedinUrl.trim() : jobDescription.trim());
 
   if (result) {
@@ -295,8 +438,15 @@ export default function JobMatchPage() {
           t={t}
           onReset={() => {
             setResult(null);
+            setScoreComparison(null);
+            setImproveError(null);
           }}
           onWriteCoverLetter={handleWriteCoverLetter}
+          onApplyAndEdit={handleApplyAndEdit}
+          onEditResume={handleEditResume}
+          improving={improving}
+          improveError={improveError}
+          scoreComparison={scoreComparison}
         />
       </main>
     );

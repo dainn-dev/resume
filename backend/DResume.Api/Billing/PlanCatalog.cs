@@ -9,9 +9,10 @@ public sealed record PlanDefinition(
     string Description,
     long MonthlyPriceCents,
     string Currency,
-    PlanLimits Limits)
+    PlanLimits Limits,
+    long MonthlyPriceVnd = 0)
 {
-    public bool IsPaid => MonthlyPriceCents > 0;
+    public bool IsPaid => MonthlyPriceCents > 0 || MonthlyPriceVnd > 0;
 }
 
 public sealed record PlanLimits(
@@ -22,6 +23,8 @@ public sealed record PlanLimits(
     bool CareerCoachEnabled,
     bool InterviewCoachEnabled,
     bool SalaryEstimatorEnabled,
+    bool CalendarEnabled,
+    bool CompanyReviewEnabled,
     bool PriorityQueue);
 
 public static class PlanCatalog
@@ -41,14 +44,17 @@ public static class PlanCatalog
             CareerCoachEnabled: false,
             InterviewCoachEnabled: false,
             SalaryEstimatorEnabled: false,
-            PriorityQueue: false));
+            CalendarEnabled: false,
+            CompanyReviewEnabled: false,
+            PriorityQueue: false),
+        MonthlyPriceVnd: 0);
 
     public static readonly PlanDefinition Pro = new(
         PlanCode.Pro,
-        LookupKey: "dresume_pro",
+        LookupKey: "dresume_pro_v2",
         Name: "Pro",
         Description: "Full access to all AI features for individuals.",
-        MonthlyPriceCents: 999,
+        MonthlyPriceCents: 499,
         Currency: "usd",
         Limits: new PlanLimits(
             MaxResumes: 50,
@@ -58,14 +64,17 @@ public static class PlanCatalog
             CareerCoachEnabled: true,
             InterviewCoachEnabled: true,
             SalaryEstimatorEnabled: true,
-            PriorityQueue: false));
+            CalendarEnabled: true,
+            CompanyReviewEnabled: false,
+            PriorityQueue: false),
+        MonthlyPriceVnd: 129_000);
 
     public static readonly PlanDefinition Premium = new(
         PlanCode.Premium,
-        LookupKey: "dresume_premium",
+        LookupKey: "dresume_premium_v2",
         Name: "Premium",
         Description: "Unlimited usage with priority processing.",
-        MonthlyPriceCents: 1999,
+        MonthlyPriceCents: 999,
         Currency: "usd",
         Limits: new PlanLimits(
             MaxResumes: int.MaxValue,
@@ -75,7 +84,10 @@ public static class PlanCatalog
             CareerCoachEnabled: true,
             InterviewCoachEnabled: true,
             SalaryEstimatorEnabled: true,
-            PriorityQueue: true));
+            CalendarEnabled: true,
+            CompanyReviewEnabled: true,
+            PriorityQueue: true),
+        MonthlyPriceVnd: 259_000);
 
     public static readonly IReadOnlyList<PlanDefinition> All = new[] { Free, Pro, Premium };
 
@@ -87,6 +99,20 @@ public static class PlanCatalog
         _ => Free
     };
 
-    public static PlanDefinition? GetByLookupKey(string? lookupKey) =>
-        string.IsNullOrEmpty(lookupKey) ? null : All.FirstOrDefault(p => p.LookupKey == lookupKey);
+    // Map legacy/historical lookup keys to current plans so existing Stripe subscriptions
+    // (created before a price/key migration) still resolve to the correct plan in webhooks.
+    private static readonly Dictionary<string, PlanCode> LegacyLookupKeys = new()
+    {
+        ["dresume_pro"] = PlanCode.Pro,
+        ["dresume_premium"] = PlanCode.Premium,
+        ["dresume_enterprise"] = PlanCode.Premium, // renamed Enterprise → Premium
+    };
+
+    public static PlanDefinition? GetByLookupKey(string? lookupKey)
+    {
+        if (string.IsNullOrEmpty(lookupKey)) return null;
+        var match = All.FirstOrDefault(p => p.LookupKey == lookupKey);
+        if (match is not null) return match;
+        return LegacyLookupKeys.TryGetValue(lookupKey, out var code) ? Get(code) : null;
+    }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using DainnUser.Core.Exceptions;
+using DResume.Api.Billing;
 
 namespace DResume.Api.Common;
 
@@ -25,6 +26,10 @@ public sealed class ExceptionHandlingMiddleware
         catch (UnauthorizedAccessException ex)
         {
             await WriteAsync(ctx, HttpStatusCode.Unauthorized, ex.Message);
+        }
+        catch (PlanLimitExceededException ex)
+        {
+            await WriteAsync(ctx, HttpStatusCode.PaymentRequired, ex.Message);
         }
         catch (ArgumentException ex)
         {

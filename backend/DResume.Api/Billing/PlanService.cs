@@ -33,12 +33,14 @@ public sealed class PlanService : IPlanService
 {
     private readonly ResumeDbContext _db;
     private readonly ICurrentUser _current;
+    private readonly IPlanCatalogService _catalog;
     private readonly HashSet<string> _adminEmails;
 
-    public PlanService(ResumeDbContext db, ICurrentUser current, IConfiguration config)
+    public PlanService(ResumeDbContext db, ICurrentUser current, IConfiguration config, IPlanCatalogService catalog)
     {
         _db = db;
         _current = current;
+        _catalog = catalog;
         _adminEmails = config.GetSection("Admin:Emails")
             .Get<string[]>()
             ?.ToHashSet(StringComparer.OrdinalIgnoreCase)
@@ -69,11 +71,11 @@ public sealed class PlanService : IPlanService
 
     public async Task<PlanDefinition> GetCurrentPlanAsync(Guid userId, CancellationToken ct = default)
     {
-        if (IsAdmin()) return PlanCatalog.Premium;
+        if (IsAdmin()) return await _catalog.GetAsync(PlanCode.Premium, ct);
 
         var sub = await GetOrCreateAsync(userId, ct);
         var isActive = sub.Status is "active" or "trialing";
-        return isActive ? PlanCatalog.Get(sub.PlanCode) : PlanCatalog.Free;
+        return isActive ? await _catalog.GetAsync(sub.PlanCode, ct) : await _catalog.GetAsync(PlanCode.Free, ct);
     }
 
     public async Task<UserSubscription> SetPlanAsync(

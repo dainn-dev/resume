@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/components/TranslationProvider";
@@ -47,7 +48,9 @@ function VerifyEmailContent() {
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="flex items-center justify-between h-14 px-4 max-w-6xl mx-auto w-full">
-        <Link href="/" className="text-blue-400 font-semibold text-sm">{t("nav.title")}</Link>
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
+        </Link>
         <LanguageSwitcher />
       </nav>
       <div className="flex-1 flex items-center justify-center px-4">

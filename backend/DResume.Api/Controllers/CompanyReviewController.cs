@@ -1,3 +1,4 @@
+using DResume.Api.Billing;
 using DResume.Api.Common;
 using DResume.Api.Contracts;
 using DResume.Api.Features.CompanyReview;
@@ -9,6 +10,7 @@ namespace DResume.Api.Controllers;
 [ApiController]
 [Route("api/company-review")]
 [Authorize]
+[RequiresFeature(Feature.CompanyReview)]
 public sealed class CompanyReviewController : ControllerBase
 {
     private readonly ICompanyReviewService _service;

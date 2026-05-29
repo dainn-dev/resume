@@ -11,6 +11,7 @@ public interface IBillingNotifier
     Task SendResumedAsync(string email, string name, PlanDefinition plan, DateTime? renewDate, CancellationToken ct = default);
     Task SendSubscriptionEndedAsync(string email, string name, PlanDefinition previousPlan, CancellationToken ct = default);
     Task SendAdminGrantedAsync(string email, string name, PlanDefinition plan, DateTime? expiresAt, string? note, CancellationToken ct = default);
+    Task SendPriceChangeScheduledAsync(string email, string name, PlanDefinition plan, long oldCents, long newCents, DateTime? renewDate, CancellationToken ct = default);
 }
 
 public sealed class BillingNotifier : IBillingNotifier
@@ -76,6 +77,8 @@ public sealed class BillingNotifier : IBillingNotifier
         if (limits.CareerCoachEnabled) items.Add("AI Career Coach roadmap");
         if (limits.InterviewCoachEnabled) items.Add("Interview prep with mock questions");
         if (limits.SalaryEstimatorEnabled) items.Add("Salary estimator for any role");
+        if (limits.CalendarEnabled) items.Add("Goals & Tasks calendar planner");
+        if (limits.CompanyReviewEnabled) items.Add("Company reviews — research any employer");
         if (limits.PriorityQueue) items.Add("⚡ Priority AI processing queue");
 
         var sb = new System.Text.StringBuilder();
@@ -285,6 +288,42 @@ public sealed class BillingNotifier : IBillingNotifier
         return SendSafelyAsync(email, subject, html, ct);
     }
 
+    public Task SendPriceChangeScheduledAsync(string email, string name, PlanDefinition plan, long oldCents, long newCents, DateTime? renewDate, CancellationToken ct = default)
+    {
+        var oldPrice = FormatPrice(oldCents, plan.Currency);
+        var newPrice = FormatPrice(newCents, plan.Currency);
+        var renew = renewDate?.ToString("MMM d, yyyy") ?? "your next billing date";
+        var diffCents = newCents - oldCents;
+        var diffLabel = diffCents > 0 ? $"+{FormatPrice(Math.Abs(diffCents), plan.Currency)}" : $"-{FormatPrice(Math.Abs(diffCents), plan.Currency)}";
+        var headerColor = diffCents > 0 ? "#f59e0b" : "#16a34a";
+        var subjectVerb = diffCents > 0 ? "increase" : "decrease";
+
+        var html = Wrap(headerColor, $"Price {subjectVerb} on your {plan.Name} plan", $"""
+            <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">A heads-up: your <strong>{plan.Name}</strong> subscription price is changing at your next renewal on <strong style="color:#fff">{renew}</strong>. No change to your current billing period — you'll continue at the existing rate until then.</p>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 13px; color: #fde68a; text-transform: uppercase; letter-spacing: 0.5px;">Pricing change</h3>
+              {Row("Plan", $"<strong>{plan.Name}</strong>")}
+              {Row("Current price", oldPrice + "/mo")}
+              {Row("New price (from " + renew + ")", $"<strong>{newPrice}/mo</strong> <span style=\"color:#9ca3af\">({diffLabel})</span>")}
+              {Row("Status", "<span style=\"color:#34d399\">● Active</span>")}
+            </div>
+
+            <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
+              <p style="margin: 0; font-size: 13px; color: #d1d5db; line-height: 1.5;">
+                💡 Nothing to do — your subscription keeps running and the new price kicks in automatically at renewal. If you'd prefer to cancel before then, you can do that from your account page.
+              </p>
+            </div>
+
+            {ManageButton()}
+            <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
+              Questions? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.
+            </p>
+            """);
+        return SendSafelyAsync(email, subject: $"Your {plan.Name} subscription price will {subjectVerb}", html, ct);
+    }
+
     private static string BuildPlanDiff(PlanDefinition from, PlanDefinition to, bool isUpgrade)
     {
         var sb = new System.Text.StringBuilder();
@@ -318,6 +357,10 @@ public sealed class BillingNotifier : IBillingNotifier
         if (fl.InterviewCoachEnabled && !tl.InterviewCoachEnabled) Line("Interview Coach no longer available");
         if (!fl.SalaryEstimatorEnabled && tl.SalaryEstimatorEnabled) Line("Salary Estimator unlocked");
         if (fl.SalaryEstimatorEnabled && !tl.SalaryEstimatorEnabled) Line("Salary Estimator no longer available");
+        if (!fl.CalendarEnabled && tl.CalendarEnabled) Line("Goals & Tasks calendar unlocked");
+        if (fl.CalendarEnabled && !tl.CalendarEnabled) Line("Goals & Tasks no longer available");
+        if (!fl.CompanyReviewEnabled && tl.CompanyReviewEnabled) Line("Company Reviews unlocked");
+        if (fl.CompanyReviewEnabled && !tl.CompanyReviewEnabled) Line("Company Reviews no longer available");
         if (!fl.PriorityQueue && tl.PriorityQueue) Line("⚡ Priority AI processing queue");
         if (fl.PriorityQueue && !tl.PriorityQueue) Line("Priority queue no longer available");
 

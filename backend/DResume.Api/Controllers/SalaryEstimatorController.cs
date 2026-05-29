@@ -14,7 +14,7 @@ namespace DResume.Api.Controllers;
 [ApiController]
 [Route("api/salary-estimator")]
 [Authorize]
-[RequiresPlan(PlanCode.Pro)]
+[RequiresFeature(Feature.SalaryEstimator)]
 public sealed class SalaryEstimatorController : ControllerBase
 {
     private readonly ISalaryEstimateService _service;
@@ -30,6 +30,7 @@ public sealed class SalaryEstimatorController : ControllerBase
     }
 
     [HttpPost]
+    [ConsumesAiCall]
     public async Task<IActionResult> Estimate([FromBody] SalaryEstimatorFormDataDto req, CancellationToken ct)
     {
         var (estimate, analysis) = await _service.EstimateAsync(req, ct);
