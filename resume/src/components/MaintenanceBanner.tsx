@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/components/TranslationProvider";
 
-// Maintenance window: 1:00 AM – 7:00 AM Vietnam time (GMT+7), daily.
+// Maintenance window: 2:00 AM – 5:00 AM Vietnam time (GMT+7), daily.
 // Two display modes (Vietnam has no DST, so a fixed +7h offset is always correct):
-//   • "notice" — during the 0:00–1:00 AM hour: a heads-up with a MM:SS countdown
-//     (starting 59:59) until maintenance begins at 1:00 AM.
-//   • "active" — during the 1:00–7:00 AM window: maintenance is ongoing.
+//   • "notice" — during the 1:00–2:00 AM hour: a heads-up with a MM:SS countdown
+//     (starting 59:59) until maintenance begins at 2:00 AM.
+//   • "active" — during the 2:00–5:00 AM window: maintenance is ongoing.
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
-const NOTICE_HOUR = 0; // VN hour during which the pre-maintenance notice + countdown is shown
-const MAINT_START_HOUR = 1; // inclusive
-const MAINT_END_HOUR = 7; // exclusive
+const NOTICE_HOUR = 1; // VN hour during which the pre-maintenance notice + countdown is shown
+const MAINT_START_HOUR = 2; // inclusive
+const MAINT_END_HOUR = 5; // exclusive
 const PREVIEW = false; // TEMP: force-show the banner for UI preview — set back to false before shipping.
 
 type State = { mode: "notice"; remaining: number } | { mode: "active" } | null;
