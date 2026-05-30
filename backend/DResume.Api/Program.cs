@@ -93,7 +93,14 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var stripeSecretKey = builder.Configuration["DainnStripe:SecretKey"];
-var stripeEnabled = !string.IsNullOrWhiteSpace(stripeSecretKey);
+// Stripe is wired up only when explicitly enabled AND a secret key is present.
+// The `DainnStripe:Enabled` flag (env: DainnStripe__Enabled / STRIPE_ENABLED) is the
+// master switch — setting it false disables Stripe even if a leftover key exists.
+// When disabled, IStripePriceManager / DainnStripeDbContext are not registered; the
+// services that consume them resolve those deps lazily and degrade gracefully so that
+// bank-QR billing and anonymous endpoints (plans/config) keep working.
+var stripeEnabled = builder.Configuration.GetValue("DainnStripe:Enabled", false)
+    && !string.IsNullOrWhiteSpace(stripeSecretKey);
 if (stripeEnabled)
 {
     builder.Services.AddDainnStripe(builder.Configuration);
@@ -202,8 +209,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
 
     var billingOptions = scope.ServiceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
-    if (billingOptions.SeedCatalogOnStartup
-        && !string.IsNullOrWhiteSpace(builder.Configuration["DainnStripe:SecretKey"]))
+    if (billingOptions.SeedCatalogOnStartup && stripeEnabled)
     {
         try
         {

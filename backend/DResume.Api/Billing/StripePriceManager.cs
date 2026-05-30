@@ -4,6 +4,7 @@ using DainnUser.Infrastructure.Data;
 using DResume.Api.Data;
 using DResume.Api.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DResume.Api.Billing;
 
@@ -30,22 +31,28 @@ public sealed record StripePriceView(
 
 public sealed class StripePriceManager : IStripePriceManager
 {
-    private readonly DainnStripeDbContext _stripeDb;
+    private readonly IServiceProvider _sp;
     private readonly ResumeDbContext _resumeDb;
     private readonly DainnUserDbContext _userDb;
     private readonly IPlanCatalogService _plans;
     private readonly IBillingNotifier _notifier;
     private readonly ILogger<StripePriceManager> _logger;
 
+    // DainnStripeDbContext is only registered when Stripe is enabled. Resolve it lazily so
+    // this manager can be constructed even with Stripe off (all its methods are Stripe-only
+    // and will throw a clean error below if invoked while disabled).
+    private DainnStripeDbContext _stripeDb => _sp.GetService<DainnStripeDbContext>()
+        ?? throw new InvalidOperationException("Card payments are disabled (Stripe is not configured).");
+
     public StripePriceManager(
-        DainnStripeDbContext stripeDb,
+        IServiceProvider sp,
         ResumeDbContext resumeDb,
         DainnUserDbContext userDb,
         IPlanCatalogService plans,
         IBillingNotifier notifier,
         ILogger<StripePriceManager> logger)
     {
-        _stripeDb = stripeDb;
+        _sp = sp;
         _resumeDb = resumeDb;
         _userDb = userDb;
         _plans = plans;
