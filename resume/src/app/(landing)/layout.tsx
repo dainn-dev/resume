@@ -1,3 +1,10 @@
+import MaintenanceBanner from "@/components/MaintenanceBanner";
+
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <MaintenanceBanner />
+      {children}
+    </>
+  );
 }
