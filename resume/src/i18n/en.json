@@ -743,6 +743,7 @@
   "account": {
     "title": "My Account",
     "myResumes": "My Resumes",
+    "resumeCount": "resumes",
     "noResumes": "No resumes uploaded yet. Start by scoring your resume!",
     "uploadedOn": "Uploaded",
     "stepsCompleted": "steps completed",
@@ -795,6 +796,7 @@
     "featureCalendar": "Goals & Tasks",
     "featureCompanyReviews": "Company Reviews",
     "priorityQueue": "Priority queue",
+    "seeFeatures": "See all features",
     "currentPlan": "Current plan",
     "cancellationScheduled": "Cancellation scheduled",
     "cancelSubscription": "Cancel subscription",

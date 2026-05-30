@@ -743,6 +743,7 @@
   "account": {
     "title": "Tài Khoản",
     "myResumes": "CV Của Tôi",
+    "resumeCount": "hồ sơ",
     "noResumes": "Chưa có CV nào. Bắt đầu bằng cách đánh giá CV của bạn!",
     "uploadedOn": "Tải lên",
     "stepsCompleted": "bước hoàn thành",
@@ -795,6 +796,7 @@
     "featureCalendar": "Mục Tiêu & Công Việc",
     "featureCompanyReviews": "Đánh Giá Công Ty",
     "priorityQueue": "Hàng đợi ưu tiên",
+    "seeFeatures": "Xem tất cả tính năng",
     "currentPlan": "Gói hiện tại",
     "cancellationScheduled": "Đã lên lịch hủy",
     "cancelSubscription": "Hủy đăng ký",

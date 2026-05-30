@@ -356,14 +356,24 @@ export default function BillingPanel() {
                 <span className="text-xs text-gray-400">{formatPrice(plan.monthlyPriceCents, plan.currency)}</span>
               </div>
               <p className="text-xs text-gray-400 mb-4">{plan.description}</p>
-              <ul className="text-xs text-gray-300 space-y-1 mb-4 flex-1">
+              <ul className="text-xs text-gray-300 space-y-1 mb-1 flex-1">
                 <li>• {t("billing.resumesLabel")}: {plan.limits.maxResumes ?? t("billing.unlimited")}</li>
                 <li>• {t("billing.aiCallsLabel")}: {plan.limits.monthlyAiCalls ?? t("billing.unlimited")}</li>
+                <li className="hidden sm:list-item">&nbsp;</li>
                 {featureRows.map(f => (
-                  <li key={f.label} className={f.on ? "text-gray-300" : "text-gray-600 line-through"}>• {f.label}</li>
+                  <li key={f.label} className={`hidden sm:list-item ${f.on ? "text-gray-300" : "text-gray-600 line-through"}`}>• {f.label}</li>
                 ))}
-                {plan.limits.priorityQueue && <li className="text-amber-300">• {t("billing.priorityQueue")}</li>}
+                {plan.limits.priorityQueue && <li className="hidden sm:list-item text-amber-300">• {t("billing.priorityQueue")}</li>}
               </ul>
+              <details className="sm:hidden mb-3 text-xs">
+                <summary className="text-blue-400 cursor-pointer">{t("billing.seeFeatures")}</summary>
+                <ul className="mt-2 space-y-1 text-gray-300">
+                  {featureRows.map(f => (
+                    <li key={f.label} className={f.on ? "text-gray-300" : "text-gray-600 line-through"}>• {f.label}</li>
+                  ))}
+                  {plan.limits.priorityQueue && <li className="text-amber-300">• {t("billing.priorityQueue")}</li>}
+                </ul>
+              </details>
 
               {isCurrent ? (
                 isFree ? (
