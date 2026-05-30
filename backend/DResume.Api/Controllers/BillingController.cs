@@ -5,6 +5,7 @@ using DResume.Api.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Stripe.Checkout;
 
@@ -15,23 +16,26 @@ namespace DResume.Api.Controllers;
 public sealed class BillingController : ControllerBase
 {
     private readonly IPlanService _plans;
-    private readonly IDainnStripeSubscriptionService _subscriptions;
-    private readonly DainnStripeDbContext _stripeDb;
+    private readonly IServiceProvider _sp;
     private readonly BillingOptions _options;
     private readonly ICurrentUser _current;
     private readonly IBillingNotifier _notifier;
 
+    // DainnStripeDbContext is only registered when Stripe is enabled. Resolve it lazily so
+    // the controller can be constructed with Stripe off — keeping the anonymous plans/config
+    // endpoints and bank-QR flow working. Only the card-payment actions touch this.
+    private DainnStripeDbContext _stripeDb => _sp.GetService<DainnStripeDbContext>()
+        ?? throw new InvalidOperationException("Card payments are disabled (Stripe is not configured).");
+
     public BillingController(
         IPlanService plans,
-        IDainnStripeSubscriptionService subscriptions,
-        DainnStripeDbContext stripeDb,
+        IServiceProvider sp,
         IOptions<BillingOptions> options,
         ICurrentUser current,
         IBillingNotifier notifier)
     {
         _plans = plans;
-        _subscriptions = subscriptions;
-        _stripeDb = stripeDb;
+        _sp = sp;
         _options = options.Value;
         _current = current;
         _notifier = notifier;
