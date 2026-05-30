@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { TranslationProvider } from "@/components/TranslationProvider";
+import MaintenanceProvider from "@/components/MaintenanceProvider";
 import AuthProvider from "@/components/AuthProvider";
 import { ReportBugProvider } from "@/components/ReportBugModal";
 
@@ -21,11 +22,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-gray-950 text-white min-h-screen`}>
         <TranslationProvider>
-          <AuthProvider>
-            <ReportBugProvider>
-              {children}
-            </ReportBugProvider>
-          </AuthProvider>
+          <MaintenanceProvider>
+            <AuthProvider>
+              <ReportBugProvider>
+                {children}
+              </ReportBugProvider>
+            </AuthProvider>
+          </MaintenanceProvider>
         </TranslationProvider>
       </body>
     </html>
