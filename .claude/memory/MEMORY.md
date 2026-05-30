@@ -13,7 +13,8 @@
 - Active branch: feat/plan-perks-enforcement
 - Plans: Free / Pro $4.99 / Premium $9.99 (Enterprise đã đổi tên → Premium). Thanh toán: Stripe (card) + Bank QR/SePay (chọn 1/3/6/12 tháng).
 - Enforcement: feature flags `[RequiresFeature]` + AI-call quota `[ConsumesAiCall]` + resume quota (`EnsureResumeQuotaAsync` trong ResumesController) — tất cả đã active.
-- Last task (2026-05-29): i18n hóa BillingPanel + bank UI + 4 trang admin; thêm lịch sử bank payment vào trang Account; fix UX bug report. en.json/vi.json parity 893 keys.
+- Last task (2026-05-30): (1) Maintenance takeover — `MaintenanceProvider` patch `window.fetch`, đếm 5xx liên tiếp trên call `/api/*` (network error cũng tính), đạt 5 lần → full-screen `MaintenancePage` (khung giờ cố định 1:00–7:00 SA GMT+7, nút Thử lại = reload). Wrap trong layout.tsx (TranslationProvider > MaintenanceProvider > AuthProvider). i18n keys: maintenance.pageTitle/pageBody/retry. (2) Global 404: `app/not-found.tsx` (dark theme, nút Về trang chủ); i18n keys notFound.title/body/home.
+- Prev task (2026-05-29): i18n hóa BillingPanel + bank UI + 4 trang admin; thêm lịch sử bank payment vào trang Account; fix UX bug report. en.json/vi.json parity 893 keys.
 
 ## Feature completeness (audit 2026-05-29)
 

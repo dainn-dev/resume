@@ -268,7 +268,15 @@
     "upgrade": "Upgrade"
   },
   "maintenance": {
-    "notice": "Scheduled maintenance 1:00–7:00 AM daily — the system will be temporarily unavailable. Please save your work."
+    "notice": "Scheduled maintenance 1:00–7:00 AM daily — the system will be temporarily unavailable. Please save your work.",
+    "pageTitle": "Under maintenance",
+    "pageBody": "The system is undergoing maintenance during the scheduled window from 1:00 to 7:00 AM (GMT+7). Please come back after 7:00 AM.",
+    "retry": "Try again"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for doesn't exist or has been moved.",
+    "home": "Back to home"
   },
   "common": {
     "language": "Language",

@@ -268,7 +268,15 @@
     "upgrade": "Nâng cấp"
   },
   "maintenance": {
-    "notice": "Hệ thống bảo trì định kỳ 1:00–7:00 sáng hàng ngày — sẽ tạm dừng hoạt động. Vui lòng lưu lại công việc của bạn."
+    "notice": "Hệ thống bảo trì định kỳ 1:00–7:00 sáng hàng ngày — sẽ tạm dừng hoạt động. Vui lòng lưu lại công việc của bạn.",
+    "pageTitle": "Đang bảo trì",
+    "pageBody": "Hệ thống đang trong quá trình bảo trì theo khung giờ cố định từ 1:00 đến 7:00 sáng (GMT+7). Vui lòng quay lại sau 7:00 sáng.",
+    "retry": "Thử lại"
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "body": "Trang bạn đang tìm không tồn tại hoặc đã được di chuyển.",
+    "home": "Về trang chủ"
   },
   "common": {
     "language": "Ngôn Ngữ",
