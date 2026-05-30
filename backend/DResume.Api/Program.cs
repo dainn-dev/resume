@@ -62,6 +62,7 @@ builder.Services.AddDbContext<ResumeDbContext>(o =>
         npg => npg.MigrationsHistoryTable("__EFMigrationsHistory", "resume")));
 
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("Anthropic"));
+builder.Services.AddSingleton<IAiProviderService, AiProviderService>();
 builder.Services.AddHttpClient<IAnthropicClient, AnthropicClient>();
 builder.Services.Configure<RecaptchaOptions>(builder.Configuration.GetSection("Recaptcha"));
 builder.Services.AddHttpClient<IRecaptchaVerifier, RecaptchaVerifier>();

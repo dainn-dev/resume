@@ -26,6 +26,7 @@ public class ResumeDbContext : DbContext
     public DbSet<BankPayment> BankPayments => Set<BankPayment>();
     public DbSet<BugReport> BugReports => Set<BugReport>();
     public DbSet<AiUsageRecord> AiUsages => Set<AiUsageRecord>();
+    public DbSet<AiProvider> AiProviders => Set<AiProvider>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -206,6 +207,16 @@ public class ResumeDbContext : DbContext
             e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.UserId, x.Period }).IsUnique();
             e.Property(x => x.Period).HasMaxLength(6);
+        });
+
+        b.Entity<AiProvider>(e =>
+        {
+            e.ToTable("ai_providers");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100);
+            e.Property(x => x.BaseUrl).HasMaxLength(500);
+            e.Property(x => x.ApiKey).HasMaxLength(500);
+            e.Property(x => x.ModelsJson).HasColumnType("jsonb");
         });
 
         b.Entity<BugReport>(e =>

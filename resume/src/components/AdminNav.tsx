@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/bank-accounts", label: "Bank Accounts" },
   { href: "/admin/bank-payments", label: "Bank Payments" },
   { href: "/admin/bug-reports", label: "Bug Reports" },
+  { href: "/admin/ai-providers", label: "AI Providers" },
 ];
 
 export default function AdminNav() {

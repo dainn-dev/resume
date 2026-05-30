@@ -14,28 +14,28 @@ public sealed class AnthropicClient : IAnthropicClient
 {
     private readonly HttpClient _http;
     private readonly AnthropicOptions _opts;
+    private readonly IAiProviderService _providerService;
     private readonly ILogger<AnthropicClient> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly int[] RetryableStatusCodes = [429, 502, 503, 524];
 
-    public AnthropicClient(HttpClient http, IOptions<AnthropicOptions> opts, ILogger<AnthropicClient> logger)
+    public AnthropicClient(HttpClient http, IOptions<AnthropicOptions> opts, IAiProviderService providerService, ILogger<AnthropicClient> logger)
     {
         _opts = opts.Value;
+        _providerService = providerService;
         _logger = logger;
-        var baseUrl = _opts.BaseUrl.TrimEnd('/');
-        if (baseUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
-            baseUrl = baseUrl[..^3];
         _http = http;
-        _http.BaseAddress = new Uri(baseUrl + "/");
         _http.Timeout = TimeSpan.FromSeconds(_opts.TimeoutSeconds);
     }
 
-    private static readonly int[] RetryableStatusCodes = [429, 502, 503, 524];
-
     public async Task<string> CompleteAsync(string systemPrompt, string userPrompt, int maxTokens = 2000, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_opts.ApiKey))
-            throw new InvalidOperationException("ANTHROPIC_API_KEY is not configured. Set Anthropic:ApiKey or the ANTHROPIC__APIKEY env var.");
+        var provider = await _providerService.ResolveAsync(ct);
+        return await CompleteWithFallbackAsync(provider, systemPrompt, userPrompt, maxTokens, ct);
+    }
 
+    private async Task<string> CompleteWithFallbackAsync(ResolvedProvider provider, string systemPrompt, string userPrompt, int maxTokens, CancellationToken ct)
+    {
         using var aiCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         aiCts.CancelAfter(TimeSpan.FromSeconds(_opts.TimeoutSeconds));
         var aiToken = aiCts.Token;
@@ -45,7 +45,7 @@ public sealed class AnthropicClient : IAnthropicClient
         {
             try
             {
-                var (res, body) = await SendRequestAsync(systemPrompt, userPrompt, maxTokens, aiToken);
+                var (res, body) = await SendRequestAsync(provider, systemPrompt, userPrompt, maxTokens, aiToken);
 
                 if (res.IsSuccessStatusCode)
                     return ParseResponse(body);
@@ -54,45 +54,71 @@ public sealed class AnthropicClient : IAnthropicClient
                 if (attempt < maxRetries - 1 && RetryableStatusCodes.Contains(status))
                 {
                     var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
-                    _logger.LogWarning("Anthropic API {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", status, delay.TotalSeconds, attempt + 1, maxRetries);
+                    _logger.LogWarning("[{Provider}] API {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})",
+                        provider.Name, status, delay.TotalSeconds, attempt + 1, maxRetries);
                     await Task.Delay(delay, CancellationToken.None);
                     continue;
                 }
 
-                _logger.LogWarning("Anthropic API {Status}: {Body}", status, body);
-                throw new InvalidOperationException($"Anthropic API error {status}: {Truncate(body, 500)}");
+                _logger.LogWarning("[{Provider}] API {Status}: {Body}", provider.Name, status, Truncate(body, 300));
+                var next = await _providerService.ResolveNextAsync(provider, ct);
+                if (next is not null)
+                    return await CompleteWithFallbackAsync(next, systemPrompt, userPrompt, maxTokens, ct);
+
+                throw new InvalidOperationException($"AI API error {status} (all providers exhausted): {Truncate(body, 500)}");
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
                 if (ct.IsCancellationRequested) throw;
-                if (attempt >= maxRetries - 1) throw;
-                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
-                _logger.LogWarning(ex, "Anthropic API transport error, retrying in {Delay}s (attempt {Attempt}/{Max})", delay.TotalSeconds, attempt + 1, maxRetries);
-                aiCts.TryReset();
-                aiCts.CancelAfter(TimeSpan.FromSeconds(_opts.TimeoutSeconds));
-                await Task.Delay(delay, CancellationToken.None);
+
+                if (attempt < maxRetries - 1)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
+                    _logger.LogWarning(ex, "[{Provider}] transport error, retrying in {Delay}s (attempt {Attempt}/{Max})",
+                        provider.Name, delay.TotalSeconds, attempt + 1, maxRetries);
+                    aiCts.TryReset();
+                    aiCts.CancelAfter(TimeSpan.FromSeconds(_opts.TimeoutSeconds));
+                    await Task.Delay(delay, CancellationToken.None);
+                    continue;
+                }
+
+                _logger.LogWarning(ex, "[{Provider}] exhausted retries, trying fallback", provider.Name);
+                var next = await _providerService.ResolveNextAsync(provider, ct);
+                if (next is not null)
+                    return await CompleteWithFallbackAsync(next, systemPrompt, userPrompt, maxTokens, ct);
+
+                throw;
             }
         }
     }
 
-    private async Task<(HttpResponseMessage res, string body)> SendRequestAsync(string systemPrompt, string userPrompt, int maxTokens, CancellationToken ct)
+    private async Task<(HttpResponseMessage res, string body)> SendRequestAsync(
+        ResolvedProvider provider, string systemPrompt, string userPrompt, int maxTokens, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(provider.ApiKey))
+            throw new InvalidOperationException($"API key not configured for provider '{provider.Name}'.");
+
+        var baseUrl = provider.BaseUrl.TrimEnd('/');
+        if (baseUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+            baseUrl = baseUrl[..^3];
+        var url = baseUrl + "/v1/messages";
+
         var payload = new
         {
-            model = _opts.Model,
+            model = provider.Model,
             max_tokens = maxTokens,
             stream = false,
             system = systemPrompt,
             messages = new[] { new { role = "user", content = userPrompt } }
         };
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, "v1/messages")
+        using var req = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json")
         };
-        req.Headers.Add("x-api-key", _opts.ApiKey);
+        req.Headers.Add("x-api-key", provider.ApiKey);
         req.Headers.Add("anthropic-version", _opts.ApiVersion);
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opts.ApiKey);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", provider.ApiKey);
 
         var res = await _http.SendAsync(req, ct);
         var body = await res.Content.ReadAsStringAsync(ct);
@@ -101,7 +127,6 @@ public sealed class AnthropicClient : IAnthropicClient
 
     private string ParseResponse(string body)
     {
-
         using var doc = JsonDocument.Parse(body);
         var root = doc.RootElement;
 
