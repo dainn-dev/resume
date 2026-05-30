@@ -269,6 +269,7 @@
   },
   "maintenance": {
     "notice": "Scheduled maintenance 1:00–7:00 AM daily — the system will be temporarily unavailable. Please save your work.",
+    "active": "The system is under scheduled maintenance until 7:00 AM (GMT+7). Some features may be unavailable.",
     "pageTitle": "Under maintenance",
     "pageBody": "The system is undergoing maintenance during the scheduled window from 1:00 to 7:00 AM (GMT+7). Please come back after 7:00 AM.",
     "retry": "Try again"
