@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import AdminNav from "@/components/AdminNav";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -100,27 +100,23 @@ export default function AdminAnalyticsPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10 space-y-6">
-      <div className="flex items-center justify-between">
+      <AdminNav />
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin · Analytics</h1>
-          <p className="text-gray-400 text-sm mt-1">Site-wide usage and revenue metrics.</p>
+          <h1 className="text-2xl font-bold text-white">Analytics</h1>
+          <p className="text-gray-400 text-sm mt-1 hidden sm:block">Site-wide usage and revenue metrics.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/admin/users" className="text-blue-400 text-sm hover:text-blue-300">Users</Link>
-          <Link href="/admin/plans" className="text-blue-400 text-sm hover:text-blue-300">Plans</Link>
-          <Link href="/admin/bug-reports" className="text-blue-400 text-sm hover:text-blue-300">Bug Reports</Link>
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={14}>Last 14 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={60}>Last 60 days</option>
-            <option value={90}>Last 90 days</option>
-          </select>
-        </div>
+        <select
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500 shrink-0"
+        >
+          <option value={7}>Last 7 days</option>
+          <option value={14}>Last 14 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={60}>Last 60 days</option>
+          <option value={90}>Last 90 days</option>
+        </select>
       </div>
 
       {/* KPI cards */}

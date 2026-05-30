@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import type { InterviewCoachFormData, InterviewCoachResult } from "@/types/builder";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
 import {
   getInterviewCoachForm,
@@ -11,6 +13,8 @@ import {
   getInterviewCoachAnalysis,
   getJobMatchContext,
   getResumeText,
+  getCurrentResumeId,
+  setCurrentResumeId,
   setInterviewCoachForm,
   setInterviewCoachResult,
   setInterviewCoachAnalysis,
@@ -59,6 +63,7 @@ function mergeJobContext(
 
 export default function InterviewCoachPage() {
   const { t, mounted } = useTranslation();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<InterviewCoachFormData>(INITIAL_FORM);
   const [result, setResult] = useState<InterviewCoachResult | null>(null);
   const [analysis, setAnalysis] = useState<string>("");
@@ -68,16 +73,23 @@ export default function InterviewCoachPage() {
   const [copied, setCopied] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const hydratedRef = useRef(false);
-
-  if (!mounted) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
-      </main>
-    );
-  }
+  const skipPersistRef = useRef(false);
 
   useEffect(() => {
+    hydratedRef.current = false;
+    skipPersistRef.current = true;
+    const urlResumeId = searchParams.get("resumeId");
+    if (urlResumeId) setCurrentResumeId(urlResumeId);
+
+    if (!urlResumeId) {
+      setForm(INITIAL_FORM);
+      setResult(null);
+      setAnalysis("");
+      setSynced(false);
+      hydratedRef.current = true;
+      return;
+    }
+
     const stored = getInterviewCoachForm();
     const ctx = getJobMatchContext();
     const resumeText = getResumeText();
@@ -94,20 +106,25 @@ export default function InterviewCoachPage() {
 
     const cachedResult = getInterviewCoachResult();
     const cachedAnalysis = getInterviewCoachAnalysis();
-    if (cachedResult) {
-      setResult(cachedResult);
-    }
-    if (cachedAnalysis) {
-      setAnalysis(cachedAnalysis);
-    }
+    if (cachedResult) setResult(cachedResult);
+    if (cachedAnalysis) setAnalysis(cachedAnalysis);
 
     hydratedRef.current = true;
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if (skipPersistRef.current) { skipPersistRef.current = false; return; }
     setInterviewCoachForm(form);
   }, [form]);
+
+  if (!mounted) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+      </main>
+    );
+  }
 
   function updateField(field: keyof InterviewCoachFormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -180,6 +197,7 @@ export default function InterviewCoachPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
+      <PipelineWorkflow />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">{t("interviewCoach.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("interviewCoach.subtitle")}</p>
@@ -214,40 +232,44 @@ export default function InterviewCoachPage() {
             {/* Questions Accordion */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-white mb-3">{t("interviewCoach.questionsSection")}</h3>
-              {result.questions.map((q, idx) => (
-                <div key={idx} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
-                    className="w-full flex items-start gap-3 p-4 text-left hover:bg-gray-750 transition-colors"
-                  >
-                    <span className={`text-xs font-bold px-2 py-1 rounded mt-0.5 ${categoryColor(q.category)}`}>
-                      {q.category}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm text-white">{q.question}</p>
-                    </div>
-                    <span className="text-gray-500 text-lg">{expandedIdx === idx ? "−" : "+"}</span>
-                  </button>
-                  {expandedIdx === idx && (
-                    <div className="border-t border-gray-700 bg-gray-900 px-4 py-3">
-                      <p className="text-xs font-semibold text-gray-400 mb-1">{t("interviewCoach.tip")}</p>
-                      <p className="text-sm text-gray-300">{q.tip}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {result.questions.map((q, idx) => {
+                const isOpen = expandedIdx === idx;
+                return (
+                  <div key={idx} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setExpandedIdx(isOpen ? null : idx)}
+                      className="w-full p-4 text-left hover:bg-gray-700/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide shrink-0 ${categoryColor(q.category)}`}>
+                          {q.category}
+                        </span>
+                        <svg className={`w-4 h-4 text-gray-500 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
+                      <p className={`text-sm text-white leading-relaxed ${isOpen ? "" : "line-clamp-2"}`}>{q.question}</p>
+                    </button>
+                    {isOpen && (
+                      <div className="border-t border-gray-700 bg-gray-900 px-4 py-3">
+                        <p className="text-xs font-semibold text-gray-400 mb-1">{t("interviewCoach.tip")}</p>
+                        <p className="text-sm text-gray-300 leading-relaxed">{q.tip}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Key Strengths */}
             <div>
               <h3 className="text-sm font-semibold text-white mb-3">{t("interviewCoach.strengthsSection")}</h3>
-              <div className="flex flex-wrap gap-2">
+              <ul className="space-y-2">
                 {result.keyStrengths.map((strength, idx) => (
-                  <span key={idx} className="bg-green-500/20 text-green-400 text-xs px-3 py-1.5 rounded-full">
-                    {strength}
-                  </span>
+                  <li key={idx} className="flex gap-2 text-sm text-gray-300">
+                    <svg className="w-4 h-4 text-green-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <span>{strength}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
 
             {/* Common Pitfalls */}
@@ -290,7 +312,7 @@ export default function InterviewCoachPage() {
 
             <div className="border-t border-gray-800 pt-6 flex gap-3">
               <Link
-                href="/career-coach"
+                href={`/career-coach${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
                 className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
               >
                 {t("interviewCoach.nextStep")}

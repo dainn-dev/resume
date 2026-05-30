@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { SalaryEstimatorFormData, SalaryEstimate } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useI18n } from "@/hooks/useI18n";
 import {
   getSalaryEstimatorForm,
@@ -10,6 +13,8 @@ import {
   getSalaryEstimatorAnalysis,
   setCoverLetterForm,
   getCoverLetterForm,
+  getCurrentResumeId,
+  setCurrentResumeId,
   setSalaryEstimatorForm,
   setSalaryEstimatorResult,
   setSalaryEstimatorAnalysis,
@@ -52,6 +57,7 @@ function labelClass() {
 
 export default function SalaryEstimatorPage() {
   const { t, mounted } = useI18n();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<SalaryEstimatorFormData>(INITIAL_FORM);
   const [result, setResult] = useState<SalaryEstimate | null>(null);
   const [analysis, setAnalysis] = useState<string>("");
@@ -59,15 +65,27 @@ export default function SalaryEstimatorPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const hydratedRef = useRef(false);
+  const skipPersistRef = useRef(false);
 
-  // Auto-sync from previous steps on mount
   useEffect(() => {
+    hydratedRef.current = false;
+    skipPersistRef.current = true;
+    const urlResumeId = searchParams.get("resumeId");
+    if (urlResumeId) setCurrentResumeId(urlResumeId);
+
+    if (!urlResumeId) {
+      setForm(INITIAL_FORM);
+      setResult(null);
+      setAnalysis("");
+      hydratedRef.current = true;
+      return;
+    }
+
     const stored = getSalaryEstimatorForm();
     const builderForm = getBuilderForm();
 
     let next: SalaryEstimatorFormData = stored ?? INITIAL_FORM;
 
-    // Pre-fill from builder form if available
     if (builderForm) {
       next = {
         ...next,
@@ -81,19 +99,16 @@ export default function SalaryEstimatorPage() {
 
     const cachedResult = getSalaryEstimatorResult();
     const cachedAnalysis = getSalaryEstimatorAnalysis();
-    if (cachedResult) {
-      setResult(cachedResult);
-    }
-    if (cachedAnalysis) {
-      setAnalysis(cachedAnalysis);
-    }
+    if (cachedResult) setResult(cachedResult);
+    if (cachedAnalysis) setAnalysis(cachedAnalysis);
 
     hydratedRef.current = true;
-  }, []);
+  }, [searchParams]);
 
   // Persist form edits
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if (skipPersistRef.current) { skipPersistRef.current = false; return; }
     setSalaryEstimatorForm(form);
   }, [form]);
 
@@ -174,6 +189,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
+      <PipelineWorkflow />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">{t("salary.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("salary.subtitle")}</p>
@@ -307,9 +323,17 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
               </div>
             )}
 
-            <button onClick={handleCopy} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
-              {copied ? t("salary.copied") : t("salary.copySalaryReport")}
-            </button>
+            <div className="flex gap-3">
+              <button onClick={handleCopy} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
+                {copied ? t("salary.copied") : t("salary.copySalaryReport")}
+              </button>
+              <Link
+                href={`/interview-coach${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
+                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+              >
+                {t("salary.nextStep") ?? "Interview Coach →"}
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">

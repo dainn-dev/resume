@@ -88,7 +88,7 @@ export default function HomePage() {
         setResumeAnalysis(detail.latestAnalysis, detail.rawText ?? "");
       }
       setCurrentResumeId(item.id);
-      router.push("/results");
+      router.push(`/results?resumeId=${encodeURIComponent(item.id)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setLoading(false);
@@ -115,7 +115,7 @@ export default function HomePage() {
       const resumeId = json.id ?? `${Date.now()}`;
       setCurrentResumeId(resumeId);
 
-      router.push("/results");
+      router.push(`/results?resumeId=${encodeURIComponent(resumeId)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setLoading(false);

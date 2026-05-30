@@ -455,20 +455,28 @@ export default function CalendarPage() {
                                     )}
 
                                     {msTasks.map((task) => (
-                                      <div key={task.id} className={`flex items-center gap-2 py-1 ${task.date && task.date < today && !task.completed ? "bg-red-500/5 -mx-1 px-1 rounded" : ""}`}>
+                                      <div key={task.id} className={`flex gap-2 py-1.5 ${task.date && task.date < today && !task.completed ? "bg-red-500/5 -mx-1 px-1 rounded" : ""}`}>
                                         <button
                                           onClick={() => toggleTask(task.id)}
-                                          className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${task.completed ? "bg-green-500 border-green-500" : "border-gray-600 hover:border-blue-500"}`}
+                                          className={`w-4 h-4 sm:w-4 sm:h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${task.completed ? "bg-green-500 border-green-500" : "border-gray-600 hover:border-blue-500"}`}
                                         >
                                           {task.completed && (
                                             <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5" /></svg>
                                           )}
                                         </button>
-                                        <span className={`flex-1 text-xs ${task.completed ? "line-through text-gray-500" : task.date && task.date < today ? "text-red-400" : "text-gray-300"}`}>
-                                          {task.title}
-                                        </span>
-                                        {task.date && <span className={`text-xs ${task.date < today && !task.completed ? "text-red-400" : "text-gray-600"}`}>{task.date}</span>}
-                                        <button onClick={() => deleteTask(task.id)} className="text-gray-600 hover:text-red-400 text-xs transition-colors">×</button>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`text-xs leading-relaxed ${task.completed ? "line-through text-gray-500" : task.date && task.date < today ? "text-red-400" : "text-gray-300"}`}>
+                                            {task.title}
+                                          </p>
+                                          <div className="flex items-center gap-2 mt-0.5 sm:hidden">
+                                            {task.date && <span className={`text-[10px] ${task.date < today && !task.completed ? "text-red-400" : "text-gray-600"}`}>{task.date}</span>}
+                                            <button onClick={() => deleteTask(task.id)} className="text-red-400/60 hover:text-red-400 text-[10px] transition-colors">remove</button>
+                                          </div>
+                                        </div>
+                                        <div className="hidden sm:flex items-center gap-2 shrink-0">
+                                          {task.date && <span className={`text-xs ${task.date < today && !task.completed ? "text-red-400" : "text-gray-600"}`}>{task.date}</span>}
+                                          <button onClick={() => deleteTask(task.id)} className="text-gray-600 hover:text-red-400 text-xs transition-colors">×</button>
+                                        </div>
                                       </div>
                                     ))}
 

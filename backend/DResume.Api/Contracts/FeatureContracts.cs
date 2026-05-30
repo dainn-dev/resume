@@ -5,7 +5,8 @@ public sealed record ParseResumeRequest(string ResumeText);
 public sealed record JobMatchRequest(
     string ResumeText,
     string? JobDescription,
-    string? LinkedinUrl);
+    string? LinkedinUrl,
+    Guid? ResumeId);
 
 public sealed record JobMatchResponse(
     JobMatchAnalysisDto Analysis,

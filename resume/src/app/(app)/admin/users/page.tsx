@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import AdminNav from "@/components/AdminNav";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -68,18 +69,10 @@ export default function AdminUsersPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t("adminUsers.title")}</h1>
-          <p className="text-gray-400 text-sm mt-1">{t("adminUsers.subtitle")}</p>
-        </div>
-        <div className="flex gap-3 text-sm">
-          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navAnalytics")}</Link>
-          <Link href="/admin/plans" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navPlans")}</Link>
-          <Link href="/admin/bank-accounts" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navBankAccounts")}</Link>
-          <Link href="/admin/bank-payments" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navBankPayments")}</Link>
-          <Link href="/admin/bug-reports" className="text-blue-400 hover:text-blue-300">{t("adminUsers.navBugReports")}</Link>
-        </div>
+      <AdminNav />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">{t("adminUsers.title")}</h1>
+        <p className="text-gray-400 text-sm mt-1">{t("adminUsers.subtitle")}</p>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4">

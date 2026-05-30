@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ResumeFormData, WorkEntry, EducationEntry } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { useTranslation } from "@/components/TranslationProvider";
+import PipelineWorkflow from "@/components/PipelineWorkflow";
 import {
   getBuilderForm,
   getBuiltResumeMarkdown,
@@ -16,6 +18,7 @@ import {
   setBuilderForm,
   setBuiltResumeMarkdown,
   setParsedResumeForm,
+  setCurrentResumeId,
   clearPipeline,
 } from "@/lib/pipeline";
 
@@ -43,7 +46,7 @@ function labelClass() {
 
 function StepBar({ step, onStepClick, t }: { step: Step; onStepClick: (s: Step) => void; t: (key: string) => string }) {
   return (
-    <div className="flex items-center justify-center gap-0 mb-8">
+    <div className="flex items-center justify-start sm:justify-center gap-0 mb-8 overflow-x-auto pb-2 scrollbar-hide">
       {STEP_LABEL_KEYS.map((key, i) => {
         const label = t(key);
         const num = (i + 1) as Step;
@@ -53,7 +56,7 @@ function StepBar({ step, onStepClick, t }: { step: Step; onStepClick: (s: Step) 
         return (
           <div key={num} className="flex items-center">
             <div
-              className={`flex flex-col items-center ${isClickable ? "cursor-pointer" : ""}`}
+              className={`flex flex-col items-center shrink-0 ${isClickable ? "cursor-pointer" : ""}`}
               onClick={() => isClickable && onStepClick(num)}
             >
               <div
@@ -72,7 +75,7 @@ function StepBar({ step, onStepClick, t }: { step: Step; onStepClick: (s: Step) 
               </span>
             </div>
             {i < STEP_LABEL_KEYS.length - 1 && (
-              <div className={`w-12 h-px mt-[-16px] mx-1 ${num < step ? "bg-blue-600" : "bg-gray-700"}`} />
+              <div className={`w-6 sm:w-12 h-px mt-[-16px] mx-1 shrink-0 ${num < step ? "bg-blue-600" : "bg-gray-700"}`} />
             )}
           </div>
         );
@@ -92,6 +95,7 @@ function normalizeParsed(data: Partial<ResumeFormData>): ResumeFormData {
 
 export default function BuildPage() {
   const { t, mounted } = useTranslation();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<ResumeFormData>(INITIAL_FORM);
   const [markdown, setMarkdown] = useState<string | null>(null);
@@ -108,45 +112,26 @@ export default function BuildPage() {
   } | null>(null);
   const [expandedWork, setExpandedWork] = useState<Set<number>>(new Set([0]));
   const hydratedRef = useRef(false);
+  const skipPersistRef = useRef(false);
   const resumePreviewRef = useRef<HTMLDivElement>(null);
 
   const hasAnalysis = !!getResumeAnalysis();
 
-  async function handleApplyRecommendations() {
-    const analysis = getResumeAnalysis();
-    if (!analysis) return;
-    setImproving(true);
-    setError(null);
-    setScoreComparison(null);
-    try {
-      const res = await fetch("/api/build/improve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: form, analysis }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error ?? "Failed to apply recommendations.");
-      const { resume: improved, comparison } = data.data;
-      setForm(normalizeParsed(improved));
-      setBuilderForm(normalizeParsed(improved));
-      if (comparison) setScoreComparison(comparison);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
-    } finally {
-      setImproving(false);
-    }
-  }
-
-  if (!mounted) {
-    return (
-      <main className="max-w-4xl mx-auto px-4 py-10">
-        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
-      </main>
-    );
-  }
-
   useEffect(() => {
-    const resumeId = getCurrentResumeId();
+    hydratedRef.current = false;
+    skipPersistRef.current = true;
+    const urlResumeId = searchParams.get("resumeId");
+    if (urlResumeId) setCurrentResumeId(urlResumeId);
+
+    if (!urlResumeId) {
+      setForm(INITIAL_FORM);
+      setMarkdown(null);
+      setSynced(false);
+      hydratedRef.current = true;
+      return;
+    }
+
+    const resumeId = urlResumeId;
 
     // 1. Check in-memory pipeline first (in-progress edits from this session)
     const inProgress = getBuilderForm();
@@ -257,12 +242,46 @@ export default function BuildPage() {
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if (skipPersistRef.current) { skipPersistRef.current = false; return; }
     setBuilderForm(form);
   }, [form]);
+
+  async function handleApplyRecommendations() {
+    const analysis = getResumeAnalysis();
+    if (!analysis) return;
+    setImproving(true);
+    setError(null);
+    setScoreComparison(null);
+    try {
+      const res = await fetch("/api/build/improve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: form, analysis }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? "Failed to apply recommendations.");
+      const { resume: improved, comparison } = data.data;
+      setForm(normalizeParsed(improved));
+      setBuilderForm(normalizeParsed(improved));
+      if (comparison) setScoreComparison(comparison);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred.");
+    } finally {
+      setImproving(false);
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <main className="max-w-4xl mx-auto px-4 py-10">
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+      </main>
+    );
+  }
 
   function updateField(field: keyof ResumeFormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -552,6 +571,7 @@ export default function BuildPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
+      <PipelineWorkflow />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">{t("build.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("build.subtitle")}</p>
@@ -598,7 +618,7 @@ export default function BuildPage() {
       <StepBar step={step} onStepClick={setStep} t={t} />
 
       {hasAnalysis && step <= 4 && (
-        <div className="mb-6 flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-4">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl px-5 py-4">
           <div>
             <p className="text-sm font-medium text-blue-300">{t("build.applyRecommendationsTitle")}</p>
             <p className="text-xs text-blue-400/70 mt-0.5">{t("build.applyRecommendationsHint")}</p>
@@ -748,10 +768,12 @@ export default function BuildPage() {
                           <label className={labelClass()}>{t("build.titleRequired")}</label>
                           <input className={inputClass()} placeholder={t("build.titlePlaceholder")} value={entry.title} onChange={e => updateWork(idx, "title", e.target.value)} />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-1 sm:col-span-2">
                           <label className={labelClass()}>{t("build.projectName")}</label>
                           <input className={inputClass()} placeholder={t("build.projectNamePlaceholder")} value={entry.projectName ?? ""} onChange={e => updateWork(idx, "projectName", e.target.value)} />
                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className={labelClass()}>{t("build.startDate")}</label>
                           <input className={inputClass()} placeholder={t("build.startDatePlaceholder")} value={entry.startDate} onChange={e => updateWork(idx, "startDate", e.target.value)} />
@@ -765,10 +787,10 @@ export default function BuildPage() {
                         <label className={labelClass()}>{t("build.achievementBullets")}</label>
                         <div className="space-y-2">
                           {entry.bullets.map((bullet, bIdx) => (
-                            <div key={bIdx} className="flex gap-2">
-                              <input className={inputClass("flex-1")} placeholder={t("build.bulletPlaceholder")} value={bullet} onChange={e => updateBullet(idx, bIdx, e.target.value)} />
+                            <div key={bIdx} className="relative">
+                              <textarea className={inputClass("w-full pr-8 resize-none scrollbar-dark")} rows={2} placeholder={t("build.bulletPlaceholder")} value={bullet} onChange={e => updateBullet(idx, bIdx, e.target.value)} />
                               {entry.bullets.length > 1 && (
-                                <button onClick={() => removeBullet(idx, bIdx)} className="text-gray-500 hover:text-red-400 px-2">✕</button>
+                                <button onClick={() => removeBullet(idx, bIdx)} className="absolute top-1 right-1 text-gray-500 hover:text-red-400 text-xs w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10">✕</button>
                               )}
                             </div>
                           ))}
@@ -942,7 +964,7 @@ export default function BuildPage() {
               {step === 4 ? t("build.generateResumeButton") : t("build.continueButton")}
             </button>
           ) : markdown && (
-            <Link href="/job-match" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors">
+            <Link href={`/job-match${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors">
               {t("build.jobMatchButton")}
             </Link>
           )}

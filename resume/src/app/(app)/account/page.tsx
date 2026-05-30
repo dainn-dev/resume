@@ -113,7 +113,7 @@ export default function AccountPage() {
       clearPipeline();
       setCurrentResumeId(detail.id);
       if (detail.latestAnalysis) setResumeAnalysis(detail.latestAnalysis, detail.rawText);
-      router.push("/results");
+      router.push(`/results?resumeId=${encodeURIComponent(detail.id)}`);
     } finally {
       setBusyId(null);
     }

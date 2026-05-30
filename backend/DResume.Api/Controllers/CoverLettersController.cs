@@ -37,6 +37,7 @@ public sealed class CoverLettersController : ControllerBase
         var record = new CoverLetter
         {
             UserId = _current.RequireUserId(),
+            ResumeId = req.ResumeId,
             JobTitle = req.JobTitle,
             Company = req.Company,
             InputJson = JsonSerializer.Serialize(req, JsonOptions),
@@ -96,6 +97,7 @@ public sealed class LegacyCoverLetterController : ControllerBase
         var record = new CoverLetter
         {
             UserId = _current.RequireUserId(),
+            ResumeId = req.ResumeId,
             JobTitle = req.JobTitle,
             Company = req.Company,
             InputJson = JsonSerializer.Serialize(req, LegacyJsonOptions),

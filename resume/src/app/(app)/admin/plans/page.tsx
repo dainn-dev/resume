@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AdminNav from "@/components/AdminNav";
 
 interface BankTier {
   id: string;
@@ -235,16 +236,10 @@ export default function AdminPlansPage() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Admin · Plans</h1>
-          <p className="text-gray-400 text-sm mt-1">Edit plan info, limits, and Stripe prices.</p>
-        </div>
-        <div className="flex gap-3 text-sm">
-          <Link href="/admin/users" className="text-blue-400 hover:text-blue-300">Users</Link>
-          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">Analytics</Link>
-          <Link href="/admin/bug-reports" className="text-blue-400 hover:text-blue-300">Bug Reports</Link>
-        </div>
+      <AdminNav />
+      <div>
+        <h1 className="text-2xl font-bold text-white">Plans</h1>
+        <p className="text-gray-400 text-sm mt-1">Edit plan info, limits, and Stripe prices.</p>
       </div>
 
       {plans.map(p => (
@@ -408,24 +403,28 @@ function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
         {plan.bankTiers.map(t => {
           const total = computeBankAmount(plan.monthlyPriceVnd, t.months, t.discountPercent);
           return (
-            <div key={t.id} className={`flex items-center gap-2 border-b border-gray-800 last:border-0 py-1.5 text-sm ${t.active ? "" : "opacity-50"}`}>
-              <span className="text-white font-medium w-20">{t.months} mo</span>
-              <label className="flex items-center gap-1 text-xs text-gray-400">
-                <span>-</span>
-                <input
-                  type="number" min="0" max="100" defaultValue={t.discountPercent}
-                  onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!isNaN(v) && v !== t.discountPercent) onUpdate(plan.code, t.id, { discountPercent: v }); }}
-                  className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white"
-                />
-                <span>%</span>
-              </label>
-              <span className="text-purple-300 font-semibold flex-1">{formatVnd(total)}</span>
-              <button onClick={() => onUpdate(plan.code, t.id, { active: !t.active })} disabled={busy === `tier-${t.id}`}
-                className={`text-[10px] px-2 py-1 rounded ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
-                {t.active ? "Disable" : "Enable"}
-              </button>
-              <button onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
-                className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1">Delete</button>
+            <div key={t.id} className={`sm:flex sm:items-center sm:gap-2 sm:border-b sm:border-gray-800 sm:last:border-0 sm:py-1.5 text-sm bg-gray-800/60 sm:bg-transparent rounded-lg sm:rounded-none p-3 sm:p-0 space-y-2 sm:space-y-0 ${t.active ? "" : "opacity-50"}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium w-20">{t.months} mo</span>
+                <label className="flex items-center gap-1 text-xs text-gray-400">
+                  <span>−</span>
+                  <input
+                    type="number" min="0" max="100" defaultValue={t.discountPercent}
+                    onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!isNaN(v) && v !== t.discountPercent) onUpdate(plan.code, t.id, { discountPercent: v }); }}
+                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white"
+                  />
+                  <span>%</span>
+                </label>
+                <span className="text-purple-300 font-semibold flex-1">{formatVnd(total)}</span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => onUpdate(plan.code, t.id, { active: !t.active })} disabled={busy === `tier-${t.id}`}
+                  className={`text-[10px] px-2 py-1 rounded ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
+                  {t.active ? "Disable" : "Enable"}
+                </button>
+                <button onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
+                  className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1">Delete</button>
+              </div>
             </div>
           );
         })}
@@ -433,7 +432,7 @@ function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
           <p className="text-xs text-gray-500 py-2">No durations configured — bank transfer is hidden for this plan.</p>
         )}
       </div>
-      <form onSubmit={submitNew} className="flex items-end gap-2 mt-3 pt-3 border-t border-gray-800">
+      <form onSubmit={submitNew} className="flex flex-wrap items-end gap-2 mt-3 pt-3 border-t border-gray-800">
         <div>
           <label className="block text-[10px] text-gray-500 mb-0.5">Months</label>
           <input type="number" min="1" value={newMonths} onChange={(e) => setNewMonths(e.target.value)} placeholder="e.g. 24"

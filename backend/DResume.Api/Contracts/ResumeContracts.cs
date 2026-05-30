@@ -68,7 +68,8 @@ public sealed record CoverLetterFormDataDto(
     string Company,
     string JobDescription,
     string AboutYourself,
-    string Tone);
+    string Tone,
+    Guid? ResumeId);
 
 public sealed record SalaryEstimatorFormDataDto(
     string JobTitle,

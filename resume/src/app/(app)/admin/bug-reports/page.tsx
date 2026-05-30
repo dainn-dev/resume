@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import AdminNav from "@/components/AdminNav";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -88,23 +88,17 @@ export default function AdminBugReportsPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            {t("adminBugReports.title")}
-            {data && data.newCount > 0 && (
-              <span className="ml-3 align-middle text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-full">
-                {interpolate(t("adminBugReports.newBadge"), { count: data.newCount })}
-              </span>
-            )}
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">{t("adminBugReports.subtitle")}</p>
-        </div>
-        <div className="flex gap-3 text-sm">
-          <Link href="/admin/analytics" className="text-blue-400 hover:text-blue-300">{t("adminBugReports.navAnalytics")}</Link>
-          <Link href="/admin/users" className="text-blue-400 hover:text-blue-300">{t("adminBugReports.navUsers")}</Link>
-          <Link href="/admin/plans" className="text-blue-400 hover:text-blue-300">{t("adminBugReports.navPlans")}</Link>
-        </div>
+      <AdminNav />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">
+          {t("adminBugReports.title")}
+          {data && data.newCount > 0 && (
+            <span className="ml-3 align-middle text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-full">
+              {interpolate(t("adminBugReports.newBadge"), { count: data.newCount })}
+            </span>
+          )}
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">{t("adminBugReports.subtitle")}</p>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4 flex flex-wrap gap-3">

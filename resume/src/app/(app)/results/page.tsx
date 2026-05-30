@@ -1,35 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ScoreDashboard from "@/components/ScoreDashboard";
 import RecommendationList from "@/components/RecommendationList";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useTranslation } from "@/components/TranslationProvider";
 import type { ResumeAnalysis } from "@/types/resume";
-import { clearPipeline, getResumeAnalysis } from "@/lib/pipeline";
+import { clearPipeline, getResumeAnalysis, getCurrentResumeId, setResumeAnalysis, setCurrentResumeId } from "@/lib/pipeline";
+import { fetchResumeDetail } from "@/lib/accountClient";
+import PipelineWorkflow from "@/components/PipelineWorkflow";
 
 export default function ResultsPage() {
   const { t, mounted } = useTranslation();
   const router = useRouter();
-  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
+  const searchParams = useSearchParams();
+  const [analysis, setAnalysisState] = useState<ResumeAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = getResumeAnalysis();
-    if (!stored) {
+    let cancelled = false;
+    const resumeId = searchParams.get("resumeId");
+
+    if (!resumeId) {
       router.replace("/dashboard");
       return;
     }
-    setAnalysis(stored);
-  }, [router]);
+
+    (async () => {
+      setCurrentResumeId(resumeId);
+
+      const stored = getResumeAnalysis();
+      if (stored) {
+        setAnalysisState(stored);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const detail = await fetchResumeDetail(resumeId);
+        if (cancelled) return;
+        if (!detail?.latestAnalysis) {
+          router.replace("/dashboard");
+          return;
+        }
+        setCurrentResumeId(detail.id);
+        setResumeAnalysis(detail.latestAnalysis, detail.rawText);
+        setAnalysisState(detail.latestAnalysis);
+      } catch {
+        if (!cancelled) router.replace("/dashboard");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [router, searchParams]);
 
   function handleReset() {
     clearPipeline();
     router.push("/dashboard");
   }
 
-  if (!mounted) {
+  if (!mounted || loading) {
     return (
       <main className="min-h-screen px-4 py-12 max-w-3xl mx-auto">
         <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
@@ -41,6 +74,7 @@ export default function ResultsPage() {
 
   return (
     <main className="min-h-screen px-4 py-12 max-w-3xl mx-auto space-y-8">
+      <PipelineWorkflow />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t("results.title")}</h1>
@@ -65,13 +99,13 @@ export default function ResultsPage() {
           {t("results.analyzeAnotherResume")}
         </button>
         <Link
-          href="/build"
+          href={`/build${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
           className="px-6 py-3 rounded-xl font-semibold text-sm bg-blue-600 hover:bg-blue-500 text-white transition-colors"
         >
           {t("results.buildResume")}
         </Link>
         <Link
-          href="/salary-estimator"
+          href={`/salary-estimator${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
           className="px-6 py-3 rounded-xl font-semibold text-sm bg-green-600 hover:bg-green-500 text-white transition-colors"
         >
           {t("results.estimateSalary")}

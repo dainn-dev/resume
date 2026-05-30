@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import AdminNav from "@/components/AdminNav";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -130,14 +130,14 @@ export default function AdminBankPaymentsPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10 space-y-6">
+      <AdminNav />
       <div>
-        <Link href="/admin/users" className="text-xs text-blue-400 hover:text-blue-300">{t("adminBankPayments.back")}</Link>
-        <h1 className="text-2xl font-bold text-white mt-1">{t("adminBankPayments.title")}</h1>
+        <h1 className="text-2xl font-bold text-white">{t("adminBankPayments.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("adminBankPayments.subtitle")}</p>
       </div>
 
-      <div className="flex gap-2 items-center">
-        <span className="text-xs text-gray-400">{t("adminBankPayments.filterLabel")}</span>
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-gray-400 w-full sm:w-auto">{t("adminBankPayments.filterLabel")}</span>
         {STATUS_FILTERS.map(s => (
           <button
             key={s || "all"}

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { CareerCoachFormData, CareerCoachResult } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
 import {
   getCareerCoachForm,
@@ -204,6 +205,7 @@ export default function CareerCoachPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
+      <PipelineWorkflow />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">{t("careerCoach.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("careerCoach.subtitle")}</p>
@@ -417,13 +419,22 @@ export default function CareerCoachPage() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={!form.careerGoal.trim() || form.focusAreas.length === 0}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
-            >
-              {t("careerCoach.submit")}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="px-5 py-3 border border-gray-700 text-gray-300 hover:bg-gray-800 font-semibold rounded-xl transition-colors"
+              >
+                ← {t("common.back")}
+              </button>
+              <button
+                type="submit"
+                disabled={!form.careerGoal.trim() || form.focusAreas.length === 0}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+              >
+                {t("careerCoach.submit")}
+              </button>
+            </div>
           </form>
         )}
       </div>

@@ -2,17 +2,24 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { CoverLetterFormData } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
 import {
   getCoverLetterForm,
   getCoverLetterResult,
   getJobMatchContext,
+  getParsedResumeForm,
+  getResumeText,
+  getCurrentResumeId,
+  setCurrentResumeId,
   setCoverLetterForm,
   setCoverLetterResult,
   type JobMatchContext,
 } from "@/lib/pipeline";
+import { fetchResumeDetail } from "@/lib/accountClient";
 
 const TONES: CoverLetterFormData["tone"][] = ["Professional", "Enthusiastic", "Concise"];
 
@@ -32,6 +39,19 @@ function labelClass() {
   return "block text-xs font-medium text-gray-400 mb-1";
 }
 
+function buildAboutYourself(parsed: import("@/types/builder").ResumeFormData): string {
+  const parts: string[] = [];
+  if (parsed.summary) parts.push(parsed.summary);
+  const roles = parsed.workEntries
+    ?.filter(w => w.title && w.company)
+    .slice(0, 2)
+    .map(w => `${w.title} at ${w.company}`)
+    .join(", ");
+  if (roles) parts.push(`Experience: ${roles}.`);
+  if (parsed.technicalSkills) parts.push(`Skills: ${parsed.technicalSkills}.`);
+  return parts.join("\n");
+}
+
 function mergeJobContext(
   form: CoverLetterFormData,
   ctx: JobMatchContext,
@@ -46,6 +66,7 @@ function mergeJobContext(
 
 export default function CoverLetterPage() {
   const { t, mounted } = useTranslation();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<CoverLetterFormData>(INITIAL_FORM);
   const [result, setResult] = useState<string | null>(null);
   const [edited, setEdited] = useState<string>("");
@@ -54,19 +75,23 @@ export default function CoverLetterPage() {
   const [copied, setCopied] = useState(false);
   const [synced, setSynced] = useState(false);
   const hydratedRef = useRef(false);
+  const skipPersistRef = useRef(false);
 
-  if (!mounted) {
-    return (
-      <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
-      </main>
-    );
-  }
-
-  // Auto-sync from previous steps on mount. We restore any in-progress
-  // edits first, then fold in any new job-match context on top so the
-  // user never has to click an "Import" button.
   useEffect(() => {
+    hydratedRef.current = false;
+    skipPersistRef.current = true;
+    const urlResumeId = searchParams.get("resumeId");
+    if (urlResumeId) setCurrentResumeId(urlResumeId);
+
+    if (!urlResumeId) {
+      setForm(INITIAL_FORM);
+      setResult(null);
+      setEdited("");
+      setSynced(false);
+      hydratedRef.current = true;
+      return;
+    }
+
     const stored = getCoverLetterForm();
     const ctx = getJobMatchContext();
     const hasCtx = !!(ctx && (ctx.jobTitle || ctx.company || ctx.jobDescription));
@@ -78,7 +103,30 @@ export default function CoverLetterPage() {
     } else if (stored) {
       setSynced(true);
     }
+
+    const parsed = getParsedResumeForm();
+    if (parsed && !next.aboutYourself) {
+      next = { ...next, aboutYourself: buildAboutYourself(parsed) };
+    }
+
     setForm(next);
+
+    if (!next.aboutYourself) {
+      const rawText = getResumeText();
+      if (rawText.trim()) {
+        next = { ...next, aboutYourself: rawText.slice(0, 3000) };
+        setForm(next);
+      } else if (urlResumeId) {
+        const rid = urlResumeId;
+        fetchResumeDetail(rid).then(detail => {
+          if (!detail) return;
+          const about = detail.parsed
+            ? buildAboutYourself(detail.parsed)
+            : detail.rawText?.slice(0, 3000) ?? "";
+          if (about) setForm(prev => prev.aboutYourself ? prev : { ...prev, aboutYourself: about });
+        }).catch(() => {});
+      }
+    }
 
     const cachedResult = getCoverLetterResult();
     if (cachedResult) {
@@ -87,13 +135,21 @@ export default function CoverLetterPage() {
     }
 
     hydratedRef.current = true;
-  }, []);
+  }, [searchParams]);
 
-  // Persist form edits so navigating between steps doesn't lose state.
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if (skipPersistRef.current) { skipPersistRef.current = false; return; }
     setCoverLetterForm(form);
   }, [form]);
+
+  if (!mounted) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className="h-40 bg-gray-900 rounded-2xl animate-pulse" />
+      </main>
+    );
+  }
 
   function updateField(field: keyof CoverLetterFormData, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -108,7 +164,7 @@ export default function CoverLetterPage() {
       const res = await fetch("/api/cover-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, resumeId: getCurrentResumeId() }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Generation failed.");
@@ -130,6 +186,7 @@ export default function CoverLetterPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
+      <PipelineWorkflow />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">{t("coverLetter.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("coverLetter.subtitle")}</p>
@@ -174,7 +231,7 @@ export default function CoverLetterPage() {
 
             <div className="border-t border-gray-800 pt-6 flex gap-3">
               <Link
-                href="/salary-estimator"
+                href={`/salary-estimator${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
                 className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
               >
                 {t("salary.nextStep")}

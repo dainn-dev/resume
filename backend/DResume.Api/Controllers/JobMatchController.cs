@@ -38,6 +38,7 @@ public sealed class JobMatchController : ControllerBase
         var record = new JobMatchRecord
         {
             UserId = _current.RequireUserId(),
+            ResumeId = req.ResumeId,
             JobDescription = jd,
             LinkedInUrl = req.LinkedinUrl,
             MatchScore = analysis.MatchScore,
