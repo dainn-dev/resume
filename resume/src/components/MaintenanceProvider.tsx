@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import MaintenancePage from "@/components/MaintenancePage";
 
-// As soon as a backend call returns HTTP 500, we conclude the backend is down
-// and take over the screen with the maintenance page. Only an exact 500 trips it —
-// other 5xx (502/503/504) and network-level failures are left alone.
+// As soon as a backend call returns any HTTP 5xx (500–599), we conclude the
+// backend is down and take over the screen with the maintenance page.
 //
 // We only track calls to our own Next.js proxy routes (which forward to the
 // .NET backend). Third-party / asset requests must never trip the takeover.
@@ -37,8 +36,8 @@ export default function MaintenanceProvider({ children }: { children: React.Reac
 
       const res = await originalFetch(...args);
 
-      // Exactly HTTP 500 from a backend proxy call → take over with maintenance page.
-      if (res.status === 500 && isBackendCall(url)) setDown(true);
+      // Any HTTP 5xx from a backend proxy call → take over with maintenance page.
+      if (res.status >= 500 && res.status < 600 && isBackendCall(url)) setDown(true);
 
       return res;
     };
