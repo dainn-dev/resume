@@ -101,6 +101,14 @@ public sealed record InterviewCoachFormDataDto(
     string InterviewType,
     string ResumeSummary);
 
+public sealed record InterviewCoachMoreRequest(
+    string JobTitle,
+    string Company,
+    string JobDescription,
+    string InterviewType,
+    string ResumeSummary,
+    List<string> ExistingQuestions);
+
 public sealed record InterviewCoachResultDto(
     List<InterviewQuestionDto> Questions,
     List<string> KeyStrengths,

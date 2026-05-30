@@ -3,12 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AdminNav from "@/components/AdminNav";
+import DiscountCountdown, { isDiscountActive, isSoldOut, remainingRedemptions } from "@/components/DiscountCountdown";
 
 interface BankTier {
   id: string;
   months: number;
   discountPercent: number;
   active: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  maxRedemptions: number | null;
+  redemptions: number;
 }
 
 interface Plan {
@@ -70,6 +75,13 @@ export default function AdminPlansPage() {
   const [prices, setPrices] = useState<Record<string, StripePrice[]>>({});
   const [migCounts, setMigCounts] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [savedFlash, setSavedFlash] = useState<string | null>(null);
+
+  // Briefly flag a tier as "saved" so the auto-save (on blur) gives visible feedback.
+  function flashSaved(key: string) {
+    setSavedFlash(key);
+    setTimeout(() => setSavedFlash(cur => (cur === key ? null : cur)), 2500);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -189,22 +201,30 @@ export default function AdminPlansPage() {
     finally { setBusy(null); }
   }
 
-  async function addTier(code: string, months: number, discountPercent: number) {
+  // Patch a single plan's bankTiers in local state — avoids a full reload (which flashes
+  // the page skeleton and would discard the input the admin is mid-editing).
+  function setTiers(code: string, fn: (tiers: BankTier[]) => BankTier[]) {
+    setPlans(prev => prev.map(pl => pl.code === code ? { ...pl, bankTiers: fn(pl.bankTiers) } : pl));
+  }
+
+  async function addTier(code: string, months: number, discountPercent: number, startDate: string | null, endDate: string | null, maxRedemptions: number | null) {
     setBusy(`tier-add-${code}`);
     try {
       const res = await fetch(`/api/admin/plans/${code}/bank-tiers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ months, discountPercent }),
+        body: JSON.stringify({ months, discountPercent, startDate, endDate, maxRedemptions }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Failed to add tier.");
-      await load();
+      const created = json.data as BankTier;
+      setTiers(code, tiers => [...tiers, created].sort((a, b) => a.months - b.months));
+      flashSaved(`tier-${created.id}`);
     } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
     finally { setBusy(null); }
   }
 
-  async function updateTier(code: string, id: string, patch: { discountPercent?: number; active?: boolean }) {
+  async function updateTier(code: string, id: string, patch: { discountPercent?: number; active?: boolean; startDate?: string | null; endDate?: string | null; maxRedemptions?: number | null; clearStartDate?: boolean; clearEndDate?: boolean; clearMaxRedemptions?: boolean }) {
     setBusy(`tier-${id}`);
     try {
       const res = await fetch(`/api/admin/plans/${code}/bank-tiers/${id}`, {
@@ -214,7 +234,9 @@ export default function AdminPlansPage() {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Failed to update tier.");
-      await load();
+      const updated = json.data as BankTier;
+      setTiers(code, tiers => tiers.map(t => t.id === id ? updated : t));
+      flashSaved(`tier-${id}`);
     } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
     finally { setBusy(null); }
   }
@@ -226,7 +248,7 @@ export default function AdminPlansPage() {
       const res = await fetch(`/api/admin/plans/${code}/bank-tiers/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Failed to delete tier.");
-      await load();
+      setTiers(code, tiers => tiers.filter(t => t.id !== id));
     } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
     finally { setBusy(null); }
   }
@@ -327,6 +349,7 @@ export default function AdminPlansPage() {
             <BankTierEditor
               plan={p}
               busy={busy}
+              savedFlash={savedFlash}
               onAdd={addTier}
               onUpdate={updateTier}
               onDelete={deleteTier}
@@ -371,15 +394,36 @@ function PriceForm({ planCode, currentCents, onChange, busy }: { planCode: strin
   );
 }
 
-function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
+// ISO string -> value for <input type="datetime-local"> (local time, no seconds/zone).
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// <input type="datetime-local"> value -> ISO string (or null if empty).
+function localInputToIso(val: string): string | null {
+  if (!val) return null;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function BankTierEditor({ plan, busy, savedFlash, onAdd, onUpdate, onDelete }: {
   plan: Plan;
   busy: string | null;
-  onAdd: (code: string, months: number, discountPercent: number) => void;
-  onUpdate: (code: string, id: string, patch: { discountPercent?: number; active?: boolean }) => void;
+  savedFlash: string | null;
+  onAdd: (code: string, months: number, discountPercent: number, startDate: string | null, endDate: string | null, maxRedemptions: number | null) => void;
+  onUpdate: (code: string, id: string, patch: { discountPercent?: number; active?: boolean; startDate?: string | null; endDate?: string | null; maxRedemptions?: number | null; clearStartDate?: boolean; clearEndDate?: boolean; clearMaxRedemptions?: boolean }) => void;
   onDelete: (code: string, id: string) => void;
 }) {
   const [newMonths, setNewMonths] = useState("");
   const [newDiscount, setNewDiscount] = useState("0");
+  const [newStart, setNewStart] = useState("");
+  const [newEnd, setNewEnd] = useState("");
+  const [newQty, setNewQty] = useState("");
 
   function submitNew(e: React.FormEvent) {
     e.preventDefault();
@@ -387,8 +431,23 @@ function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
     const d = parseInt(newDiscount, 10);
     if (isNaN(m) || m < 1) { alert("Months must be ≥ 1"); return; }
     if (isNaN(d) || d < 0 || d > 100) { alert("Discount must be 0–100"); return; }
-    onAdd(plan.code, m, d);
-    setNewMonths(""); setNewDiscount("0");
+    const q = newQty.trim() === "" ? null : parseInt(newQty, 10);
+    if (q !== null && (isNaN(q) || q < 1)) { alert("Quantity must be ≥ 1 (blank = unlimited)"); return; }
+    onAdd(plan.code, m, d, localInputToIso(newStart), localInputToIso(newEnd), q);
+    setNewMonths(""); setNewDiscount("0"); setNewStart(""); setNewEnd(""); setNewQty("");
+  }
+
+  function patchEnd(t: BankTier, val: string) {
+    const iso = localInputToIso(val);
+    if (iso === null) onUpdate(plan.code, t.id, { clearEndDate: true });
+    else onUpdate(plan.code, t.id, { endDate: iso });
+  }
+
+  function patchQty(t: BankTier, val: string) {
+    if (val.trim() === "") { onUpdate(plan.code, t.id, { clearMaxRedemptions: true }); return; }
+    const q = parseInt(val, 10);
+    if (isNaN(q) || q < 1) { alert("Quantity must be ≥ 1 (blank = unlimited)"); return; }
+    onUpdate(plan.code, t.id, { maxRedemptions: q });
   }
 
   return (
@@ -397,33 +456,76 @@ function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
         Bank transfer durations ({plan.bankTiers.length})
       </h3>
       <p className="text-[10px] text-gray-600 mb-3">
-        Total = monthly VND × months × (100 − discount)%, rounded to 1,000₫. Edit monthly VND via “Edit info &amp; limits”.
+        Total = monthly VND × months × (100 − discount)%, rounded to 1,000₫. Set an end date and/or quantity to show a discount countdown; the countdown hides once the date passes or the quantity sells out. Blank quantity = unlimited.
+        <span className="text-gray-500"> · Fields save automatically when you click away (no Save button).</span>
       </p>
       <div className="space-y-1.5">
         {plan.bankTiers.map(t => {
           const total = computeBankAmount(plan.monthlyPriceVnd, t.months, t.discountPercent);
+          const soldOut = isSoldOut(t.maxRedemptions, t.redemptions);
+          const remaining = remainingRedemptions(t.maxRedemptions, t.redemptions);
+          const live = isDiscountActive(t.endDate) && !soldOut;
           return (
-            <div key={t.id} className={`sm:flex sm:items-center sm:gap-2 sm:border-b sm:border-gray-800 sm:last:border-0 sm:py-1.5 text-sm bg-gray-800/60 sm:bg-transparent rounded-lg sm:rounded-none p-3 sm:p-0 space-y-2 sm:space-y-0 ${t.active ? "" : "opacity-50"}`}>
-              <div className="flex items-center gap-2">
-                <span className="text-white font-medium w-20">{t.months} mo</span>
-                <label className="flex items-center gap-1 text-xs text-gray-400">
-                  <span>−</span>
-                  <input
-                    type="number" min="0" max="100" defaultValue={t.discountPercent}
-                    onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!isNaN(v) && v !== t.discountPercent) onUpdate(plan.code, t.id, { discountPercent: v }); }}
-                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white"
-                  />
-                  <span>%</span>
-                </label>
-                <span className="text-purple-300 font-semibold flex-1">{formatVnd(total)}</span>
+            <div key={t.id} className={`border-b border-gray-800 last:border-0 py-2 ${t.active ? "" : "opacity-50"}`}>
+              <div className="sm:flex sm:items-center sm:gap-2 text-sm space-y-2 sm:space-y-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-medium w-20">{t.months} mo</span>
+                  <label className="flex items-center gap-1 text-xs text-gray-400">
+                    <span>−</span>
+                    <input
+                      type="number" min="0" max="100" defaultValue={t.discountPercent}
+                      onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!isNaN(v) && v !== t.discountPercent) onUpdate(plan.code, t.id, { discountPercent: v }); }}
+                      className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white"
+                    />
+                    <span>%</span>
+                  </label>
+                  <span className="text-purple-300 font-semibold flex-1">{formatVnd(total)}</span>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => onUpdate(plan.code, t.id, { active: !t.active })} disabled={busy === `tier-${t.id}`}
+                    className={`text-[10px] px-2 py-1 rounded ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
+                    {t.active ? "Disable" : "Enable"}
+                  </button>
+                  <button onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
+                    className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1">Delete</button>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <button onClick={() => onUpdate(plan.code, t.id, { active: !t.active })} disabled={busy === `tier-${t.id}`}
-                  className={`text-[10px] px-2 py-1 rounded ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
-                  {t.active ? "Disable" : "Enable"}
-                </button>
-                <button onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
-                  className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1">Delete</button>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 pl-0 sm:pl-2">
+                <label className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <span className="uppercase tracking-wide">Ends</span>
+                  <input
+                    type="datetime-local"
+                    defaultValue={isoToLocalInput(t.endDate)}
+                    onBlur={(e) => { const cur = isoToLocalInput(t.endDate); if (e.target.value !== cur) patchEnd(t, e.target.value); }}
+                    className="bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white text-[11px]"
+                  />
+                </label>
+                <label className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <span className="uppercase tracking-wide">Qty</span>
+                  <input
+                    type="number" min="1" placeholder="∞"
+                    defaultValue={t.maxRedemptions ?? ""}
+                    onBlur={(e) => { const cur = t.maxRedemptions == null ? "" : String(t.maxRedemptions); if (e.target.value !== cur) patchQty(t, e.target.value); }}
+                    className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white text-[11px]"
+                  />
+                </label>
+                <span className="text-[10px] text-gray-500">
+                  {t.redemptions} sold{t.maxRedemptions != null ? ` · ${remaining} left` : ""}
+                </span>
+                {live && (
+                  <DiscountCountdown endDate={t.endDate} className="text-[10px] text-amber-300" label={(r) => `⏳ ends in ${r}`} />
+                )}
+                {t.endDate && !isDiscountActive(t.endDate) && (
+                  <span className="text-[10px] text-gray-600">(time ended)</span>
+                )}
+                {soldOut && (
+                  <span className="text-[10px] text-gray-600">(sold out)</span>
+                )}
+                {busy === `tier-${t.id}` ? (
+                  <span className="text-[10px] font-semibold text-gray-300 bg-gray-700/60 px-1.5 py-0.5 rounded">Saving…</span>
+                ) : savedFlash === `tier-${t.id}` ? (
+                  <span className="text-[10px] font-semibold text-green-300 bg-green-500/15 border border-green-500/30 px-1.5 py-0.5 rounded">✓ Saved</span>
+                ) : null}
               </div>
             </div>
           );
@@ -441,6 +543,16 @@ function BankTierEditor({ plan, busy, onAdd, onUpdate, onDelete }: {
         <div>
           <label className="block text-[10px] text-gray-500 mb-0.5">Discount %</label>
           <input type="number" min="0" max="100" value={newDiscount} onChange={(e) => setNewDiscount(e.target.value)}
+            className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
+        </div>
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-0.5">Ends (optional)</label>
+          <input type="datetime-local" value={newEnd} onChange={(e) => setNewEnd(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
+        </div>
+        <div>
+          <label className="block text-[10px] text-gray-500 mb-0.5">Qty (blank = ∞)</label>
+          <input type="number" min="1" value={newQty} onChange={(e) => setNewQty(e.target.value)} placeholder="∞"
             className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
         </div>
         <button type="submit" disabled={busy === `tier-add-${plan.code}`}

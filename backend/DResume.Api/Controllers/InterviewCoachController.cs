@@ -46,6 +46,15 @@ public sealed class InterviewCoachController : ControllerBase
         return Ok(ApiResult.Ok(new InterviewCoachResponse(result, analysis, record.Id)));
     }
 
+    [HttpPost("more")]
+    [ConsumesAiCall]
+    public async Task<IActionResult> MoreQuestions([FromBody] InterviewCoachMoreRequest req, CancellationToken ct)
+    {
+        var form = new InterviewCoachFormDataDto(req.JobTitle, req.Company, req.JobDescription, req.InterviewType, req.ResumeSummary);
+        var questions = await _service.MoreQuestionsAsync(form, req.ExistingQuestions, ct);
+        return Ok(ApiResult.Ok(new { questions }));
+    }
+
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct)
     {

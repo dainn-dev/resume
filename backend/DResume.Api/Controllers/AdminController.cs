@@ -496,10 +496,11 @@ public sealed class AdminController : ControllerBase
         return Ok(ApiResult.Ok(tiers.Select(t => new
         {
             id = t.Id, months = t.Months, discountPercent = t.DiscountPercent, active = t.Active,
+            startDate = t.StartDate, endDate = t.EndDate, maxRedemptions = t.MaxRedemptions, redemptions = t.Redemptions,
         })));
     }
 
-    public sealed record AddBankTierRequest(int Months, int DiscountPercent);
+    public sealed record AddBankTierRequest(int Months, int DiscountPercent, DateTime? StartDate, DateTime? EndDate, int? MaxRedemptions);
 
     [HttpPost("plans/{code}/bank-tiers")]
     public async Task<IActionResult> AddBankTier(string code, [FromBody] AddBankTierRequest req,
@@ -507,18 +508,18 @@ public sealed class AdminController : ControllerBase
     {
         if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
             return BadRequest(ApiResult.Fail("Invalid plan code."));
-        var tier = await pricing.AddTierAsync(planCode, req.Months, req.DiscountPercent, ct);
-        return Ok(ApiResult.Ok(new { id = tier.Id, months = tier.Months, discountPercent = tier.DiscountPercent, active = tier.Active }));
+        var tier = await pricing.AddTierAsync(planCode, req.Months, req.DiscountPercent, req.StartDate, req.EndDate, req.MaxRedemptions, ct);
+        return Ok(ApiResult.Ok(new { id = tier.Id, months = tier.Months, discountPercent = tier.DiscountPercent, active = tier.Active, startDate = tier.StartDate, endDate = tier.EndDate, maxRedemptions = tier.MaxRedemptions, redemptions = tier.Redemptions }));
     }
 
-    public sealed record UpdateBankTierRequest(int? DiscountPercent, bool? Active);
+    public sealed record UpdateBankTierRequest(int? DiscountPercent, bool? Active, DateTime? StartDate, DateTime? EndDate, int? MaxRedemptions, bool ClearStartDate = false, bool ClearEndDate = false, bool ClearMaxRedemptions = false);
 
     [HttpPatch("plans/{code}/bank-tiers/{id:guid}")]
     public async Task<IActionResult> UpdateBankTier(string code, Guid id, [FromBody] UpdateBankTierRequest req,
         [FromServices] IBankPricingService pricing, CancellationToken ct)
     {
-        var tier = await pricing.UpdateTierAsync(id, req.DiscountPercent, req.Active, ct);
-        return Ok(ApiResult.Ok(new { id = tier.Id, months = tier.Months, discountPercent = tier.DiscountPercent, active = tier.Active }));
+        var tier = await pricing.UpdateTierAsync(id, req.DiscountPercent, req.Active, req.StartDate, req.EndDate, req.MaxRedemptions, req.ClearStartDate, req.ClearEndDate, req.ClearMaxRedemptions, ct);
+        return Ok(ApiResult.Ok(new { id = tier.Id, months = tier.Months, discountPercent = tier.DiscountPercent, active = tier.Active, startDate = tier.StartDate, endDate = tier.EndDate, maxRedemptions = tier.MaxRedemptions, redemptions = tier.Redemptions }));
     }
 
     [HttpDelete("plans/{code}/bank-tiers/{id:guid}")]

@@ -49,12 +49,12 @@ export interface AccountSummaryResume {
   } | null;
   jobMatchCount: number;
   coverLetterCount: number;
-  latestJobMatch: {
+  jobMatches: {
     id: string;
     matchScore: number;
     createdAt: string;
     result: JobMatchAnalysis | null;
-  } | null;
+  }[];
   latestCoverLetter: {
     id: string;
     jobTitle: string;
@@ -64,10 +64,16 @@ export interface AccountSummaryResume {
   } | null;
 }
 
+export interface AccountSummaryAiUsage {
+  used: number;
+  limit: number | null;
+}
+
 export interface AccountSummary {
   user: AccountSummaryUser;
   plan: AccountSummaryPlan;
   subscription: AccountSummarySubscription;
+  aiUsage?: AccountSummaryAiUsage;
   totals: AccountSummaryTotals;
   resumes: AccountSummaryResume[];
   recent: {

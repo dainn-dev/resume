@@ -21,6 +21,7 @@ public sealed class UsersController : ControllerBase
     private readonly ICurrentUser _current;
     private readonly ResumeDbContext _db;
     private readonly IPlanService _plans;
+    private readonly IUsageService _usage;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public UsersController(
@@ -28,13 +29,15 @@ public sealed class UsersController : ControllerBase
         ISessionService sessions,
         ICurrentUser current,
         ResumeDbContext db,
-        IPlanService plans)
+        IPlanService plans,
+        IUsageService usage)
     {
         _profile = profile;
         _sessions = sessions;
         _current = current;
         _db = db;
         _plans = plans;
+        _usage = usage;
     }
 
     [HttpGet("me")]
@@ -93,6 +96,7 @@ public sealed class UsersController : ControllerBase
         var profile = await _profile.GetProfileAsync(userId, ct);
         var subscription = await _plans.GetOrCreateAsync(userId, ct);
         var plan = await _plans.GetCurrentPlanAsync(userId, ct);
+        var aiCallsUsed = await _usage.GetCurrentMonthUsageAsync(userId, ct);
 
         var resumes = await _db.Resumes
             .AsNoTracking()
@@ -113,11 +117,11 @@ public sealed class UsersController : ControllerBase
                     .FirstOrDefault(),
                 JobMatchCount = _db.JobMatches.Count(j => j.ResumeId == r.Id),
                 CoverLetterCount = _db.CoverLetters.Count(c => c.ResumeId == r.Id),
-                LatestJobMatch = _db.JobMatches
+                JobMatches = _db.JobMatches
                     .Where(j => j.ResumeId == r.Id)
                     .OrderByDescending(j => j.CreatedAt)
                     .Select(j => new { j.Id, j.MatchScore, j.CreatedAt, j.ResultJson })
-                    .FirstOrDefault(),
+                    .ToList(),
                 LatestCoverLetter = _db.CoverLetters
                     .Where(c => c.ResumeId == r.Id)
                     .OrderByDescending(c => c.CreatedAt)
@@ -178,6 +182,11 @@ public sealed class UsersController : ControllerBase
                 lookupKey = plan.LookupKey,
                 isPaid = plan.IsPaid,
             },
+            aiUsage = new
+            {
+                used = aiCallsUsed,
+                limit = plan.Limits.MonthlyAiCalls == int.MaxValue ? (int?)null : plan.Limits.MonthlyAiCalls,
+            },
             subscription = new
             {
                 status = subscription.Status,
@@ -203,13 +212,13 @@ public sealed class UsersController : ControllerBase
                 },
                 jobMatchCount = r.JobMatchCount,
                 coverLetterCount = r.CoverLetterCount,
-                latestJobMatch = r.LatestJobMatch == null ? null : new
+                jobMatches = r.JobMatches.Select(j => new
                 {
-                    r.LatestJobMatch.Id,
-                    r.LatestJobMatch.MatchScore,
-                    r.LatestJobMatch.CreatedAt,
-                    result = Deserialize(r.LatestJobMatch.ResultJson),
-                },
+                    j.Id,
+                    j.MatchScore,
+                    j.CreatedAt,
+                    result = Deserialize(j.ResultJson),
+                }),
                 latestCoverLetter = r.LatestCoverLetter == null ? null : new
                 {
                     r.LatestCoverLetter.Id,

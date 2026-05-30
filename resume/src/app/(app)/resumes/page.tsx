@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/components/TranslationProvider";
+import type { JobMatchAnalysis } from "@/types/jobMatch";
 import {
   fetchAccountSummary,
   fetchResumeDetail,
@@ -68,7 +69,7 @@ export default function ResumesPage() {
     switch (step) {
       case "score": return !!resume.latestAnalysis;
       case "build": return resume.hasParsedData;
-      case "jobMatch": return resume.jobMatchCount > 0;
+      case "jobMatch": return resume.jobMatches.length > 0;
       case "coverLetter": return resume.coverLetterCount > 0;
       case "salary": return !!recent.salary;
       case "interview": return !!recent.interview;
@@ -196,13 +197,23 @@ export default function ResumesPage() {
                         detail={resume.hasParsedData ? t("account.resumeGenerated") : undefined}
                         notDoneLabel={t("account.notCompleted")}
                       />
-                      <StepCard
-                        done={!!resume.latestJobMatch}
-                        label={t("account.stepJobMatch")}
-                        detail={resume.latestJobMatch ? `${t("account.matchScore")}: ${resume.latestJobMatch.matchScore}/100` : undefined}
-                        sub={resume.latestJobMatch?.result?.summary?.slice(0, 100)}
-                        notDoneLabel={t("account.notCompleted")}
-                      />
+                      {resume.jobMatches.length === 0 ? (
+                        <StepCard
+                          done={false}
+                          label={t("account.stepJobMatch")}
+                          notDoneLabel={t("account.notCompleted")}
+                        />
+                      ) : resume.jobMatches.length === 1 ? (
+                        <StepCard
+                          done
+                          label={t("account.stepJobMatch")}
+                          detail={`${t("account.matchScore")}: ${resume.jobMatches[0].matchScore}/100`}
+                          sub={resume.jobMatches[0].result?.summary?.slice(0, 100)}
+                          notDoneLabel=""
+                        />
+                      ) : (
+                        <JobMatchList matches={resume.jobMatches} />
+                      )}
                       <StepCard
                         done={!!resume.latestCoverLetter}
                         label={t("account.stepCoverLetter")}
@@ -302,6 +313,49 @@ function StepCard({
         <p className="text-xs text-gray-600 pl-6">{notDoneLabel}</p>
       ) : null}
       {sub && <p className="text-xs text-gray-500 pl-6 truncate">{sub}</p>}
+    </div>
+  );
+}
+
+function JobMatchList({ matches }: { matches: AccountSummaryResume["jobMatches"] }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? matches : matches.slice(0, 2);
+
+  return (
+    <div className="rounded-xl border bg-gray-800/50 border-gray-700 p-3 space-y-2 sm:col-span-2">
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 6l3 3 5-5" />
+          </svg>
+        </div>
+        <span className="text-xs font-medium text-white flex-1">{t("account.stepJobMatch")}</span>
+        <span className="text-[10px] text-gray-500">{matches.length} {t("account.jobMatchCount")}</span>
+      </div>
+      <div className="space-y-1.5 pl-6">
+        {shown.map(m => (
+          <div key={m.id} className="flex items-center gap-2 text-xs">
+            <span className={`font-bold tabular-nums px-1.5 py-0.5 rounded border ${scoreColor(m.matchScore)}`}>
+              {m.matchScore}
+            </span>
+            <span className="text-gray-300 truncate flex-1">
+              {m.result?.jobTitle ?? "—"}{m.result?.company ? ` @ ${m.result.company}` : ""}
+            </span>
+            <span className="text-gray-600 shrink-0">{formatRelativeTime(m.createdAt)}</span>
+          </div>
+        ))}
+      </div>
+      {matches.length > 2 && (
+        <button
+          onClick={() => setExpanded(prev => !prev)}
+          className="text-[11px] text-blue-400 hover:text-blue-300 pl-6"
+        >
+          {expanded
+            ? t("account.collapse")
+            : interpolate(t("account.showAllMatches"), { count: matches.length })}
+        </button>
+      )}
     </div>
   );
 }

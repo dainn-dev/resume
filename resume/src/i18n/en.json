@@ -155,6 +155,13 @@
     "estimatedScore": "Estimated new match",
     "improveNoResume": "Could not load your resume to improve. Score a resume first.",
     "analyzeFailed": "Analysis failed",
+    "history": "Previous Analyses",
+    "newAnalysis": "New analysis",
+    "showAll": "Show all",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renamePrompt": "Enter a new name:",
+    "deleteConfirm": "Delete analysis \"{name}\"?",
     "nextStep": "Next: Cover Letter →",
     "resumePastePlaceholder": "Paste your resume text here…"
   },
@@ -255,6 +262,14 @@
       "concise": "Concise"
     }
   },
+  "aiLimit": {
+    "reached": "You've used all {used}/{limit} AI calls this month on the {plan} plan.",
+    "approaching": "You've used {used} of {limit} AI calls this month on the {plan} plan.",
+    "upgrade": "Upgrade"
+  },
+  "maintenance": {
+    "notice": "Scheduled maintenance 1:00–7:00 AM daily — the system will be temporarily unavailable. Please save your work."
+  },
   "common": {
     "language": "Language",
     "required": "required",
@@ -300,6 +315,8 @@
     "copyReport": "Copy Interview Prep Report",
     "copied": "Copied!",
     "failed": "Failed to generate coaching.",
+    "addMore": "Add more questions",
+    "addingMore": "Generating more questions…",
     "nextStep": "Next: Career Coach →"
   },
   "careerCoach": {
@@ -473,6 +490,8 @@
     "pricingProFeatures": "Unlimited resume scores|AI Resume Builder|Advanced cover letters|Salary estimator|Interview coaching",
     "pricingProCta": "Start Pro Trial",
     "pricingProBadge": "Most Popular",
+    "promoSave": "Save {discount}% when you pay by bank transfer",
+    "promoEndsIn": "Limited offer — ends in {time}",
     "pricingPremiumTitle": "Premium",
     "pricingPremiumPrice": "$9.99",
     "pricingPremiumPeriod": "/month",
@@ -769,6 +788,10 @@
     "delete": "Delete",
     "deleteConfirm": "Delete \"{title}\" and all of its analysis history?",
     "untitledResume": "Untitled resume",
+    "aiUsageLabel": "{used} / {limit} calls used",
+    "aiUsageExhausted": "You've reached your monthly AI call limit. Upgrade your plan for more.",
+    "jobMatchCount": "matches",
+    "showAllMatches": "Show all {count} matches",
     "loadError": "Could not load your account.",
     "loadResumeError": "Could not load that resume.",
     "deleteError": "Failed to delete that resume.",

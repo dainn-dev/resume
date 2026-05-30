@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/components/TranslationProvider";
+import DiscountCountdown, { isPromoLive, isSoldOut, remainingRedemptions, effectiveDiscountPercent } from "@/components/DiscountCountdown";
 
 interface PlanLimits {
   maxResumes: number | null;
@@ -20,6 +21,10 @@ interface PlanLimits {
 interface BankTier {
   months: number;
   discountPercent: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  maxRedemptions?: number | null;
+  redemptions?: number | null;
 }
 
 interface Plan {
@@ -454,9 +459,10 @@ export default function BillingPanel() {
               ).map(opt => {
                 const isTest = opt.months === 0;
                 const isSelected = bankMonths === opt.months;
+                const eff = isTest ? 0 : effectiveDiscountPercent(opt);
                 const total = isTest
                   ? (methods.testPlanPriceVnd ?? 2000)
-                  : computeBankAmount(bankModalPlan.monthlyPriceVnd, opt.months, opt.discountPercent);
+                  : computeBankAmount(bankModalPlan.monthlyPriceVnd, opt.months, eff);
                 return (
                   <button
                     key={opt.months}
@@ -471,16 +477,31 @@ export default function BillingPanel() {
                       <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
                         {t("billing.testBadge")}
                       </span>
-                    ) : opt.discountPercent > 0 && (
+                    ) : eff > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        -{opt.discountPercent}%
+                        -{eff}%
                       </span>
                     )}
                     <p className="text-white text-sm font-semibold">{durationLabel(opt.months)}</p>
-                    <p className="text-purple-300 text-sm font-bold mt-1">{formatVnd(total)}</p>
-                    {opt.months > 1 && (
-                      <p className="text-gray-500 text-[10px] mt-0.5">
-                        {interpolate(t("billing.perMonthApprox"), { price: formatVnd(Math.round(total / opt.months / 1000) * 1000) })}
+                    <p className="mt-1 flex items-baseline flex-wrap gap-x-1.5">
+                      <span className="text-purple-300 text-sm font-bold">{formatVnd(total)}</span>
+                      {opt.months > 1 && (
+                        <span className="text-gray-500 text-[10px]">
+                          {interpolate(t("billing.perMonthApprox"), { price: formatVnd(Math.round(total / opt.months / 1000) * 1000) })}
+                        </span>
+                      )}
+                    </p>
+                    {!isTest && (isPromoLive(opt) || (opt.maxRedemptions != null && !isSoldOut(opt.maxRedemptions, opt.redemptions))) && (
+                      <p className="flex items-center gap-1.5 text-amber-300 text-[10px] font-semibold mt-1">
+                        {isPromoLive(opt) && (
+                          <DiscountCountdown endDate={opt.endDate} label={(r) => `⏳ ${r}`} />
+                        )}
+                        {isPromoLive(opt) && opt.maxRedemptions != null && !isSoldOut(opt.maxRedemptions, opt.redemptions) && (
+                          <span className="text-amber-300/50">·</span>
+                        )}
+                        {opt.maxRedemptions != null && !isSoldOut(opt.maxRedemptions, opt.redemptions) && (
+                          <span className="text-amber-300/80">{remainingRedemptions(opt.maxRedemptions, opt.redemptions)} left</span>
+                        )}
                       </p>
                     )}
                   </button>

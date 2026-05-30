@@ -72,6 +72,7 @@ export default function InterviewCoachPage() {
   const [synced, setSynced] = useState(false);
   const [copied, setCopied] = useState(false);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const hydratedRef = useRef(false);
   const skipPersistRef = useRef(false);
 
@@ -195,6 +196,33 @@ export default function InterviewCoachPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleAddMore() {
+    if (!result) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch("/api/interview-coach/more", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          existingQuestions: result.questions.map(q => q.question),
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.data?.questions) throw new Error(data.error ?? "Failed");
+      const merged: InterviewCoachResult = {
+        ...result,
+        questions: [...result.questions, ...data.data.questions],
+      };
+      setResult(merged);
+      setInterviewCoachResult(merged);
+    } catch {
+      setError(t("interviewCoach.failed"));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
       <PipelineWorkflow />
@@ -257,6 +285,20 @@ export default function InterviewCoachPage() {
                   </div>
                 );
               })}
+              <button
+                onClick={handleAddMore}
+                disabled={loadingMore}
+                className="w-full mt-2 border border-dashed border-gray-600 hover:border-blue-500 text-gray-400 hover:text-blue-400 text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loadingMore ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    {t("interviewCoach.addingMore")}
+                  </>
+                ) : (
+                  <>+ {t("interviewCoach.addMore")}</>
+                )}
+              </button>
             </div>
 
             {/* Key Strengths */}

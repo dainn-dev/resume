@@ -32,6 +32,7 @@ public class JobMatchRecord
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserId { get; set; }
     public Guid? ResumeId { get; set; }
+    public string? Title { get; set; }
     public string? JobDescription { get; set; }
     public string? LinkedInUrl { get; set; }
     public int MatchScore { get; set; }

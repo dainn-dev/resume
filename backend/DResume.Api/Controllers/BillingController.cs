@@ -50,7 +50,7 @@ public sealed class BillingController : ControllerBase
         {
             var tiers = p.IsPaid
                 ? (await pricing.GetActiveTiersAsync(p.Code, ct))
-                    .Select(t => new { months = t.Months, discountPercent = t.DiscountPercent })
+                    .Select(t => new { months = t.Months, discountPercent = t.DiscountPercent, startDate = t.StartDate, endDate = t.EndDate, maxRedemptions = t.MaxRedemptions, redemptions = t.Redemptions })
                 : Enumerable.Empty<object>();
             view.Add(new
             {

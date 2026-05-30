@@ -446,6 +446,33 @@ Rules:
 - commonPitfalls: 3–5 items specific to role/type
 - closingQuestions: 3–5 smart, specific questions";
 
+    public static string InterviewCoachMoreQuestions(InterviewCoachFormDataDto f, List<string> existing) => $@"Generate 5–8 NEW interview questions for the following:
+
+Role: {f.JobTitle} at {f.Company}
+Interview Type: {f.InterviewType}
+Job Description:
+---
+{Truncate(f.JobDescription, 3000)}
+---
+
+Candidate Resume Summary:
+---
+{Truncate(f.ResumeSummary, 8000)}
+---
+
+ALREADY ASKED (do NOT repeat or paraphrase these):
+{string.Join("\n", existing.Select((q, i) => $"{i + 1}. {q}"))}
+
+Return ONLY this JSON:
+{{
+  ""questions"": [{{ ""category"": ""<Technical|Behavioral|Situational|Role-Specific>"", ""question"": ""<question>"", ""tip"": ""<one-sentence tip>"" }}]
+}}
+
+Rules:
+- Generate 5–8 completely new questions — different topics and angles from the existing ones
+- Mix per interviewType ('behavioral' → 70% Behavioral, 30% Situational; 'technical' → 70% Technical, 30% Role-Specific; 'mixed' → even spread)
+- Each question must be specific to the role and candidate background";
+
     public static string InterviewCoachUser2(InterviewCoachFormDataDto f, InterviewCoachResultDto r) => $@"Write a 3–4 paragraph interview preparation narrative for {f.JobTitle} at {f.Company}.
 The candidate's strengths identified are: {string.Join(", ", r.KeyStrengths)}.
 The interview type is: {f.InterviewType}.

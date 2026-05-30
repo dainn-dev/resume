@@ -6,6 +6,16 @@ import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Footer from "@/components/Footer";
+import DiscountCountdown, { isPromoLive } from "@/components/DiscountCountdown";
+
+interface BankTierApi {
+  months: number;
+  discountPercent: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  maxRedemptions?: number | null;
+  redemptions?: number | null;
+}
 
 interface PlanFromApi {
   code: "Free" | "Pro" | "Premium";
@@ -13,6 +23,7 @@ interface PlanFromApi {
   monthlyPriceCents: number;
   currency: string;
   isPaid: boolean;
+  bankTiers?: BankTierApi[];
   limits: {
     maxResumes: number | null;
     monthlyAiCalls: number | null;
@@ -167,6 +178,9 @@ export default function LandingPage() {
                   { label: "Goals & Tasks", on: p.limits.calendarEnabled },
                   { label: "Company Reviews", on: p.limits.companyReviewEnabled },
                 ].sort((a, b) => Number(b.on) - Number(a.on));
+                const bestPromo = (p.bankTiers ?? [])
+                  .filter(tier => tier.discountPercent > 0 && isPromoLive(tier))
+                  .sort((a, b) => b.discountPercent - a.discountPercent)[0];
                 return (
                   <div key={p.code} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 flex flex-col ${isFeatured ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
                     {isFeatured && (
@@ -180,6 +194,18 @@ export default function LandingPage() {
                         <span className="text-3xl font-bold text-white">{formatPrice(p.monthlyPriceCents, p.currency)}</span>
                         {p.isPaid && <span className="text-gray-500 text-sm">/mo</span>}
                       </div>
+                      {bestPromo && (
+                        <div className="mt-3 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                          <p className="text-amber-300 text-xs font-bold">
+                            🔥 {t("landing.promoSave").replace("{discount}", String(bestPromo.discountPercent))}
+                          </p>
+                          <DiscountCountdown
+                            endDate={bestPromo.endDate}
+                            className="block text-amber-300/70 text-[10px] mt-0.5"
+                            label={(r) => t("landing.promoEndsIn").replace("{time}", r)}
+                          />
+                        </div>
+                      )}
                     </div>
                     <ul className="text-xs text-gray-300 space-y-2 flex-1">
                       <li>• Resumes: {p.limits.maxResumes ?? "Unlimited"}</li>

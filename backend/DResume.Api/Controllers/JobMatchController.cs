@@ -63,15 +63,34 @@ public sealed class JobMatchController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct)
+    public async Task<IActionResult> List([FromQuery] Guid? resumeId, CancellationToken ct)
     {
         var userId = _current.RequireUserId();
-        var rows = await _db.JobMatches
-            .Where(x => x.UserId == userId)
+        var query = _db.JobMatches
+            .Where(x => x.UserId == userId);
+
+        if (resumeId.HasValue)
+            query = query.Where(x => x.ResumeId == resumeId.Value);
+
+        var rows = await query
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new { x.Id, x.MatchScore, x.CreatedAt })
+            .Select(x => new { x.Id, x.Title, x.MatchScore, x.CreatedAt, x.ResultJson })
             .ToListAsync(ct);
-        return Ok(ApiResult.Ok(rows));
+
+        var result = rows.Select(x =>
+        {
+            string? jobTitle = null, company = null;
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<JobMatchAnalysisDto>(x.ResultJson, JsonOptions);
+                jobTitle = parsed?.JobTitle;
+                company = parsed?.Company;
+            }
+            catch { /* ignore parse errors */ }
+            return new { x.Id, x.Title, x.MatchScore, x.CreatedAt, jobTitle, company };
+        });
+
+        return Ok(ApiResult.Ok(result));
     }
 
     [HttpGet("{id:guid}")]
@@ -82,5 +101,27 @@ public sealed class JobMatchController : ControllerBase
             ?? throw new KeyNotFoundException("Job match not found.");
         var analysis = JsonSerializer.Deserialize<JobMatchAnalysisDto>(row.ResultJson, JsonOptions);
         return Ok(ApiResult.Ok(new { id = row.Id, data = analysis, jobDescription = row.JobDescription, row.CreatedAt }));
+    }
+
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Rename(Guid id, [FromBody] JobMatchRenameRequest req, CancellationToken ct)
+    {
+        var userId = _current.RequireUserId();
+        var row = await _db.JobMatches.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct)
+            ?? throw new KeyNotFoundException("Job match not found.");
+        row.Title = req.Title?.Trim();
+        await _db.SaveChangesAsync(ct);
+        return Ok(ApiResult.Ok(new { id = row.Id, title = row.Title }));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var userId = _current.RequireUserId();
+        var row = await _db.JobMatches.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct)
+            ?? throw new KeyNotFoundException("Job match not found.");
+        _db.JobMatches.Remove(row);
+        await _db.SaveChangesAsync(ct);
+        return Ok(ApiResult.Ok(new { deleted = true }));
     }
 }

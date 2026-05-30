@@ -7,6 +7,7 @@ namespace DResume.Api.Features.Coach;
 public interface IInterviewCoachService
 {
     Task<(InterviewCoachResultDto Result, string Analysis)> CoachAsync(InterviewCoachFormDataDto form, CancellationToken ct = default);
+    Task<List<InterviewQuestionDto>> MoreQuestionsAsync(InterviewCoachFormDataDto form, List<string> existingQuestions, CancellationToken ct = default);
 }
 
 public sealed class InterviewCoachService : IInterviewCoachService
@@ -30,5 +31,18 @@ public sealed class InterviewCoachService : IInterviewCoachService
             PromptLibrary.InterviewCoachUser2(form, result), 1200, ct);
 
         return (result, analysis);
+    }
+
+    public async Task<List<InterviewQuestionDto>> MoreQuestionsAsync(InterviewCoachFormDataDto form, List<string> existingQuestions, CancellationToken ct = default)
+    {
+        var lang = LanguageDetector.Detect(form.ResumeSummary + " " + form.JobDescription);
+        var langInst = LanguageDetector.Instruction(lang);
+
+        var raw = await _ai.CompleteAsync(
+            PromptLibrary.InterviewCoachSystem1 + "\n" + langInst,
+            PromptLibrary.InterviewCoachMoreQuestions(form, existingQuestions), 1500, ct);
+
+        var wrapper = JsonSerializer.Deserialize<InterviewCoachResultDto>(JsonExtractor.Extract(raw), JsonOptions)!;
+        return wrapper.Questions;
     }
 }

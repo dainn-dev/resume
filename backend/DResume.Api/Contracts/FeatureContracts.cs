@@ -13,6 +13,8 @@ public sealed record JobMatchResponse(
     string JobDescription,
     Guid? Id);
 
+public sealed record JobMatchRenameRequest(string? Title);
+
 public sealed record BuildRequest(ResumeFormDataDto Resume);
 
 public sealed record BuildResponse(string Markdown);

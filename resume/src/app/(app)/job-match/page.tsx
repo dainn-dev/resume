@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
+import { formatRelativeTime } from "@/lib/accountClient";
 import type { JobMatchAnalysis } from "@/types/jobMatch";
 import {
   getJobMatchInput,
@@ -19,6 +20,15 @@ import {
 } from "@/lib/pipeline";
 
 type InputMode = "url" | "paste";
+
+interface HistoryItem {
+  id: string;
+  title: string | null;
+  matchScore: number;
+  createdAt: string;
+  jobTitle: string | null;
+  company: string | null;
+}
 
 function scoreColor(score: number) {
   if (score >= 75) return { ring: "#22c55e", bg: "bg-green-500/10", text: "text-green-400" };
@@ -190,8 +200,21 @@ export default function JobMatchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<JobMatchAnalysis | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const [loadingHistoryItem, setLoadingHistoryItem] = useState(false);
   const hydratedRef = useRef(false);
   const skipPersistRef = useRef(false);
+
+  const loadHistory = useCallback(async () => {
+    const resumeId = getCurrentResumeId();
+    const qs = resumeId ? `?resumeId=${encodeURIComponent(resumeId)}` : "";
+    try {
+      const res = await fetch(`/api/job-match${qs}`);
+      const body = await res.json();
+      if (body.success && Array.isArray(body.data)) setHistory(body.data);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -238,8 +261,9 @@ export default function JobMatchPage() {
     if (cached) setResult(cached);
 
     hydratedRef.current = true;
+    void loadHistory();
     return () => { cancelled = true; };
-  }, [searchParams]);
+  }, [searchParams, loadHistory]);
 
   // Persist input state every time it changes.
   useEffect(() => {
@@ -287,11 +311,64 @@ export default function JobMatchPage() {
 
       setJobMatchResult(match);
       setResult(match);
+      setActiveHistoryId(null);
+      void loadHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleLoadHistoryItem(item: HistoryItem) {
+    if (activeHistoryId === item.id) return;
+    setLoadingHistoryItem(true);
+    try {
+      const res = await fetch(`/api/job-match/${encodeURIComponent(item.id)}`);
+      const body = await res.json();
+      if (body.success && body.data?.data) {
+        setResult(body.data.data);
+        setActiveHistoryId(item.id);
+        if (body.data.data.jobTitle || body.data.data.company) {
+          setJobMatchContext({
+            jobTitle: body.data.data.jobTitle ?? "",
+            company: body.data.data.company ?? "",
+            jobDescription: body.data.jobDescription ?? "",
+          });
+        }
+      }
+    } catch {}
+    setLoadingHistoryItem(false);
+  }
+
+  async function handleDeleteHistoryItem(item: HistoryItem) {
+    const label = item.title || item.jobTitle || "—";
+    if (!confirm(t("jobMatch.deleteConfirm").replace("{name}", label))) return;
+    try {
+      const res = await fetch(`/api/job-match/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      const body = await res.json();
+      if (!body.success) return;
+      if (activeHistoryId === item.id) {
+        setResult(null);
+        setActiveHistoryId(null);
+      }
+      void loadHistory();
+    } catch {}
+  }
+
+  async function handleRenameHistoryItem(item: HistoryItem) {
+    const current = item.title || item.jobTitle || "";
+    const newTitle = prompt(t("jobMatch.renamePrompt"), current);
+    if (newTitle === null) return;
+    try {
+      const res = await fetch(`/api/job-match/${encodeURIComponent(item.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      const body = await res.json();
+      if (body.success) void loadHistory();
+    } catch {}
   }
 
   function handleWriteCoverLetter() {
@@ -308,11 +385,24 @@ export default function JobMatchPage() {
           <h1 className="text-2xl font-bold text-white">{t("jobMatch.title")}</h1>
           <p className="text-gray-400 text-sm mt-1">{t("jobMatch.subtitle")}</p>
         </div>
+        {history.length > 1 && (
+          <HistoryBar
+            items={history}
+            activeId={activeHistoryId}
+            loading={loadingHistoryItem}
+            onSelect={handleLoadHistoryItem}
+            onNewAnalysis={() => { setResult(null); setActiveHistoryId(null); }}
+            onDelete={handleDeleteHistoryItem}
+            onRename={handleRenameHistoryItem}
+            t={t}
+          />
+        )}
         <ResultView
           result={result}
           t={t}
           onReset={() => {
             setResult(null);
+            setActiveHistoryId(null);
           }}
           onWriteCoverLetter={handleWriteCoverLetter}
         />
@@ -409,6 +499,123 @@ export default function JobMatchPage() {
           </button>
         </div>
       )}
+
+      {/* History list on form view */}
+      {!result && history.length > 0 && (
+        <div className="mt-6">
+          <HistoryBar
+            items={history}
+            activeId={null}
+            loading={loadingHistoryItem}
+            onSelect={handleLoadHistoryItem}
+            onNewAnalysis={() => {}}
+            onDelete={handleDeleteHistoryItem}
+            onRename={handleRenameHistoryItem}
+            t={t}
+            showNewButton={false}
+          />
+        </div>
+      )}
     </main>
+  );
+}
+
+function historyScoreColor(score: number) {
+  if (score >= 75) return "text-green-400 bg-green-500/10 border-green-500/30";
+  if (score >= 50) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+  return "text-red-400 bg-red-500/10 border-red-500/30";
+}
+
+function HistoryBar({
+  items,
+  activeId,
+  loading,
+  onSelect,
+  onNewAnalysis,
+  onDelete,
+  onRename,
+  t,
+  showNewButton = true,
+}: {
+  items: HistoryItem[];
+  activeId: string | null;
+  loading: boolean;
+  onSelect: (item: HistoryItem) => void;
+  onNewAnalysis: () => void;
+  onDelete: (item: HistoryItem) => void;
+  onRename: (item: HistoryItem) => void;
+  t: (key: string) => string;
+  showNewButton?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? items : items.slice(0, 3);
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-6 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">{t("jobMatch.history")}</h3>
+        {showNewButton && (
+          <button onClick={onNewAnalysis} className="text-xs text-blue-400 hover:text-blue-300">
+            + {t("jobMatch.newAnalysis")}
+          </button>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        {shown.map(item => {
+          const isActive = activeId === item.id;
+          const displayName = item.title || (item.jobTitle ?? "—") + (item.company ? ` @ ${item.company}` : "");
+          return (
+            <div
+              key={item.id}
+              className={`group flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                isActive
+                  ? "bg-blue-500/10 border border-blue-500/30"
+                  : "hover:bg-gray-800 border border-transparent"
+              }`}
+            >
+              <button
+                onClick={() => onSelect(item)}
+                disabled={loading}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
+              >
+                <span className={`text-xs font-bold tabular-nums px-1.5 py-0.5 rounded border shrink-0 ${historyScoreColor(item.matchScore)}`}>
+                  {item.matchScore}
+                </span>
+                <span className="text-sm text-gray-300 truncate flex-1">{displayName}</span>
+                <span className="text-xs text-gray-600 shrink-0">{formatRelativeTime(item.createdAt)}</span>
+              </button>
+              <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={e => { e.stopPropagation(); onRename(item); }}
+                  className="p-1 text-gray-500 hover:text-blue-400 transition-colors"
+                  title={t("jobMatch.rename")}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(item); }}
+                  className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                  title={t("jobMatch.delete")}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {items.length > 3 && (
+        <button
+          onClick={() => setExpanded(prev => !prev)}
+          className="text-xs text-blue-400 hover:text-blue-300"
+        >
+          {expanded ? t("account.collapse") : `${t("jobMatch.showAll")} (${items.length})`}
+        </button>
+      )}
+    </div>
   );
 }

@@ -155,6 +155,13 @@ public sealed class BankPaymentService : IBankPaymentService
         _db.Entry(payment).State = EntityState.Unchanged;
 
         await ApplyPlanAndNotifyAsync(payment, ct);
+
+        // Bump the promo redemption counter for the matching tier (best-effort; never blocks activation).
+        if (payment.DurationMonths != TestDurationSentinel)
+        {
+            try { await _pricing.IncrementRedemptionAsync(payment.PlanCode, payment.DurationMonths, ct); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to bump redemption counter for bank payment {PaymentId}", payment.Id); }
+        }
         return payment;
     }
 

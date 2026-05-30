@@ -155,6 +155,13 @@
     "estimatedScore": "Điểm phù hợp ước tính mới",
     "improveNoResume": "Không tải được CV để cải thiện. Hãy chấm điểm CV trước.",
     "analyzeFailed": "Phân tích không thành công",
+    "history": "Phân tích trước đó",
+    "newAnalysis": "Phân tích mới",
+    "showAll": "Xem tất cả",
+    "rename": "Đổi tên",
+    "delete": "Xóa",
+    "renamePrompt": "Nhập tên mới:",
+    "deleteConfirm": "Xóa phân tích \"{name}\"?",
     "nextStep": "Tiếp Theo: Thư Xin Việc →",
     "resumePastePlaceholder": "Dán nội dung CV của bạn ở đây…"
   },
@@ -255,6 +262,14 @@
       "concise": "Ngắn Gọn"
     }
   },
+  "aiLimit": {
+    "reached": "Bạn đã dùng hết {used}/{limit} lượt gọi AI tháng này trên gói {plan}.",
+    "approaching": "Bạn đã dùng {used}/{limit} lượt gọi AI tháng này trên gói {plan}.",
+    "upgrade": "Nâng cấp"
+  },
+  "maintenance": {
+    "notice": "Hệ thống bảo trì định kỳ 1:00–7:00 sáng hàng ngày — sẽ tạm dừng hoạt động. Vui lòng lưu lại công việc của bạn."
+  },
   "common": {
     "language": "Ngôn Ngữ",
     "required": "bắt buộc",
@@ -300,6 +315,8 @@
     "copyReport": "Sao Chép Báo Cáo Chuẩn Bị Phỏng Vấn",
     "copied": "Đã Sao Chép!",
     "failed": "Không thể tạo huấn luyện.",
+    "addMore": "Thêm câu hỏi",
+    "addingMore": "Đang tạo thêm câu hỏi…",
     "nextStep": "Tiếp Theo: Huấn Luyện Nghề Nghiệp →"
   },
   "careerCoach": {
@@ -473,6 +490,8 @@
     "pricingProFeatures": "Đánh giá CV không giới hạn|Xây dựng CV AI|Thư xin việc nâng cao|Ước tính lương|Huấn luyện phỏng vấn",
     "pricingProCta": "Dùng Thử Pro",
     "pricingProBadge": "Phổ Biến Nhất",
+    "promoSave": "Giảm {discount}% khi thanh toán bằng chuyển khoản ngân hàng",
+    "promoEndsIn": "Ưu đãi có hạn — kết thúc sau {time}",
     "pricingPremiumTitle": "Premium",
     "pricingPremiumPrice": "$9.99",
     "pricingPremiumPeriod": "/tháng",
@@ -769,6 +788,10 @@
     "delete": "Xóa",
     "deleteConfirm": "Xóa \"{title}\" và toàn bộ lịch sử phân tích của nó?",
     "untitledResume": "CV chưa đặt tên",
+    "jobMatchCount": "lần đối chiếu",
+    "showAllMatches": "Xem tất cả {count} lần đối chiếu",
+    "aiUsageLabel": "Đã dùng {used} / {limit} lượt",
+    "aiUsageExhausted": "Bạn đã hết lượt gọi AI tháng này. Nâng cấp gói để tiếp tục.",
     "loadError": "Không thể tải tài khoản của bạn.",
     "loadResumeError": "Không thể tải CV đó.",
     "deleteError": "Xóa CV thất bại.",

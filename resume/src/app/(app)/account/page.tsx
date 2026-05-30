@@ -50,6 +50,15 @@ export default function AccountPage() {
     return () => { cancelled = true; };
   }, [searchParams, load, router]);
 
+  // Auto-refresh usage every 60s
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const data = await fetchAccountSummary();
+      if (data) setSummary(data);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
 
   if (!mounted || loading) {
     return (
@@ -97,9 +106,59 @@ export default function AccountPage() {
         </div>
       )}
 
+      {/* AI Usage */}
+      {summary?.aiUsage && summary.aiUsage.limit !== null && (
+        <AiUsageCard used={summary.aiUsage.used} limit={summary.aiUsage.limit} planName={summary.plan.name} />
+      )}
+
       {/* Billing */}
       <BillingPanel />
 
     </main>
+  );
+}
+
+function AiUsageCard({ used, limit, planName }: { used: number; limit: number; planName: string }) {
+  const { t } = useTranslation();
+  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+  const isAtLimit = used >= limit;
+
+  const barColor = isAtLimit
+    ? "bg-red-500"
+    : pct >= 80
+      ? "bg-amber-500"
+      : "bg-blue-500";
+
+  const label = t("account.aiUsageLabel")
+    .replace("{used}", String(used))
+    .replace("{limit}", String(limit));
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-white">{t("billing.aiCallsLabel")}</h2>
+        <span className="text-xs text-gray-400">{planName}</span>
+      </div>
+
+      <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between text-xs">
+        <span className={isAtLimit ? "text-red-400 font-medium" : "text-gray-400"}>
+          {label}
+        </span>
+        <span className="text-gray-500">{Math.round(pct)}%</span>
+      </div>
+
+      {isAtLimit && (
+        <p className="text-xs text-red-400/80">
+          {t("account.aiUsageExhausted")}
+        </p>
+      )}
+    </div>
   );
 }

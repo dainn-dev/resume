@@ -20,6 +20,18 @@ public class BankPricingTier
     /// <summary>Inactive tiers are hidden from checkout but kept for history.</summary>
     public bool Active { get; set; } = true;
 
+    /// <summary>Optional promo start. Informational — used for the discount countdown display.</summary>
+    public DateTime? StartDate { get; set; }
+
+    /// <summary>Optional promo end. When set, the UI shows a countdown until the discount ends.</summary>
+    public DateTime? EndDate { get; set; }
+
+    /// <summary>Optional cap on successful redemptions. null = unlimited.</summary>
+    public int? MaxRedemptions { get; set; }
+
+    /// <summary>Count of confirmed (paid) checkouts that used this duration. Drives the "sold out" state.</summary>
+    public int Redemptions { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
