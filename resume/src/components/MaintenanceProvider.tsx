@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import MaintenancePage from "@/components/MaintenancePage";
 
-// Threshold of consecutive backend 5xx responses before we conclude the
-// backend is down and take over the screen with the maintenance page.
-const FAILURE_THRESHOLD = 5;
-
+// As soon as a backend call returns HTTP 500, we conclude the backend is down
+// and take over the screen with the maintenance page. Only an exact 500 trips it —
+// other 5xx (502/503/504) and network-level failures are left alone.
+//
 // We only track calls to our own Next.js proxy routes (which forward to the
-// .NET backend). Third-party / asset requests must never trip the counter.
+// .NET backend). Third-party / asset requests must never trip the takeover.
 function isBackendCall(url: string): boolean {
   try {
     const path = new URL(url, window.location.origin).pathname;
@@ -23,7 +23,6 @@ export default function MaintenanceProvider({ children }: { children: React.Reac
 
   useEffect(() => {
     const originalFetch = window.fetch.bind(window);
-    let consecutive5xx = 0;
 
     window.fetch = async (...args: Parameters<typeof window.fetch>) => {
       const [input] = args;
@@ -36,30 +35,12 @@ export default function MaintenanceProvider({ children }: { children: React.Reac
               ? input.url
               : "";
 
-      const tracked = isBackendCall(url);
+      const res = await originalFetch(...args);
 
-      try {
-        const res = await originalFetch(...args);
+      // Exactly HTTP 500 from a backend proxy call → take over with maintenance page.
+      if (res.status === 500 && isBackendCall(url)) setDown(true);
 
-        if (tracked) {
-          if (res.status >= 500 && res.status < 600) {
-            consecutive5xx += 1;
-            if (consecutive5xx >= FAILURE_THRESHOLD) setDown(true);
-          } else {
-            // Any non-5xx response means the backend is reachable again.
-            consecutive5xx = 0;
-          }
-        }
-
-        return res;
-      } catch (err) {
-        // Network-level failures (backend unreachable) count the same as 5xx.
-        if (tracked) {
-          consecutive5xx += 1;
-          if (consecutive5xx >= FAILURE_THRESHOLD) setDown(true);
-        }
-        throw err;
-      }
+      return res;
     };
 
     return () => {
