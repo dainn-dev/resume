@@ -4,7 +4,7 @@ import { useTranslation } from "@/components/TranslationProvider";
 
 // Full-screen takeover shown when the backend has returned 5xx for too many
 // consecutive calls (see MaintenanceProvider). Fixed maintenance window is
-// 1:00–7:00 AM Vietnam time (GMT+7).
+// 2:00–5:00 AM Vietnam time (GMT+7).
 export default function MaintenancePage({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
 
