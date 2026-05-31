@@ -70,8 +70,9 @@ services:
       DainnStripe__SecretKey: ${STRIPE_SECRET_KEY}
       DainnStripe__PublishableKey: ${STRIPE_PUBLISHABLE_KEY}
       DainnStripe__WebhookSigningSecret: ${STRIPE_WEBHOOK_SECRET}
+      # Billing — disable the 2,000₫ test plan in production
+      Billing__TestPlanEnabled: "false"
       # Billing — bank QR webhook verification secret
-      Billing__TestPlanEnabled=false  # Disable test plan in production
       Billing__BankWebhookSecret: ${BANK_WEBHOOK_SECRET}
       # Real SMTP — replace MailHog
       DainnUser__Email__SmtpHost: ${SMTP_HOST}
