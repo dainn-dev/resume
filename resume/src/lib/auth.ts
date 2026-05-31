@@ -45,6 +45,17 @@ export async function registerRequest(name: string, email: string, password: str
   return { ok: true, message: data.message };
 }
 
+export async function googleCallback(code: string, state: string): Promise<{ user?: AuthUser; error?: string }> {
+  const res = await fetch("/api/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, state }),
+  });
+  const data = await res.json().catch(() => ({ error: "Google sign-in failed." }));
+  if (!res.ok || !data?.success) return { error: data?.error ?? "Google sign-in failed." };
+  return { user: data.user };
+}
+
 export async function logoutRequest(): Promise<void> {
   try { await fetch("/api/auth/logout", { method: "POST" }); } catch { /* ignore */ }
 }

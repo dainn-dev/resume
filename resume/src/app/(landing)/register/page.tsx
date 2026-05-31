@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/components/TranslationProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Recaptcha, { RECAPTCHA_ENABLED } from "@/components/Recaptcha";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { registerRequest } from "@/lib/auth";
 
 export default function RegisterPage() {
@@ -135,6 +136,8 @@ export default function RegisterPage() {
                 {busy ? "…" : t("auth.registerButton")}
               </button>
             </form>
+
+            <GoogleSignInButton />
 
             <p className="text-center text-gray-500 text-xs">
               {t("auth.hasAccount")}{" "}

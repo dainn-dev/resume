@@ -7,6 +7,8 @@ name: dresume-backend
 #   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
 #   JWT_SECRET             base64 secret (>=64 bytes) for signing JWTs  (REQUIRED)
 #   ANTHROPIC_API_KEY      key for the Anthropic-compatible AI endpoint (REQUIRED)
+#   GOOGLE_CLIENT_ID       Google OAuth client ID     (required for "Login with Google")
+#   GOOGLE_CLIENT_SECRET   Google OAuth client secret (required for "Login with Google")
 #   STRIPE_ENABLED         true / false
 #   STRIPE_SECRET_KEY      sk_live_... (required if STRIPE_ENABLED=true)
 #   STRIPE_PUBLISHABLE_KEY pk_live_...
@@ -60,6 +62,9 @@ services:
       DainnUser__Jwt__Secret: ${JWT_SECRET}
       # AI — Anthropic-compatible API key (REQUIRED, else all AI features fail)
       Anthropic__ApiKey: ${ANTHROPIC_API_KEY}
+      # Auth — Google OAuth (for "Login with Google"). Secret stays backend-only.
+      DainnUser__GoogleClientId: ${GOOGLE_CLIENT_ID}
+      DainnUser__GoogleClientSecret: ${GOOGLE_CLIENT_SECRET}
       # Billing — Stripe (card payments). Set DainnStripe__Enabled=false to disable.
       DainnStripe__Enabled: ${STRIPE_ENABLED}
       DainnStripe__SecretKey: ${STRIPE_SECRET_KEY}

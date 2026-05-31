@@ -766,7 +766,10 @@
     "errorCaptchaRequired": "Vui lòng xác nhận captcha.",
     "continueWithGoogle": "Tiếp tục với Google",
     "continueWithLinkedIn": "Tiếp tục với LinkedIn",
-    "orDivider": "hoặc"
+    "orDivider": "hoặc",
+    "signingIn": "Đang đăng nhập…",
+    "googleError": "Đăng nhập Google thất bại. Vui lòng thử lại.",
+    "backToLogin": "Quay lại đăng nhập"
   },
   "account": {
     "title": "Tài Khoản",

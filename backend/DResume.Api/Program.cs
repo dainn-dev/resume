@@ -49,7 +49,11 @@ builder.Services.AddDainnUser(builder.Configuration, opts =>
     opts.EnableSessionManagement = true;
     opts.EnableActivityLogging = true;
     opts.EnableRateLimiting = true;
-    opts.EnableSocialLogin = false;
+    opts.EnableSocialLogin = true;
+    opts.GoogleClientId = builder.Configuration["DainnUser:GoogleClientId"] ?? string.Empty;
+    opts.GoogleClientSecret = builder.Configuration["DainnUser:GoogleClientSecret"] ?? string.Empty;
+    var googleCallbackPath = builder.Configuration["DainnUser:GoogleCallbackPath"];
+    if (!string.IsNullOrWhiteSpace(googleCallbackPath)) opts.GoogleCallbackPath = googleCallbackPath;
     opts.EnableTwoFactor = false;
     opts.EnableGenericOidc = false;
 });

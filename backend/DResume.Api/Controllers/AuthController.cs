@@ -14,8 +14,13 @@ namespace DResume.Api.Controllers;
 public sealed class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _auth;
+    private readonly ISocialLoginService _social;
 
-    public AuthController(IAuthenticationService auth) => _auth = auth;
+    public AuthController(IAuthenticationService auth, ISocialLoginService social)
+    {
+        _auth = auth;
+        _social = social;
+    }
 
     [HttpPost("register")]
     [RequiresRecaptcha]
@@ -39,6 +44,15 @@ public sealed class AuthController : ControllerBase
         var ua = Request.Headers.UserAgent.ToString();
         var rememberDevice = Request.Headers["X-Remember-Device-Token"].ToString();
         var result = await _auth.LoginAsync(req.Email, req.Password, ip, ua, rememberDevice, ct);
+        return Ok(ApiResult.Ok(ToResponse(result)));
+    }
+
+    [HttpPost("google")]
+    public async Task<IActionResult> Google([FromBody] GoogleLoginRequest req, CancellationToken ct)
+    {
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+        var ua = Request.Headers.UserAgent.ToString();
+        var result = await _social.LoginWithGoogleAsync(req.AuthorizationCode, req.CallbackUrl, ip, ua, ct);
         return Ok(ApiResult.Ok(ToResponse(result)));
     }
 

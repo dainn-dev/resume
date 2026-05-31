@@ -18,12 +18,13 @@ public sealed class BillingNotifier : IBillingNotifier
 {
     private readonly IEmailService _email;
     private readonly ILogger<BillingNotifier> _logger;
-    private const string FrontendUrl = "http://localhost:3000";
+    private readonly string _frontendUrl;
 
-    public BillingNotifier(IEmailService email, ILogger<BillingNotifier> logger)
+    public BillingNotifier(IEmailService email, ILogger<BillingNotifier> logger, IConfiguration config)
     {
         _email = email;
         _logger = logger;
+        _frontendUrl = (config["Cors:AllowedOrigins:0"] ?? "http://localhost:3000").TrimEnd('/');
     }
 
     public Task SendSubscribedAsync(string email, string name, PlanDefinition plan, long amountPaidCents, string currency, DateTime? renewDate, string? invoiceUrl, CancellationToken ct = default)
@@ -59,7 +60,7 @@ public sealed class BillingNotifier : IBillingNotifier
             {ManageButton()}
 
             <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
-              Need help? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.<br>
+              Need help? Reply to this email or visit your <a href="{_frontendUrl}/account" style="color: #60a5fa;">account page</a>.<br>
               You can cancel anytime — your access continues until the end of the period.
             </p>
             """);
@@ -118,7 +119,7 @@ public sealed class BillingNotifier : IBillingNotifier
 
             {ManageButton()}
             <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
-              Need help? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.
+              Need help? Reply to this email or visit your <a href="{_frontendUrl}/account" style="color: #60a5fa;">account page</a>.
             </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
@@ -208,7 +209,7 @@ public sealed class BillingNotifier : IBillingNotifier
 
             {ManageButton()}
             <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
-              Need help? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.
+              Need help? Reply to this email or visit your <a href="{_frontendUrl}/account" style="color: #60a5fa;">account page</a>.
             </p>
             """);
         return SendSafelyAsync(email, subject, html, ct);
@@ -318,7 +319,7 @@ public sealed class BillingNotifier : IBillingNotifier
 
             {ManageButton()}
             <p style="margin: 24px 0 0; color: #6b7280; font-size: 11px; line-height: 1.6;">
-              Questions? Reply to this email or visit your <a href="{FrontendUrl}/account" style="color: #60a5fa;">account page</a>.
+              Questions? Reply to this email or visit your <a href="{_frontendUrl}/account" style="color: #60a5fa;">account page</a>.
             </p>
             """);
         return SendSafelyAsync(email, subject: $"Your {plan.Name} subscription price will {subjectVerb}", html, ct);
@@ -381,7 +382,7 @@ public sealed class BillingNotifier : IBillingNotifier
         }
     }
 
-    private static string Wrap(string headerColor, string headerText, string body) => $"""
+    private string Wrap(string headerColor, string headerText, string body) => $"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #111827; color: #e5e7eb; padding: 0; border-radius: 12px; overflow: hidden;">
           <div style="background: {headerColor}; padding: 32px; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 24px;">{headerText}</h1>
@@ -389,7 +390,7 @@ public sealed class BillingNotifier : IBillingNotifier
           <div style="padding: 32px;">
             {body}
             <p style="margin: 32px 0 0; color: #6b7280; font-size: 12px; border-top: 1px solid #1f2937; padding-top: 16px;">
-              DResume · AI-powered resume tools · <a href="{FrontendUrl}" style="color: #6b7280;">{FrontendUrl}</a>
+              DResume · AI-powered resume tools · <a href="{_frontendUrl}" style="color: #6b7280;">{_frontendUrl}</a>
             </p>
           </div>
         </div>
@@ -398,8 +399,8 @@ public sealed class BillingNotifier : IBillingNotifier
     private static string Detail(string label, string value) =>
         $"<p style=\"margin: 0 0 8px; color: #9ca3af; font-size: 13px;\">{label}: <span style=\"color: #e5e7eb; font-weight: 600;\">{value}</span></p>";
 
-    private static string ManageButton(string text = "Manage subscription") =>
-        $"<div style=\"text-align: center; margin: 32px 0 16px;\"><a href=\"{FrontendUrl}/account\" style=\"background: #2563eb; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;\">{text}</a></div>";
+    private string ManageButton(string text = "Manage subscription") =>
+        $"<div style=\"text-align: center; margin: 32px 0 16px;\"><a href=\"{_frontendUrl}/account\" style=\"background: #2563eb; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;\">{text}</a></div>";
 
     private static string FormatPrice(long cents, string currency)
     {
