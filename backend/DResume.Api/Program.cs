@@ -80,6 +80,7 @@ builder.Services.AddHttpClient("company-scraper", c => c.Timeout = TimeSpan.From
     });
 
 builder.Services.AddSingleton<IDocumentParser, DocumentParser>();
+builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IResumeAnalysisService, ResumeAnalysisService>();
 builder.Services.AddScoped<IJobMatchService, JobMatchService>();
 builder.Services.AddScoped<IResumeBuildService, ResumeBuildService>();

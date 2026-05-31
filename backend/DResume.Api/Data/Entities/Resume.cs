@@ -9,6 +9,10 @@ public class Resume
     public string RawText { get; set; } = string.Empty;
     public string? ParsedDataJson { get; set; }
     public string? FileHash { get; set; }
+    // Original uploaded file (PDF/DOCX/TXT). Null for resumes created before file storage existed.
+    public string? StoredFilePath { get; set; }
+    public string? FileContentType { get; set; }
+    public long? FileSizeBytes { get; set; }
     public Guid? LastAnalysisId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

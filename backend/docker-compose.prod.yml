@@ -86,11 +86,15 @@ services:
       # Billing redirect URLs (replace localhost with public frontend URL)
       Billing__SuccessUrl: "${FRONTEND_ORIGIN}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}"
       Billing__CancelUrl: "${FRONTEND_ORIGIN}/account?checkout=cancel"
+      # Uploaded resume files — persisted to a named volume so they survive redeploys
+      Storage__UploadsPath: /app/uploads
     volumes:
       - ./DResume.Api/appsettings.json:/app/appsettings.json:ro
       - dresume-dp-keys:/root/.aspnet/DataProtection-Keys
+      - dresume-uploads:/app/uploads
     restart: unless-stopped
 
 volumes:
   dresume-pg:
   dresume-dp-keys:
+  dresume-uploads:

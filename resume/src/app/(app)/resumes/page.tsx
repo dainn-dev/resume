@@ -9,6 +9,9 @@ import {
   fetchAccountSummary,
   fetchResumeDetail,
   deleteResume,
+  deleteResumeFile,
+  resumeFileUrl,
+  formatFileSize,
   formatRelativeTime,
   type AccountSummary,
   type AccountSummaryResume,
@@ -105,6 +108,18 @@ export default function ResumesPage() {
       if (!ok) { setError(t("account.deleteError")); return; }
       await load();
       if (expandedId === resume.id) setExpandedId(null);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDeleteFile(resume: AccountSummaryResume) {
+    if (!confirm(t("account.deleteFileConfirm"))) return;
+    setBusyId(resume.id);
+    try {
+      const ok = await deleteResumeFile(resume.id);
+      if (!ok) { setError(t("account.deleteFileError")); return; }
+      await load();
     } finally {
       setBusyId(null);
     }
@@ -250,6 +265,8 @@ export default function ResumesPage() {
                       />
                     </div>
 
+                    <FileSection resume={resume} busy={busyId === resume.id} onDeleteFile={() => void handleDeleteFile(resume)} />
+
                     <div className="flex gap-2">
                       <button
                         onClick={() => void handleContinue(resume)}
@@ -274,6 +291,75 @@ export default function ResumesPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function FileSection({
+  resume,
+  busy,
+  onDeleteFile,
+}: {
+  resume: AccountSummaryResume;
+  busy: boolean;
+  onDeleteFile: () => void;
+}) {
+  const { t } = useTranslation();
+  const isPdf = (resume.fileContentType ?? "").includes("pdf") || (resume.sourceFileName ?? "").toLowerCase().endsWith(".pdf");
+
+  if (!resume.hasFile) {
+    return (
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-3 flex items-center gap-2">
+        <FileIcon className="w-4 h-4 text-gray-600 shrink-0" />
+        <span className="text-xs text-gray-600">{t("account.fileUnavailable")}</span>
+      </div>
+    );
+  }
+
+  const ext = (resume.sourceFileName?.split(".").pop() ?? "file").toUpperCase();
+  const size = formatFileSize(resume.fileSizeBytes);
+
+  return (
+    <div className="rounded-xl border border-gray-700 bg-gray-800/50 p-3 space-y-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <FileIcon className="w-4 h-4 text-blue-400 shrink-0" />
+        <span className="text-xs text-white truncate flex-1">{resume.sourceFileName ?? t("account.originalFile")}</span>
+        <span className="text-[10px] uppercase tracking-wide text-gray-400 bg-gray-700/60 px-1.5 py-0.5 rounded shrink-0">{ext}</span>
+        {size && <span className="text-[11px] text-gray-500 shrink-0">{size}</span>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {isPdf && (
+          <a
+            href={resumeFileUrl(resume.id, true)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-600 hover:bg-gray-700/60 text-gray-200 transition-colors"
+          >
+            {t("account.previewFile")}
+          </a>
+        )}
+        <a
+          href={resumeFileUrl(resume.id)}
+          className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-600 hover:bg-gray-700/60 text-gray-200 transition-colors"
+        >
+          {t("account.downloadFile")}
+        </a>
+        <button
+          onClick={onDeleteFile}
+          disabled={busy}
+          className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-red-500/40 hover:bg-red-500/10 text-red-400 disabled:opacity-50 transition-colors"
+        >
+          {t("account.deleteFile")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z" />
+    </svg>
   );
 }
 

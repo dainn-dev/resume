@@ -23,15 +23,17 @@ public sealed class ResumesController : ControllerBase
     private readonly IResumeAnalysisService _analysis;
     private readonly IDocumentParser _parser;
     private readonly IPlanService _plans;
+    private readonly IFileStorageService _files;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public ResumesController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser, IPlanService plans)
+    public ResumesController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser, IPlanService plans, IFileStorageService files)
     {
         _db = db;
         _current = current;
         _analysis = analysis;
         _parser = parser;
         _plans = plans;
+        _files = files;
     }
 
     private async Task EnsureResumeQuotaAsync(Guid userId, CancellationToken ct)
@@ -127,6 +129,12 @@ public sealed class ResumesController : ControllerBase
             ParsedDataJson = JsonSerializer.Serialize(parsed, JsonOptions),
             FileHash = fileHash,
         };
+
+        var stored = await _files.SaveAsync(userId, resume.Id, file, ct);
+        resume.StoredFilePath = stored.RelativePath;
+        resume.FileContentType = stored.ContentType;
+        resume.FileSizeBytes = stored.SizeBytes;
+
         _db.Resumes.Add(resume);
 
         var record = new ResumeAnalysisRecord
@@ -199,9 +207,45 @@ public sealed class ResumesController : ControllerBase
         var resume = await _db.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct)
             ?? throw new KeyNotFoundException("Resume not found.");
 
+        _files.Delete(resume.StoredFilePath);
         _db.JobMatches.RemoveRange(_db.JobMatches.Where(x => x.ResumeId == id));
         _db.CoverLetters.RemoveRange(_db.CoverLetters.Where(x => x.ResumeId == id));
         _db.Resumes.Remove(resume);
+        await _db.SaveChangesAsync(ct);
+        return Ok(ApiResult.Ok(new { deleted = true }));
+    }
+
+    // Download (or inline-preview with ?inline=true) the original uploaded file.
+    [HttpGet("{id:guid}/file")]
+    public async Task<IActionResult> DownloadFile(Guid id, [FromQuery] bool inline, CancellationToken ct)
+    {
+        var userId = _current.RequireUserId();
+        var resume = await _db.Resumes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct)
+            ?? throw new KeyNotFoundException("Resume not found.");
+        if (string.IsNullOrEmpty(resume.StoredFilePath))
+            throw new KeyNotFoundException("No original file is stored for this resume.");
+
+        var stream = _files.OpenRead(resume.StoredFilePath);
+        var contentType = resume.FileContentType ?? "application/octet-stream";
+        var fileName = resume.SourceFileName ?? $"resume-{id}";
+        // No fileDownloadName => Content-Disposition: inline (browser preview); with it => attachment (download).
+        return inline ? File(stream, contentType, enableRangeProcessing: true)
+                      : File(stream, contentType, fileName);
+    }
+
+    // Delete only the original file, keeping the resume record and its extracted text.
+    [HttpDelete("{id:guid}/file")]
+    public async Task<IActionResult> DeleteFile(Guid id, CancellationToken ct)
+    {
+        var userId = _current.RequireUserId();
+        var resume = await _db.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct)
+            ?? throw new KeyNotFoundException("Resume not found.");
+
+        _files.Delete(resume.StoredFilePath);
+        resume.StoredFilePath = null;
+        resume.FileContentType = null;
+        resume.FileSizeBytes = null;
+        resume.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return Ok(ApiResult.Ok(new { deleted = true }));
     }
@@ -246,15 +290,17 @@ public sealed class LegacyAnalyzeController : ControllerBase
     private readonly IResumeAnalysisService _analysis;
     private readonly IDocumentParser _parser;
     private readonly IPlanService _plans;
+    private readonly IFileStorageService _files;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public LegacyAnalyzeController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser, IPlanService plans)
+    public LegacyAnalyzeController(ResumeDbContext db, ICurrentUser current, IResumeAnalysisService analysis, IDocumentParser parser, IPlanService plans, IFileStorageService files)
     {
         _db = db;
         _current = current;
         _analysis = analysis;
         _parser = parser;
         _plans = plans;
+        _files = files;
     }
 
     private async Task EnsureResumeQuotaAsync(Guid userId, CancellationToken ct)
@@ -324,6 +370,12 @@ public sealed class LegacyAnalyzeController : ControllerBase
             ParsedDataJson = JsonSerializer.Serialize(parsed, JsonOptions),
             FileHash = fileHash,
         };
+
+        var stored = await _files.SaveAsync(userId, resume.Id, file, ct);
+        resume.StoredFilePath = stored.RelativePath;
+        resume.FileContentType = stored.ContentType;
+        resume.FileSizeBytes = stored.SizeBytes;
+
         _db.Resumes.Add(resume);
         var record = new ResumeAnalysisRecord
         {

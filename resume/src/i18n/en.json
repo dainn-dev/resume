@@ -807,6 +807,13 @@
     "loadError": "Could not load your account.",
     "loadResumeError": "Could not load that resume.",
     "deleteError": "Failed to delete that resume.",
+    "originalFile": "Original file",
+    "fileUnavailable": "Original file not available (uploaded before file storage was enabled).",
+    "previewFile": "Preview",
+    "downloadFile": "Download",
+    "deleteFile": "Delete file",
+    "deleteFileConfirm": "Delete the original uploaded file? The resume and its data will be kept.",
+    "deleteFileError": "Failed to delete the file.",
     "retry": "Retry"
   },
   "billing": {
