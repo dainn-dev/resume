@@ -9,6 +9,9 @@ name: dresume-backend
 #   ANTHROPIC_API_KEY      key for the Anthropic-compatible AI endpoint (REQUIRED)
 #   GOOGLE_CLIENT_ID       Google OAuth client ID     (required for "Login with Google")
 #   GOOGLE_CLIENT_SECRET   Google OAuth client secret (required for "Login with Google")
+#   ENCRYPTION_KEY         base64-encoded 32-byte key for PII field encryption at rest (REQUIRED)
+#                          generate with:  openssl rand -base64 32
+#                          ⚠ back this up — losing it makes all encrypted PII unrecoverable
 #   STRIPE_ENABLED         true / false
 #   STRIPE_SECRET_KEY      sk_live_... (required if STRIPE_ENABLED=true)
 #   STRIPE_PUBLISHABLE_KEY pk_live_...
@@ -60,6 +63,8 @@ services:
       ConnectionStrings__DainnStripe: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       # Auth — JWT signing secret (REQUIRED, else token signing fails)
       DainnUser__Jwt__Secret: ${JWT_SECRET}
+      # PII field encryption at rest (REQUIRED — back up this key, loss = unrecoverable data)
+      Encryption__Key: ${ENCRYPTION_KEY}
       # AI — Anthropic-compatible API key (REQUIRED, else all AI features fail)
       Anthropic__ApiKey: ${ANTHROPIC_API_KEY}
       # Auth — Google OAuth (for "Login with Google"). Secret stays backend-only.

@@ -19,7 +19,7 @@ public sealed class ClaudeSynthesisSource : ICompanyReviewSource
         Converters = { new FlexibleDoubleConverter(), new FlexibleIntConverter() },
     };
 
-    public string Name => "Claude AI";
+    public string Name => "DResume AI";
 
     public ClaudeSynthesisSource(IAnthropicClient ai, ILogger<ClaudeSynthesisSource> logger)
     {
@@ -92,7 +92,7 @@ Output JSON:
             var json = JsonExtractor.Extract(raw);
             var parsed = JsonSerializer.Deserialize<ClaudeResponse>(json, JsonOptions);
             if (parsed is null)
-                return new CompanyReviewSourceResult(null, [], "Claude AI returned unparseable JSON.");
+                return new CompanyReviewSourceResult(null, [], "DResume AI returned unparseable JSON.");
 
             var info = parsed.Info is null
                 ? null
@@ -121,7 +121,7 @@ Output JSON:
                 .ToList();
 
             if (reviews.Count == 0 && info is null)
-                return new CompanyReviewSourceResult(null, [], "Claude has no public knowledge of this company.");
+                return new CompanyReviewSourceResult(null, [], "DResume AI has no public knowledge of this company.");
 
             return new CompanyReviewSourceResult(info, reviews, null);
         }

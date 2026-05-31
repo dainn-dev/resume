@@ -106,6 +106,12 @@ public sealed class ExceptionHandlingMiddleware
             _logger.LogError(ex, "Upstream timeout on {Path}", ctx.Request.Path);
             await WriteAsync(ctx, HttpStatusCode.GatewayTimeout, "AI request timed out. Please retry.");
         }
+        catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested)
+        {
+            // Client disconnected / upstream proxy aborted the request — the connection is gone,
+            // so there's nothing to return. Log as info, not an error 500.
+            _logger.LogInformation("Request aborted by client on {Path}", ctx.Request.Path);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception on {Path}", ctx.Request.Path);

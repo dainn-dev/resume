@@ -67,7 +67,7 @@ HTML:
         var json = JsonExtractor.Extract(raw);
         var parsed = JsonSerializer.Deserialize<ClaudeResponse>(json, JsonOptions);
         if (parsed is null)
-            return new CompanyReviewSourceResult(null, [], $"{sourceName}: Claude returned unparseable JSON.");
+            return new CompanyReviewSourceResult(null, [], $"{sourceName}: DResume AI returned unparseable JSON.");
 
         var info = parsed.Info is null
             ? null

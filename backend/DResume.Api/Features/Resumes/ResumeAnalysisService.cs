@@ -14,6 +14,7 @@ public sealed class ResumeAnalysisService : IResumeAnalysisService
 {
     private readonly IAnthropicClient _ai;
     private readonly ILogger<ResumeAnalysisService> _logger;
+    private const int MaxConcurrentSections = 6;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public ResumeAnalysisService(IAnthropicClient ai, ILogger<ResumeAnalysisService> logger)
@@ -28,7 +29,9 @@ public sealed class ResumeAnalysisService : IResumeAnalysisService
         var langInstruction = LanguageDetector.Instruction(lang);
         var sys = PromptLibrary.AnalyzeSectionSystem + "\n" + langInstruction;
 
-        var semaphore = new SemaphoreSlim(2);
+        // Run all sections concurrently — there are only a handful, and the wall-clock time
+        // (each AI call ~10-16s) otherwise pushes the request past upstream proxy timeouts.
+        var semaphore = new SemaphoreSlim(MaxConcurrentSections);
         var tasks = PromptLibrary.AnalyzeSections.Select(async s =>
         {
             await semaphore.WaitAsync(ct);
