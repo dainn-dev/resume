@@ -17,18 +17,33 @@ public sealed class DocumentParser : IDocumentParser
         var ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
 
         if (contentType == "application/pdf" || ext == "pdf")
-            return ExtractPdf(stream);
+            return Sanitize(ExtractPdf(stream));
 
         if (contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext == "docx")
-            return ExtractDocx(stream);
+            return Sanitize(ExtractDocx(stream));
 
         if (contentType == "text/plain" || ext == "txt")
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: false);
-            return await reader.ReadToEndAsync(ct);
+            return Sanitize(await reader.ReadToEndAsync(ct));
         }
 
         throw new ArgumentException("Unsupported file type. Please upload PDF, DOCX, or TXT.");
+    }
+
+    // Strip NUL (0x00) and other C0 control chars (keep tab/newline/carriage return).
+    // PostgreSQL text/jsonb columns reject 0x00 ("invalid byte sequence for encoding UTF8"),
+    // and such chars also break JSON parsing of AI responses downstream.
+    private static string Sanitize(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        var sb = new StringBuilder(text.Length);
+        foreach (var c in text)
+        {
+            if (c == '\t' || c == '\n' || c == '\r' || !char.IsControl(c))
+                sb.Append(c);
+        }
+        return sb.ToString();
     }
 
     private static string ExtractPdf(Stream stream)
