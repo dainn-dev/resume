@@ -110,6 +110,9 @@ public sealed class UsersController : ControllerBase
                 r.CreatedAt,
                 r.UpdatedAt,
                 HasParsedData = r.ParsedDataJson != null,
+                HasFile = r.StoredFilePath != null,
+                r.FileSizeBytes,
+                r.FileContentType,
                 LatestAnalysis = _db.ResumeAnalyses
                     .Where(a => a.ResumeId == r.Id)
                     .OrderByDescending(a => a.CreatedAt)
@@ -203,6 +206,9 @@ public sealed class UsersController : ControllerBase
                 r.CreatedAt,
                 r.UpdatedAt,
                 r.HasParsedData,
+                r.HasFile,
+                r.FileSizeBytes,
+                r.FileContentType,
                 latestAnalysis = r.LatestAnalysis == null ? null : new
                 {
                     r.LatestAnalysis.Id,

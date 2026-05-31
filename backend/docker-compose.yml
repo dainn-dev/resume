@@ -54,11 +54,15 @@ services:
       DainnUser__Email__SmtpPort: "1025"
       Cors__AllowedOrigins__0: "http://localhost:3000"
       Cors__AllowedOrigins__1: "http://localhost:3005"
+      # Uploaded resume files persisted to a named volume (survive redeploys)
+      Storage__UploadsPath: /app/uploads
     volumes:
       - ./DResume.Api/appsettings.json:/app/appsettings.json:ro
       - dresume-dp-keys:/root/.aspnet/DataProtection-Keys
+      - dresume-uploads:/app/uploads
     restart: unless-stopped
 
 volumes:
   dresume-pg:
   dresume-dp-keys:
+  dresume-uploads:

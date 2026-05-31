@@ -41,6 +41,9 @@ export interface AccountSummaryResume {
   createdAt: string;
   updatedAt: string;
   hasParsedData: boolean;
+  hasFile: boolean;
+  fileSizeBytes: number | null;
+  fileContentType: string | null;
   latestAnalysis: {
     id: string;
     score: number;
@@ -115,6 +118,24 @@ export async function deleteResume(id: string): Promise<boolean> {
   if (!res.ok) return false;
   const body = (await res.json().catch(() => null)) as Envelope<unknown> | null;
   return !!body?.success;
+}
+
+export async function deleteResumeFile(id: string): Promise<boolean> {
+  const res = await fetch(`/api/resumes/${encodeURIComponent(id)}/file`, { method: "DELETE" });
+  if (!res.ok) return false;
+  const body = (await res.json().catch(() => null)) as Envelope<unknown> | null;
+  return !!body?.success;
+}
+
+export function resumeFileUrl(id: string, inline = false): string {
+  return `/api/resumes/${encodeURIComponent(id)}/file${inline ? "?inline=true" : ""}`;
+}
+
+export function formatFileSize(bytes: number | null | undefined): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function formatRelativeTime(iso: string): string {

@@ -808,6 +808,13 @@
     "loadError": "Không thể tải tài khoản của bạn.",
     "loadResumeError": "Không thể tải CV đó.",
     "deleteError": "Xóa CV thất bại.",
+    "originalFile": "File gốc",
+    "fileUnavailable": "File gốc không khả dụng (đã upload trước khi bật tính năng lưu file).",
+    "previewFile": "Xem trước",
+    "downloadFile": "Tải xuống",
+    "deleteFile": "Xoá file",
+    "deleteFileConfirm": "Xoá file gốc đã upload? CV và dữ liệu vẫn được giữ lại.",
+    "deleteFileError": "Xoá file thất bại.",
     "retry": "Thử lại"
   },
   "billing": {
