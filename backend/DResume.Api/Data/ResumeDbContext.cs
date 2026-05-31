@@ -1,11 +1,16 @@
+using DResume.Api.Common.Encryption;
 using DResume.Api.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DResume.Api.Data;
 
 public class ResumeDbContext : DbContext
 {
-    public ResumeDbContext(DbContextOptions<ResumeDbContext> options) : base(options) { }
+    private readonly IFieldEncryptor _encryptor;
+
+    public ResumeDbContext(DbContextOptions<ResumeDbContext> options, IFieldEncryptor encryptor) : base(options)
+        => _encryptor = encryptor;
 
     public DbSet<Resume> Resumes => Set<Resume>();
     public DbSet<ResumeAnalysisRecord> ResumeAnalyses => Set<ResumeAnalysisRecord>();
@@ -32,14 +37,18 @@ public class ResumeDbContext : DbContext
     {
         b.HasDefaultSchema("resume");
 
+        // Encrypts/decrypts sensitive PII columns transparently (AES-256-GCM). Reused across properties.
+        var encrypted = new EncryptedStringConverter(_encryptor);
+
         b.Entity<Resume>(e =>
         {
             e.ToTable("resumes");
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => new { x.UserId, x.FileHash }).HasFilter("\"FileHash\" IS NOT NULL");
-            e.Property(x => x.RawText).HasColumnType("text");
-            e.Property(x => x.ParsedDataJson).HasColumnType("jsonb");
+            // PII — encrypted at rest. ParsedDataJson moves jsonb -> text (ciphertext is not valid JSON).
+            e.Property(x => x.RawText).HasColumnType("text").HasConversion(encrypted);
+            e.Property(x => x.ParsedDataJson).HasColumnType("text").HasConversion((ValueConverter)encrypted);
             e.Property(x => x.FileHash).HasMaxLength(64);
             e.HasMany(x => x.Analyses).WithOne(x => x.Resume!).HasForeignKey(x => x.ResumeId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -180,8 +189,9 @@ public class ResumeDbContext : DbContext
             e.Property(x => x.BankBin).HasMaxLength(16);
             e.Property(x => x.BankCode).HasMaxLength(16);
             e.Property(x => x.BankName).HasMaxLength(120);
-            e.Property(x => x.AccountNumber).HasMaxLength(40);
-            e.Property(x => x.AccountHolder).HasMaxLength(120);
+            // PII — encrypted at rest. MaxLength removed: ciphertext is longer than the raw value.
+            e.Property(x => x.AccountNumber).HasConversion(encrypted);
+            e.Property(x => x.AccountHolder).HasConversion(encrypted);
             e.HasIndex(x => x.IsDefault);
             e.HasIndex(x => x.IsActive);
         });
@@ -215,7 +225,8 @@ public class ResumeDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(100);
             e.Property(x => x.BaseUrl).HasMaxLength(500);
-            e.Property(x => x.ApiKey).HasMaxLength(500);
+            // Secret — encrypted at rest. MaxLength removed: ciphertext is longer than the raw key.
+            e.Property(x => x.ApiKey).HasConversion(encrypted);
             e.Property(x => x.ModelsJson).HasColumnType("jsonb");
         });
 
@@ -258,6 +269,7 @@ public class ResumeDbContextFactory : Microsoft.EntityFrameworkCore.Design.IDesi
             .UseNpgsql(conn, o => o.MigrationsHistoryTable("__EFMigrationsHistory", "resume"))
             .Options;
 
-        return new ResumeDbContext(options);
+        // Design-time (migrations) only needs the model shape, not real encryption.
+        return new ResumeDbContext(options, new AesFieldEncryptor(config));
     }
 }

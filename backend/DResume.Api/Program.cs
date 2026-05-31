@@ -8,6 +8,7 @@ using DResume.Api.Features.Email;
 using DResume.Api.Ai;
 using DResume.Api.Billing;
 using DResume.Api.Common;
+using DResume.Api.Common.Encryption;
 using DResume.Api.Data;
 using DResume.Api.DocumentParsing;
 using DResume.Api.Features.Build;
@@ -79,6 +80,7 @@ builder.Services.AddHttpClient("company-scraper", c => c.Timeout = TimeSpan.From
         CookieContainer = new System.Net.CookieContainer(),
     });
 
+builder.Services.AddSingleton<IFieldEncryptor, AesFieldEncryptor>();
 builder.Services.AddSingleton<IDocumentParser, DocumentParser>();
 builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IResumeAnalysisService, ResumeAnalysisService>();
@@ -183,6 +185,14 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var resumeDb = scope.ServiceProvider.GetRequiredService<ResumeDbContext>();
     await resumeDb.Database.MigrateAsync();
+
+    // Encrypt any pre-existing plaintext PII rows (idempotent; no-op once all rows are encrypted).
+    try
+    {
+        var encryptor = scope.ServiceProvider.GetRequiredService<IFieldEncryptor>();
+        await PiiEncryptionBackfill.RunAsync(resumeDb, encryptor, app.Logger);
+    }
+    catch (Exception ex) { app.Logger.LogError(ex, "PII encryption backfill failed."); }
 
     // Bootstrap plans table from PlanCatalog defaults if empty
     try { await scope.ServiceProvider.GetRequiredService<IPlanCatalogService>().SeedIfEmptyAsync(); }

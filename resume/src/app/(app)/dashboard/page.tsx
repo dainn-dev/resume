@@ -132,7 +132,7 @@ export default function HomePage() {
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-2">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-              Powered by Claude AI
+              Powered by DResume AI
             </div>
             <h1 className="text-4xl font-bold text-white tracking-tight">
               AI Resume Scorer

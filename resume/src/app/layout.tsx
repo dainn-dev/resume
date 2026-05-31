@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "AI Resume Tools",
-  description: "Score, build, and write cover letters with Claude AI",
+  description: "Score, build, and write cover letters with DResume AI",
 };
 
 export default function RootLayout({

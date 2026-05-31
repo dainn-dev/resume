@@ -7,7 +7,7 @@ interface LoadingSpinnerProps {
 
 export default function LoadingSpinner({
   message = "Analyzing your resume…",
-  subMessage = "Claude AI is reviewing each section",
+  subMessage = "DResume AI is reviewing each section",
 }: LoadingSpinnerProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-20">
