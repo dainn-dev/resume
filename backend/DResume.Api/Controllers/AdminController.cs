@@ -369,7 +369,11 @@ public sealed class AdminController : ControllerBase
             var r = records.FirstOrDefault(x => x.Code == p.Code);
             var tiers = p.IsPaid
                 ? (await pricing.GetAllTiersAsync(p.Code, ct))
-                    .Select(t => new { id = t.Id, months = t.Months, discountPercent = t.DiscountPercent, active = t.Active })
+                    .Select(t => new
+                    {
+                        id = t.Id, months = t.Months, discountPercent = t.DiscountPercent, active = t.Active,
+                        startDate = t.StartDate, endDate = t.EndDate, maxRedemptions = t.MaxRedemptions, redemptions = t.Redemptions,
+                    })
                 : Enumerable.Empty<object>();
             view.Add(new
             {
