@@ -767,7 +767,10 @@
     "errorCaptchaRequired": "Please complete the captcha.",
     "continueWithGoogle": "Continue with Google",
     "continueWithLinkedIn": "Continue with LinkedIn",
-    "orDivider": "or"
+    "orDivider": "or",
+    "signingIn": "Signing you in…",
+    "googleError": "Google sign-in failed. Please try again.",
+    "backToLogin": "Back to sign in"
   },
   "account": {
     "title": "My Account",

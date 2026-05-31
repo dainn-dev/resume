@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/components/TranslationProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Recaptcha, { RECAPTCHA_ENABLED } from "@/components/Recaptcha";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { loginRequest } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -25,6 +26,15 @@ export default function LoginPage() {
   useEffect(() => {
     if (authMounted && isAuthenticated) router.replace("/dashboard");
   }, [authMounted, isAuthenticated, router]);
+
+  // Surface errors bounced back from the Google OAuth callback (?error=...).
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get("error");
+    if (reason) {
+      setError(t("auth.googleError"));
+      window.history.replaceState(null, "", "/login");
+    }
+  }, [t]);
 
   if (!mounted || !authMounted) return null;
   if (isAuthenticated) return null;
@@ -104,6 +114,8 @@ export default function LoginPage() {
                 {busy ? "…" : t("auth.loginButton")}
               </button>
             </form>
+
+            <GoogleSignInButton />
 
             <p className="text-center text-gray-500 text-xs">
               {t("auth.noAccount")}{" "}

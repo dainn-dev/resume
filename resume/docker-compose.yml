@@ -15,6 +15,9 @@ services:
       # When running alongside backend compose (shared network), frontend can call backend via service name.
       # If backend is on host instead, override with http://host.docker.internal:5267
       DRESUME_API_URL: http://api:5267
+      # Google OAuth client ID — used server-side to build the consent-screen URL ("Login with Google").
+      # Non-secret; the client secret lives only in the backend. Provide via .env.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
