@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { SalaryEstimatorFormData, SalaryEstimate } from "@/types/builder";
+import type { SalaryEstimatorFormData, SalaryEstimate, ResumeFormData, WorkEntry, EducationEntry } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useI18n } from "@/hooks/useI18n";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { fetchResumeDetail } from "@/lib/accountClient";
 import {
   getSalaryEstimatorForm,
   getSalaryEstimatorResult,
@@ -21,6 +22,7 @@ import {
   setSalaryEstimatorResult,
   setSalaryEstimatorAnalysis,
   getBuilderForm,
+  getParsedResumeForm,
 } from "@/lib/pipeline";
 
 const EXPERIENCE_KEYS = [
@@ -48,6 +50,55 @@ const INITIAL_FORM: SalaryEstimatorFormData = {
   skills: "",
   education: "Bachelor's Degree",
 };
+
+// --- Résumé → Salary form autofill helpers -------------------------------------------------
+
+// The current/most-recent role: prefer an entry still ongoing ("Present"/empty end date),
+// otherwise fall back to the first listed (CVs conventionally list most-recent first).
+function mostRecentTitle(entries: WorkEntry[] | undefined): string {
+  if (!entries?.length) return "";
+  const ongoing = entries.find((e) => /present|current|now|hiện tại|nay|đang/i.test(e.endDate ?? "") || !e.endDate?.trim());
+  return (ongoing ?? entries[0]).title?.trim() ?? "";
+}
+
+function mostRecentDegree(entries: EducationEntry[] | undefined): string {
+  return entries?.find((e) => e.degree?.trim())?.degree?.trim() ?? "";
+}
+
+// Map a free-text degree to one of the EDUCATION_KEYS select values. Returns "" when unsure
+// so the caller keeps the default rather than showing an unmatched value.
+function mapDegreeToOption(degree: string): string {
+  const d = degree.toLowerCase();
+  if (!d) return "";
+  if (/ph\.?d|doctor|doctoral|tiến sĩ/.test(d)) return "PhD";
+  if (/master|msc|m\.s|m\.eng|mba|thạc sĩ/.test(d)) return "Master's Degree";
+  if (/bachelor|bsc|b\.s|b\.a|b\.eng|btech|b\.tech|kỹ sư|cử nhân|đại học/.test(d)) return "Bachelor's Degree";
+  if (/associate|cao đẳng/.test(d)) return "Associate's Degree";
+  if (/bootcamp|certificat|chứng chỉ/.test(d)) return "Bootcamp/Certification";
+  if (/high school|secondary|thpt|trung học/.test(d)) return "High School";
+  return "";
+}
+
+// Best-effort industry inference from titles, skills and companies. Returns "" when nothing
+// clearly matches (the user can fill it in). Free-text field, so any string is acceptable.
+function inferIndustry(p: ResumeFormData): string {
+  const haystack = [
+    ...(p.workEntries ?? []).flatMap((w) => [w.title, w.company]),
+    p.technicalSkills,
+    p.summary,
+  ].filter(Boolean).join(" ").toLowerCase();
+  if (!haystack.trim()) return "";
+  const RULES: { industry: string; re: RegExp }[] = [
+    { industry: "Technology", re: /software|developer|engineer|programmer|devops|data|frontend|back ?end|full ?stack|web|mobile|cloud|machine learning|\bai\b|\bml\b|\bit\b|qa|sre/ },
+    { industry: "Finance", re: /finance|financial|accountant|accounting|banking|investment|fintech|audit|kế toán|tài chính/ },
+    { industry: "Healthcare", re: /nurse|doctor|medical|health|clinical|pharma|hospital|y tế|bác sĩ/ },
+    { industry: "Marketing", re: /marketing|seo|content|brand|social media|copywriter|quảng cáo/ },
+    { industry: "Sales", re: /\bsales\b|account executive|business development|bán hàng/ },
+    { industry: "Design", re: /designer|ux|ui|graphic|product design|thiết kế/ },
+    { industry: "Education", re: /teacher|professor|lecturer|education|tutor|giáo viên|giảng viên/ },
+  ];
+  return RULES.find((r) => r.re.test(haystack))?.industry ?? "";
+}
 
 function inputClass(extra = "") {
   return `w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 ${extra}`;
@@ -84,20 +135,8 @@ export default function SalaryEstimatorPage() {
     }
 
     const stored = getSalaryEstimatorForm();
-    const builderForm = getBuilderForm();
-
-    let next: SalaryEstimatorFormData = stored ?? INITIAL_FORM;
-
-    if (builderForm) {
-      next = {
-        ...next,
-        jobTitle: form.jobTitle || builderForm.technicalSkills.split(",")[0]?.trim() || "",
-        skills: next.skills || builderForm.technicalSkills,
-        education: next.education || (builderForm.educationEntries[0]?.degree ?? "Bachelor's Degree"),
-      };
-    }
-
-    setForm(next);
+    const freshNoStored = !stored;
+    setForm(stored ? { ...stored } : { ...INITIAL_FORM });
 
     const cachedResult = getSalaryEstimatorResult();
     const cachedAnalysis = getSalaryEstimatorAnalysis();
@@ -105,6 +144,35 @@ export default function SalaryEstimatorPage() {
     if (cachedAnalysis) setAnalysis(cachedAnalysis);
 
     hydratedRef.current = true;
+
+    // Autofill from the uploaded résumé's parsed data. Blank text fields are filled;
+    // location/education (which have sensible defaults) are overridden only on a fresh
+    // form so we never clobber a value the user previously saved.
+    const applyParsed = (p: ResumeFormData) => {
+      const title = mostRecentTitle(p.workEntries);
+      const skills = p.technicalSkills?.trim() ?? "";
+      const loc = p.location?.trim() ?? "";
+      const edu = mapDegreeToOption(mostRecentDegree(p.educationEntries));
+      const industry = inferIndustry(p);
+      setForm((prev) => ({
+        ...prev,
+        jobTitle: prev.jobTitle || title,
+        skills: prev.skills || skills,
+        industry: prev.industry || industry,
+        location: freshNoStored && loc ? loc : prev.location,
+        education: freshNoStored && edu ? edu : prev.education,
+      }));
+    };
+
+    const inMemory = getParsedResumeForm() ?? getBuilderForm();
+    if (inMemory) {
+      applyParsed(inMemory);
+    } else {
+      // Score-Resume flow only caches the analysis, not the parsed form — fetch it by id.
+      fetchResumeDetail(urlResumeId).then((detail) => {
+        if (detail?.parsed) applyParsed(detail.parsed);
+      }).catch(() => {});
+    }
   }, [searchParams]);
 
   // Persist form edits
