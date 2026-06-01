@@ -49,6 +49,27 @@ public sealed class CoverLettersController : ControllerBase
         return Ok(ApiResult.Ok(new CoverLetterResponse(text, record.Id)));
     }
 
+    // Decline-offer / reject-candidate email. Gated by the same Cover Letter feature.
+    [HttpPost("email")]
+    [ConsumesAiCall]
+    public async Task<IActionResult> CreateEmail([FromBody] RejectionEmailFormDataDto req, CancellationToken ct)
+    {
+        var text = await _service.GenerateRejectionAsync(req, ct);
+        var record = new CoverLetter
+        {
+            UserId = _current.RequireUserId(),
+            ResumeId = null,
+            JobTitle = req.Role,
+            Company = req.Company,
+            InputJson = JsonSerializer.Serialize(req, JsonOptions),
+            BodyText = text,
+        };
+        _db.CoverLetters.Add(record);
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(ApiResult.Ok(new CoverLetterResponse(text, record.Id)));
+    }
+
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct)
     {
