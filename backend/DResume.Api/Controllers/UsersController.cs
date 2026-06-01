@@ -89,7 +89,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpGet("me/summary")]
-    public async Task<IActionResult> Summary(CancellationToken ct)
+    public async Task<IActionResult> Summary([FromServices] IPlanCatalogService catalog, CancellationToken ct)
     {
         var userId = _current.RequireUserId();
 
@@ -97,6 +97,31 @@ public sealed class UsersController : ControllerBase
         var subscription = await _plans.GetOrCreateAsync(userId, ct);
         var plan = await _plans.GetCurrentPlanAsync(userId, ct);
         var aiCallsUsed = await _usage.GetCurrentMonthUsageAsync(userId, ct);
+
+        // The user's per-feature access (admin-editable per plan) plus, for each feature, the name
+        // of the lowest plan that unlocks it — so the frontend can show an accurate upsell label.
+        var allPlans = (await catalog.GetAllAsync(ct)).OrderBy(p => (int)p.Code).ToList();
+        string? MinPlan(Func<PlanLimits, bool> sel) => allPlans.FirstOrDefault(p => sel(p.Limits))?.Name;
+        var features = new
+        {
+            jobMatch = plan.Limits.JobMatchEnabled,
+            coverLetter = plan.Limits.CoverLetterEnabled,
+            careerCoach = plan.Limits.CareerCoachEnabled,
+            interviewCoach = plan.Limits.InterviewCoachEnabled,
+            salaryEstimator = plan.Limits.SalaryEstimatorEnabled,
+            calendar = plan.Limits.CalendarEnabled,
+            companyReview = plan.Limits.CompanyReviewEnabled,
+        };
+        var featurePlans = new
+        {
+            jobMatch = MinPlan(l => l.JobMatchEnabled),
+            coverLetter = MinPlan(l => l.CoverLetterEnabled),
+            careerCoach = MinPlan(l => l.CareerCoachEnabled),
+            interviewCoach = MinPlan(l => l.InterviewCoachEnabled),
+            salaryEstimator = MinPlan(l => l.SalaryEstimatorEnabled),
+            calendar = MinPlan(l => l.CalendarEnabled),
+            companyReview = MinPlan(l => l.CompanyReviewEnabled),
+        };
 
         var resumes = await _db.Resumes
             .AsNoTracking()
@@ -184,6 +209,8 @@ public sealed class UsersController : ControllerBase
                 name = plan.Name,
                 lookupKey = plan.LookupKey,
                 isPaid = plan.IsPaid,
+                features,
+                featurePlans,
             },
             aiUsage = new
             {
