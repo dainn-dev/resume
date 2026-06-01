@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
 import AdminNav from "@/components/AdminNav";
+import { Button } from "@/components/ui/Button";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -84,7 +85,7 @@ export default function AdminUsersPage() {
             placeholder={t("adminUsers.searchPlaceholder")}
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 rounded-lg">{t("adminUsers.search")}</button>
+          <Button type="submit">{t("adminUsers.search")}</Button>
         </form>
       </div>
 
@@ -134,8 +135,8 @@ export default function AdminUsersPage() {
         <div className="flex items-center justify-between mt-4 text-sm">
           <span className="text-gray-500">{interpolate(t("adminUsers.pageInfo"), { page, total: totalPages, count: data.total })}</span>
           <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminUsers.prev")}</button>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminUsers.next")}</button>
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>{t("adminUsers.prev")}</Button>
+            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>{t("adminUsers.next")}</Button>
           </div>
         </div>
       )}

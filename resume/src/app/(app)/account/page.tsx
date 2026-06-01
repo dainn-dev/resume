@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/components/TranslationProvider";
 import BillingPanel from "@/components/BillingPanel";
+import { focusRing } from "@/components/ui/Button";
 import { fetchAccountSummary, type AccountSummary } from "@/lib/accountClient";
 
 export default function AccountPage() {
@@ -102,7 +103,7 @@ export default function AccountPage() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
           {error}{" "}
-          <button onClick={() => void load()} className="underline">{t("account.retry")}</button>
+          <button onClick={() => void load()} className={`underline ${focusRing}`}>{t("account.retry")}</button>
         </div>
       )}
 

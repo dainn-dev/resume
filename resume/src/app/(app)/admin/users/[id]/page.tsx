@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 interface UserDetail {
   user: {
@@ -145,11 +147,11 @@ export default function AdminUserDetailPage() {
               {data.subscription?.plan ?? "Free"}
             </span>
             {u.isLocked ? (
-              <button onClick={() => toggleLockout(false)} disabled={busy === "lockout"} className="text-xs bg-green-500/20 text-green-300 hover:bg-green-500/30 px-3 py-1 rounded border border-green-500/40">
+              <button onClick={() => toggleLockout(false)} disabled={busy === "lockout"} className={`text-xs bg-green-500/20 text-green-300 hover:bg-green-500/30 px-3 py-1 rounded border border-green-500/40 disabled:opacity-50 ${focusRing}`}>
                 {busy === "lockout" ? "…" : "Unlock"}
               </button>
             ) : (
-              <button onClick={() => toggleLockout(true)} disabled={busy === "lockout"} className="text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 px-3 py-1 rounded border border-red-500/40">
+              <button onClick={() => toggleLockout(true)} disabled={busy === "lockout"} className={`text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 px-3 py-1 rounded border border-red-500/40 disabled:opacity-50 ${focusRing}`}>
                 {busy === "lockout" ? "…" : "Lock account"}
               </button>
             )}
@@ -172,14 +174,14 @@ export default function AdminUserDetailPage() {
           <button
             onClick={() => resetPassword("email")}
             disabled={busy === "reset-email"}
-            className="text-xs font-semibold px-4 py-2 rounded-lg border border-blue-500/40 hover:bg-blue-500/10 text-blue-400 transition-colors"
+            className={`text-xs font-semibold px-4 py-2 rounded-lg border border-blue-500/40 hover:bg-blue-500/10 text-blue-400 transition-colors disabled:opacity-50 ${focusRing}`}
           >
             {busy === "reset-email" ? "…" : "Send reset email"}
           </button>
           <button
             onClick={() => resetPassword("temp")}
             disabled={busy === "reset-temp"}
-            className="text-xs font-semibold px-4 py-2 rounded-lg border border-amber-500/40 hover:bg-amber-500/10 text-amber-400 transition-colors"
+            className={`text-xs font-semibold px-4 py-2 rounded-lg border border-amber-500/40 hover:bg-amber-500/10 text-amber-400 transition-colors disabled:opacity-50 ${focusRing}`}
           >
             {busy === "reset-temp" ? "…" : "Generate temp password"}
           </button>
@@ -190,15 +192,16 @@ export default function AdminUserDetailPage() {
             {resetResult.tempPassword && (
               <div className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 mt-2">
                 <code className="flex-1 font-mono text-sm text-amber-200 select-all">{resetResult.tempPassword}</code>
-                <button
+                <Button
+                  variant="link"
                   onClick={() => navigator.clipboard.writeText(resetResult.tempPassword!)}
-                  className="text-xs text-blue-400 hover:text-blue-300"
+                  className="text-xs"
                 >
                   Copy
-                </button>
+                </Button>
               </div>
             )}
-            <button onClick={() => setResetResult(null)} className="text-[10px] text-gray-500 hover:text-gray-300 mt-2">Dismiss</button>
+            <button onClick={() => setResetResult(null)} className={`text-[10px] text-gray-500 hover:text-gray-300 mt-2 rounded ${focusRing}`}>Dismiss</button>
           </div>
         )}
       </div>
@@ -209,8 +212,7 @@ export default function AdminUserDetailPage() {
         <p className="text-xs text-gray-500 mb-4">Grant complimentary access (bypasses Stripe). User gets email notification.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Duration</label>
+          <Field label="Duration" labelClassName="block text-xs text-gray-400 mb-1">
             <select
               value={grantDuration}
               onChange={(e) => setGrantDuration(Number(e.target.value))}
@@ -223,9 +225,8 @@ export default function AdminUserDetailPage() {
               <option value={24}>24 months</option>
               <option value={0}>Permanent (no expiry)</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Note (visible to user in email)</label>
+          </Field>
+          <Field label="Note (visible to user in email)" labelClassName="block text-xs text-gray-400 mb-1">
             <input
               type="text"
               value={grantNote}
@@ -233,7 +234,7 @@ export default function AdminUserDetailPage() {
               placeholder="e.g. Compensation for outage, beta tester, partner..."
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
             />
-          </div>
+          </Field>
         </div>
 
         <div className="flex gap-2">
@@ -242,7 +243,7 @@ export default function AdminUserDetailPage() {
               key={p}
               onClick={() => grantPlan(p)}
               disabled={busy?.startsWith("plan-") || (data.subscription?.plan === p && !data.subscription?.isAdminGranted)}
-              className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors ${
+              className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${focusRing} ${
                 data.subscription?.plan === p && !data.subscription?.isAdminGranted
                   ? "bg-blue-600/40 text-blue-200 cursor-default"
                   : "border border-gray-700 hover:border-blue-500 hover:bg-blue-500/10 text-gray-300"
@@ -315,13 +316,14 @@ export default function AdminUserDetailPage() {
                   <p className="text-xs text-gray-500">{new Date(r.updatedAt).toLocaleDateString()} · {r.hasParsedData ? "parsed" : "raw"}</p>
                 </div>
                 {r.latestAnalysis && <span className="text-xs font-semibold text-amber-400 px-2 mr-3">Score: {r.latestAnalysis.score}</span>}
-                <button
+                <Button
+                  variant="link"
                   onClick={() => deleteResume(r.id)}
-                  disabled={busy === `del-${r.id}`}
-                  className="text-xs text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-40"
+                  loading={busy === `del-${r.id}`}
+                  className="text-xs text-red-400 hover:text-red-300"
                 >
-                  {busy === `del-${r.id}` ? "…" : "Delete"}
-                </button>
+                  Delete
+                </Button>
               </div>
             ))}
           </div>

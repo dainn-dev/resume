@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "@/components/TranslationProvider";
 import AdminNav from "@/components/AdminNav";
+import { Button, focusRing } from "@/components/ui/Button";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -142,14 +143,14 @@ export default function AdminBankPaymentsPage() {
           <button
             key={s || "all"}
             onClick={() => setStatusFilter(s)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${focusRing} ${
               statusFilter === s ? "border-blue-500 bg-blue-500/10 text-blue-300" : "border-gray-700 text-gray-400 hover:border-gray-600"
             }`}
           >
             {s ? statusLabel(s) : t("adminBankPayments.all")}
           </button>
         ))}
-        <button onClick={() => void load()} className="ml-auto text-xs text-blue-400 hover:text-blue-300">{t("adminBankPayments.refresh")}</button>
+        <Button variant="link" onClick={() => void load()} className="ml-auto text-xs">{t("adminBankPayments.refresh")}</Button>
       </div>
 
       {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>}
@@ -178,9 +179,9 @@ export default function AdminBankPaymentsPage() {
                     </p>
                   </div>
                   <span className="text-green-400 text-sm font-bold shrink-0">{formatVnd(p.amountVnd)}</span>
-                  <button onClick={() => setExpandedId(isOpen ? null : p.id)} className="text-xs text-blue-400 hover:text-blue-300 shrink-0">
+                  <Button variant="link" onClick={() => setExpandedId(isOpen ? null : p.id)} className="text-xs shrink-0">
                     {isOpen ? t("adminBankPayments.close") : t("adminBankPayments.details")}
-                  </button>
+                  </Button>
                 </div>
                 {isOpen && (
                   <div className="border-t border-gray-800 p-4 space-y-3 bg-gray-950/40">
@@ -228,20 +229,22 @@ export default function AdminBankPaymentsPage() {
                     )}
                     {p.status === "Pending" && (
                       <div className="flex gap-2 pt-2">
-                        <button
+                        <Button
+                          variant="success"
+                          className="text-xs px-4 py-2 rounded-lg"
+                          loading={busy === p.id}
                           onClick={() => void confirmPayment(p)}
-                          disabled={busy === p.id}
-                          className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg"
                         >
-                          {busy === p.id ? "…" : t("adminBankPayments.confirmActivate")}
-                        </button>
-                        <button
+                          {t("adminBankPayments.confirmActivate")}
+                        </Button>
+                        <Button
+                          variant="dangerOutline"
                           onClick={() => void cancelPayment(p)}
                           disabled={busy === p.id}
-                          className="border border-red-500/40 hover:bg-red-500/10 text-red-400 text-xs font-semibold px-4 py-2 rounded-lg"
+                          className="text-xs px-4 py-2 rounded-lg"
                         >
                           {t("adminBankPayments.cancelPayment")}
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>

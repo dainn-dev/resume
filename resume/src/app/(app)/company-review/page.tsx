@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { CompanyReviewResponse, ReviewItem, SourceStatus, TopTechCompany } from "@/types/companyReview";
 
@@ -164,19 +165,20 @@ export default function CompanyReviewPage() {
         <div className="flex gap-3">
           <input
             type="text"
+            aria-label={t("companyReview.searchPlaceholder")}
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             placeholder={t("companyReview.searchPlaceholder")}
             disabled={loading}
             className={inputClass("flex-1")}
           />
-          <button
+          <Button
             type="submit"
             disabled={loading || !companyName.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 rounded-lg transition-colors"
+            className="px-6"
           >
             {t("companyReview.searchButton")}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -195,7 +197,7 @@ export default function CompanyReviewPage() {
                 key={c.name}
                 type="button"
                 onClick={() => runSearch(c.name)}
-                className="text-left bg-gray-900 border border-gray-800 hover:border-blue-500/50 hover:bg-gray-800/50 rounded-xl p-4 transition-colors group"
+                className={`text-left bg-gray-900 border border-gray-800 hover:border-blue-500/50 hover:bg-gray-800/50 rounded-xl p-4 transition-colors group ${focusRing}`}
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2 min-w-0">
@@ -316,7 +318,7 @@ export default function CompanyReviewPage() {
                     .replace("{total}", String(result.totalAvailable))}
                 </p>
               </div>
-              <Link href="/account" className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-lg whitespace-nowrap">
+              <Link href="/account" className={`${buttonClasses({ variant: "primary", size: "sm" })} whitespace-nowrap`}>
                 {t("companyReview.upgradeCta")}
               </Link>
             </div>

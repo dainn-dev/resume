@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button, buttonClasses } from "@/components/ui/Button";
 
 interface BankAccountSummary {
   bankCode: string;
@@ -39,16 +40,17 @@ function CopyButton({ text }: { text: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   return (
-    <button
+    <Button
+      variant="link"
       onClick={() => {
         navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="text-xs text-blue-400 hover:text-blue-300 ml-2"
+      className="text-xs ml-2"
     >
       {copied ? t("bankPay.copied") : t("bankPay.copy")}
-    </button>
+    </Button>
   );
 }
 
@@ -139,12 +141,12 @@ export default function BankPaymentPage() {
           </p>
         </div>
         <div className="flex gap-3 justify-center">
-          <button onClick={() => router.push("/account")} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+          <Button variant="primary" onClick={() => router.push("/account")} className="px-6">
             {t("bankPay.goToAccount")}
-          </button>
-          <button onClick={() => router.push("/dashboard")} className="border border-gray-700 hover:bg-gray-800 text-gray-300 text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+          </Button>
+          <Button variant="secondary" onClick={() => router.push("/dashboard")} className="px-6">
             {t("bankPay.dashboard")}
-          </button>
+          </Button>
         </div>
       </main>
     );
@@ -155,7 +157,7 @@ export default function BankPaymentPage() {
     return (
       <main className="max-w-2xl mx-auto px-4 py-10 text-center space-y-6">
         <p className="text-amber-400 text-lg">{label}</p>
-        <Link href="/account" className="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+        <Link href="/account" className={`${buttonClasses({ variant: "primary" })} px-6`}>
           {t("bankPay.backToAccountBtn")}
         </Link>
       </main>
@@ -236,9 +238,9 @@ export default function BankPaymentPage() {
 
       <div className="flex gap-3 justify-between items-center text-xs text-gray-500">
         <p>{t("bankPay.planLabel")} <span className="text-white">{payment.planCode}</span> · {durationLabel(payment.durationMonths)}</p>
-        <button onClick={handleCancel} disabled={cancelling} className="text-red-400 hover:text-red-300">
-          {cancelling ? t("bankPay.cancelling") : t("bankPay.cancelPayment")}
-        </button>
+        <Button variant="link" loading={cancelling} onClick={handleCancel} className="text-red-400 hover:text-red-300">
+          {t("bankPay.cancelPayment")}
+        </Button>
       </div>
 
       <p className="text-center text-xs text-gray-600">

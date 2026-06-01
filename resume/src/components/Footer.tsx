@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
 import { useReportBug } from "@/components/ReportBugModal";
+import { focusRing } from "@/components/ui/Button";
 
 const LINKS = [
   { href: "/help", key: "landing.footerHelp" },
@@ -10,7 +11,7 @@ const LINKS = [
   { href: "/terms", key: "landing.footerTerms" },
 ];
 
-const linkClass = "text-gray-500 hover:text-gray-300 transition-colors text-xs";
+const linkClass = "inline-flex items-center min-h-[44px] text-gray-500 hover:text-gray-300 transition-colors text-xs";
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -29,10 +30,12 @@ export default function Footer() {
               </Link>
             </span>
           ))}
-          <span className="text-gray-700 text-xs">·</span>
-          <button type="button" onClick={open} className={linkClass}>
-            {t("landing.footerReportBug")}
-          </button>
+          <span className="flex items-center gap-4">
+            <span className="text-gray-700 text-xs">·</span>
+            <button type="button" onClick={open} className={`${linkClass} ${focusRing} rounded`}>
+              {t("landing.footerReportBug")}
+            </button>
+          </span>
         </div>
       </div>
     </footer>

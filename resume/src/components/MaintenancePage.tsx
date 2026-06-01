@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button } from "@/components/ui/Button";
 
 // Full-screen takeover shown when the backend has returned 5xx for too many
 // consecutive calls (see MaintenanceProvider). Fixed maintenance window is
@@ -20,15 +21,12 @@ export default function MaintenancePage({ onRetry }: { onRetry: () => void }) {
         <h1 className="text-2xl font-bold mb-3">{t("maintenance.pageTitle")}</h1>
         <p className="text-gray-400 mb-6 leading-relaxed">{t("maintenance.pageBody")}</p>
 
-        <button
-          onClick={onRetry}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-sm font-semibold text-gray-950 transition-colors"
-        >
+        <Button variant="warning" onClick={onRetry}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
           {t("maintenance.retry")}
-        </button>
+        </Button>
       </div>
     </div>
   );

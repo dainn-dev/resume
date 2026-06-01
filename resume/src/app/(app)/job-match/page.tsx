@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import { formatRelativeTime } from "@/lib/accountClient";
 import type { JobMatchAnalysis } from "@/types/jobMatch";
 import {
@@ -102,7 +104,7 @@ function ResultView({
             <ScoreLabel score={result.matchScore} t={t} />
           </div>
           <p className="text-gray-300 text-sm leading-relaxed">{result.summary}</p>
-          <button onClick={onReset} className="text-xs text-gray-500 hover:text-gray-300 underline">
+          <button onClick={onReset} className={`text-xs text-gray-500 hover:text-gray-300 underline ${focusRing}`}>
             {t("jobMatch.reanalyze")}
           </button>
         </div>
@@ -116,12 +118,9 @@ function ResultView({
             {t("jobMatch.coverLetterHint")}
           </p>
         </div>
-        <button
-          onClick={onWriteCoverLetter}
-          className="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
+        <Button onClick={onWriteCoverLetter} className="shrink-0">
           {t("jobMatch.writeCoverLetter")}
-        </button>
+        </Button>
       </div>
 
       {/* Strengths & Gaps */}
@@ -169,7 +168,7 @@ function ResultView({
           <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
             <button
               onClick={() => setOpenIdx(openIdx === i ? null : i)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-800/50 transition-colors"
+              className={`w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-800/50 transition-colors ${focusRing}`}
             >
               <span className="text-sm font-medium text-white">{s.area}</span>
               <svg className={`w-4 h-4 text-gray-400 transition-transform ${openIdx === i ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -455,7 +454,7 @@ export default function JobMatchPage() {
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${mode === m ? "bg-gray-900 text-white shadow" : "text-gray-400 hover:text-white"}`}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${focusRing} ${mode === m ? "bg-gray-900 text-white shadow" : "text-gray-400 hover:text-white"}`}
               >
                 {m === "url" ? t("jobMatch.jobUrl") : t("jobMatch.paste")}
               </button>
@@ -463,19 +462,23 @@ export default function JobMatchPage() {
           </div>
 
           {mode === "url" ? (
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">{t("jobMatch.linkedinUrl")}</label>
+            <Field
+              label={t("jobMatch.linkedinUrl")}
+              labelClassName="block text-xs font-medium text-gray-400 mb-1"
+              hint={t("jobMatch.jobUrlHint")}
+            >
               <input
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 placeholder={t("jobMatch.jobUrlPlaceholder")}
                 value={linkedinUrl}
                 onChange={e => setLinkedinUrl(e.target.value)}
               />
-              <p className="text-xs text-gray-600 mt-1.5">{t("jobMatch.jobUrlHint")}</p>
-            </div>
+            </Field>
           ) : (
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">{t("jobMatch.jobDescription")}</label>
+            <Field
+              label={t("jobMatch.jobDescription")}
+              labelClassName="block text-xs font-medium text-gray-400 mb-1"
+            >
               <textarea
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
                 rows={10}
@@ -483,20 +486,21 @@ export default function JobMatchPage() {
                 value={jobDescription}
                 onChange={e => setJobDescription(e.target.value)}
               />
-            </div>
+            </Field>
           )}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>
           )}
 
-          <button
+          <Button
             onClick={handleAnalyze}
             disabled={!canSubmit}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
+            size="lg"
+            fullWidth
           >
             {t("jobMatch.analyze")}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -555,9 +559,9 @@ function HistoryBar({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">{t("jobMatch.history")}</h3>
         {showNewButton && (
-          <button onClick={onNewAnalysis} className="text-xs text-blue-400 hover:text-blue-300">
+          <Button variant="link" size="sm" className="text-xs" onClick={onNewAnalysis}>
             + {t("jobMatch.newAnalysis")}
-          </button>
+          </Button>
         )}
       </div>
       <div className="space-y-1.5">
@@ -576,7 +580,7 @@ function HistoryBar({
               <button
                 onClick={() => onSelect(item)}
                 disabled={loading}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
+                className={`flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50 ${focusRing}`}
               >
                 <span className={`text-xs font-bold tabular-nums px-1.5 py-0.5 rounded border shrink-0 ${historyScoreColor(item.matchScore)}`}>
                   {item.matchScore}
@@ -587,7 +591,7 @@ function HistoryBar({
               <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={e => { e.stopPropagation(); onRename(item); }}
-                  className="p-1 text-gray-500 hover:text-blue-400 transition-colors"
+                  className={`p-1 text-gray-500 hover:text-blue-400 transition-colors ${focusRing}`}
                   title={t("jobMatch.rename")}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -596,7 +600,7 @@ function HistoryBar({
                 </button>
                 <button
                   onClick={e => { e.stopPropagation(); onDelete(item); }}
-                  className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                  className={`p-1 text-gray-500 hover:text-red-400 transition-colors ${focusRing}`}
                   title={t("jobMatch.delete")}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -609,12 +613,9 @@ function HistoryBar({
         })}
       </div>
       {items.length > 3 && (
-        <button
-          onClick={() => setExpanded(prev => !prev)}
-          className="text-xs text-blue-400 hover:text-blue-300"
-        >
+        <Button variant="link" size="sm" className="text-xs" onClick={() => setExpanded(prev => !prev)}>
           {expanded ? t("account.collapse") : `${t("jobMatch.showAll")} (${items.length})`}
-        </button>
+        </Button>
       )}
     </div>
   );

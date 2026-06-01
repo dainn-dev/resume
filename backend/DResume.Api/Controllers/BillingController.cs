@@ -27,6 +27,11 @@ public sealed class BillingController : ControllerBase
     private DainnStripeDbContext _stripeDb => _sp.GetService<DainnStripeDbContext>()
         ?? throw new InvalidOperationException("Card payments are disabled (Stripe is not configured).");
 
+    // True only when Stripe was wired up at startup (DainnStripe:Enabled + a SecretKey present).
+    // Mirrors the registration condition in Program.cs: if the DbContext isn't registered, the
+    // global StripeConfiguration.ApiKey was never set, so any Stripe.net call would throw.
+    private bool StripeEnabled => _sp.GetService<DainnStripeDbContext>() is not null;
+
     public BillingController(
         IPlanService plans,
         IServiceProvider sp,
@@ -417,6 +422,12 @@ public sealed class BillingController : ControllerBase
     public async Task<IActionResult> SyncCurrent(CancellationToken ct)
     {
         var userId = _current.RequireUserId();
+        // Stripe off (e.g. local/bank-QR-only deploys): skip the sync instead of letting the
+        // Stripe.net call throw on a missing API key. A row may still carry a stale
+        // StripeCustomerId from when Stripe was enabled, so this guard must come first.
+        if (!StripeEnabled)
+            return Ok(ApiResult.Ok(new { synced = false, reason = "stripe_disabled" }));
+
         var current = await _plans.GetOrCreateAsync(userId, ct);
         if (string.IsNullOrEmpty(current.StripeCustomerId))
             return Ok(ApiResult.Ok(new { synced = false, reason = "no_customer" }));

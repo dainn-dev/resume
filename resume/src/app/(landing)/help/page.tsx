@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/components/TranslationProvider";
+import { useAuth } from "@/components/AuthProvider";
 import { useReportBug } from "@/components/ReportBugModal";
 import Footer from "@/components/Footer";
+import { Button, focusRing } from "@/components/ui/Button";
 
 // Each category lists the question ids it contains. i18n keys follow the shape
 // help.<category>.title, help.<category>.<qId>.q and help.<category>.<qId>.a
@@ -45,7 +47,11 @@ const CATEGORIES: { key: string; icon: string; questions: string[] }[] = [
 
 export default function HelpCenterPage() {
   const { t, mounted } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const { open: openReportBug } = useReportBug();
+  // Help lives in the public (landing) group with no app chrome — give users a way back
+  // to wherever they belong (the app if signed in, otherwise the landing page).
+  const homeHref = isAuthenticated ? "/dashboard" : "/";
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
 
@@ -77,9 +83,20 @@ export default function HelpCenterPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
       <nav className="flex items-center justify-between h-14 px-4 max-w-4xl mx-auto w-full">
-        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href={homeHref}
+            className={`inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors rounded ${focusRing}`}
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            {t("common.back")}
+          </Link>
+          <Link href={homeHref} className="flex items-center hover:opacity-80 transition-opacity">
+            <Image src="/logo.png" alt="DResume" width={68} height={32} className="h-8 w-auto" priority />
+          </Link>
+        </div>
         <LanguageSwitcher />
       </nav>
 
@@ -157,12 +174,9 @@ export default function HelpCenterPage() {
           <div className="mt-12 bg-gradient-to-b from-blue-600/10 to-transparent border border-blue-500/20 rounded-2xl p-8 text-center">
             <h2 className="text-xl font-bold text-white mb-2">{t("help.ctaTitle")}</h2>
             <p className="text-gray-400 text-sm mb-5">{t("help.ctaSubtitle")}</p>
-            <button
-              onClick={openReportBug}
-              className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm"
-            >
+            <Button onClick={openReportBug}>
               {t("reportBug.title")}
-            </button>
+            </Button>
           </div>
         </div>
       </main>
@@ -187,7 +201,7 @@ function FaqItem({
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-gray-800/30 transition-colors"
+        className={`w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-gray-800/30 transition-colors ${focusRing}`}
         aria-expanded={isOpen}
       >
         <span className="text-sm font-medium text-white">{question}</span>

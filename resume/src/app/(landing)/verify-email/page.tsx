@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/components/TranslationProvider";
+import { buttonClasses } from "@/components/ui/Button";
 
 function VerifyEmailContent() {
   const { t, mounted } = useTranslation();
@@ -49,7 +50,7 @@ function VerifyEmailContent() {
     <div className="min-h-screen flex flex-col">
       <nav className="flex items-center justify-between h-14 px-4 max-w-6xl mx-auto w-full">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
+          <Image src="/logo.png" alt="DResume" width={68} height={32} className="h-8 w-auto" priority />
         </Link>
         <LanguageSwitcher />
       </nav>
@@ -74,7 +75,7 @@ function VerifyEmailContent() {
                 <p className="text-gray-400 text-sm mb-6">Your account is now active. You can sign in.</p>
                 <Link
                   href="/login"
-                  className="inline-block w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
+                  className={buttonClasses({ variant: "primary", fullWidth: true })}
                 >
                   Sign in
                 </Link>
@@ -91,7 +92,7 @@ function VerifyEmailContent() {
                 <p className="text-red-400 text-sm mb-6">{error}</p>
                 <Link
                   href="/login"
-                  className="inline-block w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
+                  className={buttonClasses({ variant: "secondary", fullWidth: true })}
                 >
                   Go to login
                 </Link>

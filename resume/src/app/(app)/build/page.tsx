@@ -8,6 +8,8 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { useTranslation } from "@/components/TranslationProvider";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
+import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import {
   getBuilderForm,
   getBuiltResumeMarkdown,
@@ -45,8 +47,27 @@ function labelClass() {
 }
 
 function StepBar({ step, onStepClick, t }: { step: Step; onStepClick: (s: Step) => void; t: (key: string) => string }) {
+  const total = STEP_LABEL_KEYS.length;
+  const currentLabel = t(STEP_LABEL_KEYS[step - 1]);
   return (
-    <div className="flex items-center justify-start sm:justify-center gap-0 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="mb-8">
+      {/* Mobile: a compact "step x of n" indicator + progress bar (the full dotted bar
+          overflows and clips on small screens). */}
+      <div className="sm:hidden">
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-sm font-semibold text-blue-400">{currentLabel}</span>
+          <span className="text-xs text-gray-500">{step}/{total}</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-gray-800 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-blue-600 transition-all duration-300"
+            style={{ width: `${(step / total) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: full clickable step dots. */}
+      <div className="hidden sm:flex items-center justify-center gap-0 overflow-x-auto pb-2 scrollbar-hide">
       {STEP_LABEL_KEYS.map((key, i) => {
         const label = t(key);
         const num = (i + 1) as Step;
@@ -80,6 +101,7 @@ function StepBar({ step, onStepClick, t }: { step: Step; onStepClick: (s: Step) 
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -571,7 +593,10 @@ export default function BuildPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
-      <PipelineWorkflow />
+      {/* Cross-feature pipeline is redundant with the build step bar on phones — show from sm up. */}
+      <div className="hidden sm:block">
+        <PipelineWorkflow />
+      </div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">{t("build.title")}</h1>
         <p className="text-gray-400 text-sm mt-1">{t("build.subtitle")}</p>
@@ -623,20 +648,13 @@ export default function BuildPage() {
             <p className="text-sm font-medium text-blue-300">{t("build.applyRecommendationsTitle")}</p>
             <p className="text-xs text-blue-400/70 mt-0.5">{t("build.applyRecommendationsHint")}</p>
           </div>
-          <button
+          <Button
             onClick={handleApplyRecommendations}
-            disabled={improving}
-            className="shrink-0 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+            loading={improving}
+            className="shrink-0"
           >
-            {improving ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                Applying...
-              </>
-            ) : (
-              "Apply All Recommendations"
-            )}
-          </button>
+            {improving ? "Applying..." : "Apply All Recommendations"}
+          </Button>
         </div>
       )}
 
@@ -682,7 +700,7 @@ export default function BuildPage() {
               );
             })}
           </div>
-          <button onClick={() => setScoreComparison(null)} className="text-xs text-gray-500 hover:text-gray-400">Dismiss</button>
+          <Button variant="link" onClick={() => setScoreComparison(null)} className="text-xs text-gray-500 hover:text-gray-400">Dismiss</Button>
         </div>
       )}
 
@@ -692,35 +710,28 @@ export default function BuildPage() {
           <div className="space-y-4">
             <h2 className="text-base font-semibold text-white mb-4">{t("build.personalInfoSection")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass()}>{t("build.fullName")} *</label>
+              <Field label={t("build.fullName")} required labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("build.fullNamePlaceholder")} value={form.fullName} onChange={e => updateField("fullName", e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("build.email")} *</label>
+              </Field>
+              <Field label={t("build.email")} required labelClassName={labelClass()}>
                 <input className={inputClass()} type="email" placeholder={t("build.emailPlaceholder")} value={form.email} onChange={e => updateField("email", e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("build.phone")}</label>
+              </Field>
+              <Field label={t("build.phone")} labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("build.phonePlaceholder")} value={form.phone} onChange={e => updateField("phone", e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("build.location")}</label>
+              </Field>
+              <Field label={t("build.location")} labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("build.locationPlaceholder")} value={form.location} onChange={e => updateField("location", e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("build.linkedIn")}</label>
+              </Field>
+              <Field label={t("build.linkedIn")} labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("build.linkedInPlaceholder")} value={form.linkedIn} onChange={e => updateField("linkedIn", e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("build.github")}</label>
+              </Field>
+              <Field label={t("build.github")} labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("build.gitHubPlaceholder")} value={form.github} onChange={e => updateField("github", e.target.value)} />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label className={labelClass()}>{t("build.summary")}</label>
+            <Field label={t("build.summary")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={4} placeholder={t("build.summaryPlaceholder")} value={form.summary} onChange={e => updateField("summary", e.target.value)} />
-            </div>
+            </Field>
           </div>
         )}
 
@@ -749,52 +760,48 @@ export default function BuildPage() {
                     )}
                     <div className="flex-1" />
                     {form.workEntries.length > 1 && (
-                      <button
+                      <Button
+                        variant="link"
                         onClick={(e) => { e.stopPropagation(); removeWorkEntry(idx); }}
                         className="text-xs text-red-400 hover:text-red-300 shrink-0"
                       >
                         {t("build.removeWork")}
-                      </button>
+                      </Button>
                     )}
                   </div>
                   {isOpen && (
                     <div className="border-t border-gray-800 p-4 space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className={labelClass()}>{t("build.companyRequired")}</label>
+                        <Field label={t("build.company")} required labelClassName={labelClass()}>
                           <input className={inputClass()} placeholder={t("build.companyPlaceholder")} value={entry.company} onChange={e => updateWork(idx, "company", e.target.value)} />
-                        </div>
-                        <div>
-                          <label className={labelClass()}>{t("build.titleRequired")}</label>
+                        </Field>
+                        <Field label={t("build.titleRequired")} labelClassName={labelClass()}>
                           <input className={inputClass()} placeholder={t("build.titlePlaceholder")} value={entry.title} onChange={e => updateWork(idx, "title", e.target.value)} />
-                        </div>
-                        <div className="col-span-1 sm:col-span-2">
-                          <label className={labelClass()}>{t("build.projectName")}</label>
+                        </Field>
+                        <Field label={t("build.projectName")} labelClassName={labelClass()} className="col-span-1 sm:col-span-2">
                           <input className={inputClass()} placeholder={t("build.projectNamePlaceholder")} value={entry.projectName ?? ""} onChange={e => updateWork(idx, "projectName", e.target.value)} />
-                        </div>
+                        </Field>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={labelClass()}>{t("build.startDate")}</label>
+                        <Field label={t("build.startDate")} labelClassName={labelClass()}>
                           <input className={inputClass()} placeholder={t("build.startDatePlaceholder")} value={entry.startDate} onChange={e => updateWork(idx, "startDate", e.target.value)} />
-                        </div>
-                        <div>
-                          <label className={labelClass()}>{t("build.endDate")}</label>
+                        </Field>
+                        <Field label={t("build.endDate")} labelClassName={labelClass()}>
                           <input className={inputClass()} placeholder={t("build.endDatePlaceholder")} value={entry.endDate} onChange={e => updateWork(idx, "endDate", e.target.value)} />
-                        </div>
+                        </Field>
                       </div>
                       <div>
-                        <label className={labelClass()}>{t("build.achievementBullets")}</label>
+                        <p className={labelClass()}>{t("build.achievementBullets")}</p>
                         <div className="space-y-2">
                           {entry.bullets.map((bullet, bIdx) => (
                             <div key={bIdx} className="relative">
-                              <textarea className={inputClass("w-full pr-8 resize-none scrollbar-dark")} rows={2} placeholder={t("build.bulletPlaceholder")} value={bullet} onChange={e => updateBullet(idx, bIdx, e.target.value)} />
+                              <textarea aria-label={`${t("build.achievementBullets")} ${bIdx + 1}`} className={inputClass("w-full pr-8 resize-none scrollbar-dark")} rows={2} placeholder={t("build.bulletPlaceholder")} value={bullet} onChange={e => updateBullet(idx, bIdx, e.target.value)} />
                               {entry.bullets.length > 1 && (
-                                <button onClick={() => removeBullet(idx, bIdx)} className="absolute top-1 right-1 text-gray-500 hover:text-red-400 text-xs w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10">✕</button>
+                                <button onClick={() => removeBullet(idx, bIdx)} className={`absolute top-1 right-1 text-gray-500 hover:text-red-400 text-xs w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 ${focusRing}`}>✕</button>
                               )}
                             </div>
                           ))}
-                          <button onClick={() => addBullet(idx)} className="text-xs text-blue-400 hover:text-blue-300">{t("build.addBulletButton")}</button>
+                          <Button variant="link" onClick={() => addBullet(idx)} className="text-xs">{t("build.addBulletButton")}</Button>
                         </div>
                       </div>
                     </div>
@@ -802,7 +809,7 @@ export default function BuildPage() {
                 </div>
               );
             })}
-            <button onClick={addWorkEntry} className="text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-4 py-2 w-full">
+            <button onClick={addWorkEntry} className={`text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-4 py-2 w-full ${focusRing}`}>
               {t("build.addPositionButton")}
             </button>
           </div>
@@ -817,30 +824,26 @@ export default function BuildPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-300">{t("build.entryPrefix")} {idx + 1}</span>
                   {form.educationEntries.length > 1 && (
-                    <button onClick={() => setForm(prev => ({ ...prev, educationEntries: prev.educationEntries.filter((_, i) => i !== idx) }))} className="text-xs text-red-400 hover:text-red-300">{t("build.removeEducation")}</button>
+                    <Button variant="link" onClick={() => setForm(prev => ({ ...prev, educationEntries: prev.educationEntries.filter((_, i) => i !== idx) }))} className="text-xs text-red-400 hover:text-red-300">{t("build.removeEducation")}</Button>
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass()}>{t("build.schoolRequired")}</label>
+                  <Field label={t("build.school")} required labelClassName={labelClass()}>
                     <input className={inputClass()} placeholder={t("build.schoolPlaceholder")} value={entry.school} onChange={e => updateEducation(idx, "school", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass()}>{t("build.degreeRequired")}</label>
+                  </Field>
+                  <Field label={t("build.degree")} required labelClassName={labelClass()}>
                     <input className={inputClass()} placeholder={t("build.degreePlaceholder")} value={entry.degree} onChange={e => updateEducation(idx, "degree", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass()}>{t("build.graduationYear")}</label>
+                  </Field>
+                  <Field label={t("build.graduationYear")} labelClassName={labelClass()}>
                     <input className={inputClass()} placeholder={t("build.graduationYearPlaceholder")} value={entry.graduationYear} onChange={e => updateEducation(idx, "graduationYear", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelClass()}>{t("build.gpa")}</label>
+                  </Field>
+                  <Field label={t("build.gpa")} labelClassName={labelClass()}>
                     <input className={inputClass()} placeholder={t("build.gpaPlaceholder")} value={entry.gpa} onChange={e => updateEducation(idx, "gpa", e.target.value)} />
-                  </div>
+                  </Field>
                 </div>
               </div>
             ))}
-            <button onClick={() => setForm(prev => ({ ...prev, educationEntries: [...prev.educationEntries, { ...EMPTY_EDUCATION }] }))} className="text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-4 py-2 w-full">
+            <button onClick={() => setForm(prev => ({ ...prev, educationEntries: [...prev.educationEntries, { ...EMPTY_EDUCATION }] }))} className={`text-sm text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-lg px-4 py-2 w-full ${focusRing}`}>
               {t("build.addEducationButton")}
             </button>
           </div>
@@ -850,26 +853,21 @@ export default function BuildPage() {
         {step === 4 && (
           <div className="space-y-4">
             <h2 className="text-base font-semibold text-white mb-4">{t("build.skillsSection")}</h2>
-            <div>
-              <label className={labelClass()}>{t("build.technicalSkills")}</label>
+            <Field label={t("build.technicalSkills")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={3} placeholder={t("build.technicalSkillsPlaceholder")} value={form.technicalSkills} onChange={e => updateField("technicalSkills", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelClass()}>{t("build.softSkills")}</label>
+            </Field>
+            <Field label={t("build.softSkills")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={2} placeholder={t("build.softSkillsPlaceholder")} value={form.softSkills} onChange={e => updateField("softSkills", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelClass()}>{t("build.certifications")}</label>
+            </Field>
+            <Field label={t("build.certifications")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={2} placeholder={t("build.certificationsPlaceholder")} value={form.certifications} onChange={e => updateField("certifications", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelClass()}>{t("build.languages")}</label>
+            </Field>
+            <Field label={t("build.languages")} labelClassName={labelClass()}>
               <input className={inputClass()} placeholder={t("build.languagesPlaceholder")} value={form.languages} onChange={e => updateField("languages", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelClass()}>{t("build.projects")}</label>
+            </Field>
+            <Field label={t("build.projects")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={3} placeholder={t("build.projectsPlaceholder")} value={form.projects} onChange={e => updateField("projects", e.target.value)} />
-            </div>
+            </Field>
           </div>
         )}
 
@@ -886,9 +884,9 @@ export default function BuildPage() {
               <div className="text-center py-12 space-y-4">
                 <p className="text-gray-300">{t("build.readyToGenerateMessage")}</p>
                 <p className="text-gray-500 text-sm">{t("build.generateInstructionMessage")}</p>
-                <button onClick={handleGenerate} className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors">
+                <Button size="lg" onClick={handleGenerate} className="px-8">
                   {t("build.generateButton")}
-                </button>
+                </Button>
               </div>
             )}
             {markdown && (
@@ -896,7 +894,7 @@ export default function BuildPage() {
                 {/* Icon toolbar */}
                 <div className="flex items-center gap-2">
                   {/* Copy Markdown */}
-                  <button onClick={copyMarkdown} title={t("build.copyMarkdownButton")} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+                  <button onClick={copyMarkdown} title={t("build.copyMarkdownButton")} className={`p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors ${focusRing}`}>
                     {copied === "md" ? (
                       <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     ) : (
@@ -904,7 +902,7 @@ export default function BuildPage() {
                     )}
                   </button>
                   {/* Copy Plain Text */}
-                  <button onClick={copyPlainText} title={t("build.copyPlainTextButton")} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+                  <button onClick={copyPlainText} title={t("build.copyPlainTextButton")} className={`p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors ${focusRing}`}>
                     {copied === "txt" ? (
                       <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     ) : (
@@ -912,14 +910,14 @@ export default function BuildPage() {
                     )}
                   </button>
                   {/* Regenerate */}
-                  <button onClick={handleGenerate} title={t("build.regenerate")} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+                  <button onClick={handleGenerate} title={t("build.regenerate")} className={`p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors ${focusRing}`}>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   </button>
 
                   <div className="flex-1" />
 
                   {/* Download PDF */}
-                  <button onClick={downloadPdf} title={t("build.downloadResume")} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-red-400 hover:text-red-300 transition-colors">
+                  <button onClick={downloadPdf} title={t("build.downloadResume")} className={`p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-red-400 hover:text-red-300 transition-colors ${focusRing}`}>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                   </button>
                   {/* Start Over */}
@@ -929,7 +927,7 @@ export default function BuildPage() {
                     setForm(INITIAL_FORM);
                     setError(null);
                     clearPipeline();
-                  }} title={t("build.startOverButton")} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors">
+                  }} title={t("build.startOverButton")} className={`p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors ${focusRing}`}>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
 
                   </button>
@@ -946,25 +944,24 @@ export default function BuildPage() {
 
         {/* Navigation */}
         <div className="flex justify-between mt-8 pt-6 border-t border-gray-800">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setStep(prev => (prev - 1) as Step)}
             disabled={step === 1}
-            className="text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors disabled:hover:border-gray-700 disabled:hover:text-gray-400"
           >
             {t("build.backButton")}
-          </button>
+          </Button>
           {step < 5 ? (
-            <button
+            <Button
               onClick={() => {
                 if (step === 4) { setStep(5); handleGenerate(); }
                 else setStep(prev => (prev + 1) as Step);
               }}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors"
             >
               {step === 4 ? t("build.generateResumeButton") : t("build.continueButton")}
-            </button>
+            </Button>
           ) : markdown && (
-            <Link href={`/job-match${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2 rounded-lg transition-colors">
+            <Link href={`/job-match${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`} className={buttonClasses({ variant: "primary", size: "md" })}>
               {t("build.jobMatchButton")}
             </Link>
           )}

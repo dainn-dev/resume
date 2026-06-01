@@ -10,6 +10,8 @@ import { useTranslation } from "@/components/TranslationProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Recaptcha, { RECAPTCHA_ENABLED } from "@/components/Recaptcha";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
+import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import { loginRequest } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -66,7 +68,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col">
       <nav className="flex items-center justify-between h-14 px-4 max-w-6xl mx-auto w-full">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
+          <Image src="/logo.png" alt="DResume" width={68} height={32} className="h-8 w-auto" priority />
         </Link>
         <LanguageSwitcher />
       </nav>
@@ -81,8 +83,7 @@ export default function LoginPage() {
               {error && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>
               )}
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">{t("auth.email")}</label>
+              <Field label={t("auth.email")} labelClassName="block text-xs font-medium text-gray-400 mb-1">
                 <input
                   type="email"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
@@ -92,9 +93,8 @@ export default function LoginPage() {
                   required
                   autoComplete="email"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">{t("auth.password")}</label>
+              </Field>
+              <Field label={t("auth.password")} labelClassName="block text-xs font-medium text-gray-400 mb-1">
                 <input
                   type="password"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
@@ -104,15 +104,16 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                 />
-              </div>
+              </Field>
               <Recaptcha ref={captchaRef} onChange={setCaptchaToken} className="flex justify-center" />
-              <button
+              <Button
                 type="submit"
+                fullWidth
                 disabled={busy || (RECAPTCHA_ENABLED && !captchaToken)}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
+                loading={busy}
               >
-                {busy ? "…" : t("auth.loginButton")}
-              </button>
+                {t("auth.loginButton")}
+              </Button>
             </form>
 
             <GoogleSignInButton />

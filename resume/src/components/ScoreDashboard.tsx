@@ -32,7 +32,7 @@ export default function ScoreDashboard({ analysis }: ScoreDashboardProps) {
 
       {/* Section scores grid */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">{t("results.sectionBreakdown")}</h3>
+        <h2 className="text-lg font-semibold text-white mb-4">{t("results.sectionBreakdown")}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {sections.map((section) => (
             <ScoreCard key={section.label} label={section.label} score={section.score} />

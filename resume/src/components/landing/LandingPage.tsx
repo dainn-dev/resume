@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import { focusRing } from "@/components/ui/Button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Footer from "@/components/Footer";
 import DiscountCountdown, { isPromoLive } from "@/components/DiscountCountdown";
@@ -56,9 +57,26 @@ const FEATURES = [
   { key: "feature9", icon: "M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" },
 ];
 
+const FEATURE_DEFS: { label: string; key: keyof PlanFromApi["limits"] }[] = [
+  { label: "Job Match", key: "jobMatchEnabled" },
+  { label: "Cover Letter", key: "coverLetterEnabled" },
+  { label: "Career Coach", key: "careerCoachEnabled" },
+  { label: "Interview Coach", key: "interviewCoachEnabled" },
+  { label: "Salary Estimator", key: "salaryEstimatorEnabled" },
+  { label: "Goals & Tasks", key: "calendarEnabled" },
+  { label: "Company Reviews", key: "companyReviewEnabled" },
+];
+
+function enabledFeatures(limits: PlanFromApi["limits"]): string[] {
+  const list = FEATURE_DEFS.filter(f => limits[f.key]).map(f => f.label);
+  if (limits.priorityQueue) list.push("Priority queue");
+  return list;
+}
+
 export default function LandingPage() {
   const { t, mounted } = useTranslation();
   const [plans, setPlans] = useState<PlanFromApi[] | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!mounted) return;
@@ -75,13 +93,13 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-gray-800/50">
         <div className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4">
-          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
-          <div className="flex items-center gap-3">
+          <Image src="/logo.png" alt="DResume" width={68} height={32} className="h-8 w-auto" priority />
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSwitcher />
-            <Link href="/login" className="text-gray-400 hover:text-white text-sm font-medium transition-colors">
+            <Link href="/login" className={`inline-flex items-center min-h-[44px] px-1 text-gray-400 hover:text-white text-sm font-medium transition-colors rounded ${focusRing}`}>
               {t("landing.navLogin")}
             </Link>
-            <Link href="/register" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+            <Link href="/register" className={`inline-flex items-center min-h-[44px] bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors ${focusRing}`}>
               {t("landing.navGetStarted")}
             </Link>
           </div>
@@ -99,10 +117,10 @@ export default function LandingPage() {
             {t("landing.heroSubtitle")}
           </p>
           <div className="flex items-center justify-center gap-4 pt-2">
-            <Link href="/register" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors text-sm">
+            <Link href="/register" className={`bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors text-sm ${focusRing}`}>
               {t("landing.heroCta")}
             </Link>
-            <a href="#features" className="border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 font-medium px-8 py-3 rounded-xl transition-colors text-sm">
+            <a href="#features" className={`border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 font-medium px-8 py-3 rounded-xl transition-colors text-sm ${focusRing}`}>
               {t("landing.heroCtaSecondary")}
             </a>
           </div>
@@ -118,7 +136,7 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map((f) => (
-              <div key={f.key} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+              <Link key={f.key} href="/register" className="block bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-blue-600/10 flex items-center justify-center mb-4">
                   <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d={f.icon} />
@@ -126,7 +144,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-white font-semibold text-sm mb-2">{t(`landing.${f.key}Title`)}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{t(`landing.${f.key}Desc`)}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -166,23 +184,20 @@ export default function LandingPage() {
             {plans === null ? (
               [0, 1, 2].map(i => <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl h-96 animate-pulse" />)
             ) : (
-              plans.map(p => {
+              [...plans].sort((a, b) => a.monthlyPriceCents - b.monthlyPriceCents).map((p, idx, arr) => {
                 const isFeatured = p.code === "Pro";
                 const cta = p.code === "Free" ? t("landing.pricingFreeCta") : p.code === "Pro" ? t("landing.pricingProCta") : t("landing.pricingPremiumCta");
-                const featureRows = [
-                  { label: "Job Match", on: p.limits.jobMatchEnabled },
-                  { label: "Cover Letter", on: p.limits.coverLetterEnabled },
-                  { label: "Career Coach", on: p.limits.careerCoachEnabled },
-                  { label: "Interview Coach", on: p.limits.interviewCoachEnabled },
-                  { label: "Salary Estimator", on: p.limits.salaryEstimatorEnabled },
-                  { label: "Goals & Tasks", on: p.limits.calendarEnabled },
-                  { label: "Company Reviews", on: p.limits.companyReviewEnabled },
-                ].sort((a, b) => Number(b.on) - Number(a.on));
+                const features = enabledFeatures(p.limits);
+                const prev = idx > 0 ? arr[idx - 1] : null;
+                const delta = prev ? features.filter(f => !enabledFeatures(prev.limits).includes(f)) : features;
+                const isExpanded = !!expanded[p.code];
+                const canExpand = !!prev && features.length > delta.length;
+                const shown = prev && !isExpanded ? delta : features;
                 const bestPromo = (p.bankTiers ?? [])
                   .filter(tier => tier.discountPercent > 0 && isPromoLive(tier))
                   .sort((a, b) => b.discountPercent - a.discountPercent)[0];
                 return (
-                  <div key={p.code} className={`relative bg-gray-900 border rounded-2xl p-6 space-y-5 flex flex-col ${isFeatured ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
+                  <div key={p.code} className={`relative bg-gray-900 border rounded-2xl p-5 sm:p-6 space-y-4 flex flex-col ${isFeatured ? "border-blue-500 ring-1 ring-blue-500/30" : "border-gray-800"}`}>
                     {isFeatured && (
                       <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
                         {t("landing.pricingProBadge")}
@@ -191,7 +206,7 @@ export default function LandingPage() {
                     <div>
                       <h3 className="text-white font-semibold">{p.name}</h3>
                       <div className="mt-2 flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-white">{formatPrice(p.monthlyPriceCents, p.currency)}</span>
+                        <span className="text-2xl sm:text-3xl font-bold text-white">{formatPrice(p.monthlyPriceCents, p.currency)}</span>
                         {p.isPaid && <span className="text-gray-500 text-sm">/mo</span>}
                       </div>
                       {bestPromo && (
@@ -210,14 +225,26 @@ export default function LandingPage() {
                     <ul className="text-xs text-gray-300 space-y-2 flex-1">
                       <li>• Resumes: {p.limits.maxResumes ?? "Unlimited"}</li>
                       <li>• AI calls/month: {p.limits.monthlyAiCalls ?? "Unlimited"}</li>
-                      {featureRows.map(f => (
-                        <li key={f.label} className={f.on ? "text-gray-300" : "text-gray-600 line-through"}>• {f.label}</li>
+                      {prev && !isExpanded && (
+                        <li className="text-gray-200 font-medium pt-1">{t("landing.pricingEverythingIn").replace("{plan}", prev.name)}</li>
+                      )}
+                      {shown.map(label => (
+                        <li key={label} className={label === "Priority queue" ? "text-amber-300" : "text-gray-300"}>• {label}</li>
                       ))}
-                      {p.limits.priorityQueue && <li className="text-amber-300">• Priority queue</li>}
                     </ul>
+                    {canExpand && (
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(s => ({ ...s, [p.code]: !s[p.code] }))}
+                        className={`inline-flex items-center gap-1 min-h-[44px] text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors rounded ${focusRing}`}
+                      >
+                        {isExpanded ? t("landing.pricingShowLess") : t("landing.pricingSeeAll")}
+                        <span className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}>▾</span>
+                      </button>
+                    )}
                     <Link
                       href="/register"
-                      className={`block text-center text-sm font-semibold py-2.5 rounded-lg transition-colors ${
+                      className={`block text-center text-sm font-semibold py-2.5 rounded-lg transition-colors ${focusRing} ${
                         isFeatured ? "bg-blue-600 hover:bg-blue-500 text-white" : "border border-gray-700 text-gray-300 hover:bg-gray-800"
                       }`}
                     >
@@ -236,7 +263,7 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto text-center space-y-6 bg-gradient-to-b from-blue-600/10 to-transparent border border-blue-500/20 rounded-3xl p-12">
           <h2 className="text-3xl font-bold text-white">{t("landing.ctaTitle")}</h2>
           <p className="text-gray-400">{t("landing.ctaSubtitle")}</p>
-          <Link href="/register" className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors text-sm">
+          <Link href="/register" className={`inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors text-sm ${focusRing}`}>
             {t("landing.ctaButton")}
           </Link>
         </div>

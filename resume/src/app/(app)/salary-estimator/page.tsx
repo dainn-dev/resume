@@ -7,6 +7,8 @@ import type { SalaryEstimatorFormData, SalaryEstimate } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useI18n } from "@/hooks/useI18n";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import {
   getSalaryEstimatorForm,
   getSalaryEstimatorResult,
@@ -202,15 +204,17 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">{t("salary.salaryEstimateHeading")}</h2>
-              <button
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs"
                 onClick={() => {
                   setResult(null);
                   setAnalysis("");
                 }}
-                className="text-xs text-blue-400 hover:text-blue-300"
               >
                 {t("salary.reEstimate")}
-              </button>
+              </Button>
             </div>
 
             {/* Salary Estimate Card */}
@@ -324,12 +328,12 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
             )}
 
             <div className="flex gap-3">
-              <button onClick={handleCopy} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
+              <Button onClick={handleCopy} size="lg" className="flex-1">
                 {copied ? t("salary.copied") : t("salary.copySalaryReport")}
-              </button>
+              </Button>
               <Link
                 href={`/interview-coach${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+                className={`${buttonClasses({ variant: "success", size: "lg" })} flex-1 text-center`}
               >
                 {t("salary.nextStep") ?? "Interview Coach →"}
               </Link>
@@ -342,8 +346,7 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass()}>{t("salary.jobTitle")} *</label>
+              <Field label={t("salary.jobTitle")} required labelClassName={labelClass()}>
                 <input
                   className={inputClass()}
                   placeholder={t("salary.jobTitlePlaceholder")}
@@ -351,9 +354,8 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                   onChange={e => updateField("jobTitle", e.target.value)}
                   required
                 />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("salary.industry")} *</label>
+              </Field>
+              <Field label={t("salary.industry")} required labelClassName={labelClass()}>
                 <input
                   className={inputClass()}
                   placeholder={t("salary.industryPlaceholder")}
@@ -361,12 +363,11 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                   onChange={e => updateField("industry", e.target.value)}
                   required
                 />
-              </div>
+              </Field>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass()}>{t("salary.yearsOfExperience")} *</label>
+              <Field label={t("salary.yearsOfExperience")} required labelClassName={labelClass()}>
                 <select
                   className={inputClass()}
                   value={form.experience}
@@ -379,9 +380,8 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className={labelClass()}>{t("salary.location")} *</label>
+              </Field>
+              <Field label={t("salary.location")} required labelClassName={labelClass()}>
                 <input
                   className={inputClass()}
                   placeholder={t("salary.locationPlaceholder")}
@@ -389,11 +389,10 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                   onChange={e => updateField("location", e.target.value)}
                   required
                 />
-              </div>
+              </Field>
             </div>
 
-            <div>
-              <label className={labelClass()}>{t("salary.skills")}</label>
+            <Field label={t("salary.skills")} labelClassName={labelClass()}>
               <textarea
                 className={inputClass("resize-none")}
                 rows={3}
@@ -401,10 +400,9 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                 value={form.skills}
                 onChange={e => updateField("skills", e.target.value)}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className={labelClass()}>{t("salary.education")}</label>
+            <Field label={t("salary.education")} labelClassName={labelClass()}>
               <select
                 className={inputClass()}
                 value={form.education}
@@ -416,11 +414,11 @@ ${result.factors.map((f, i) => `${i + 1}. ${f}`).join('\n')}
                   </option>
                 ))}
               </select>
-            </div>
+            </Field>
 
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-colors">
+            <Button type="submit" size="lg" fullWidth>
               {t("salary.estimateSalary")}
-            </button>
+            </Button>
           </form>
         )}
       </div>
