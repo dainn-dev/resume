@@ -318,7 +318,7 @@ export default function CoverLetterPage() {
                     key={tone}
                     type="button"
                     onClick={() => updateField("tone", tone)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${focusRing} ${
+                    className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${focusRing} ${
                       form.tone === tone
                         ? "bg-blue-600 text-white"
                         : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
@@ -461,7 +461,7 @@ function RejectionEmailForm({ type }: { type: "decline-offer" | "reject-candidat
                   key={tone}
                   type="button"
                   onClick={() => update("tone", tone)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${focusRing} ${
+                  className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${focusRing} ${
                     form.tone === tone ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
                   }`}
                 >
