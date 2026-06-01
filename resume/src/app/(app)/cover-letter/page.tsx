@@ -25,6 +25,20 @@ import { fetchResumeDetail } from "@/lib/accountClient";
 
 const TONES: CoverLetterFormData["tone"][] = ["Professional", "Enthusiastic", "Concise"];
 
+type EmailMode = "cover-letter" | "decline-offer" | "reject-candidate";
+const EMAIL_TONES = ["Professional", "Warm", "Brief"] as const;
+type EmailTone = (typeof EMAIL_TONES)[number];
+
+interface RejectionForm {
+  company: string;
+  role: string;
+  recipientName: string;
+  senderName: string;
+  reason: string;
+  tone: EmailTone;
+  keepDoorOpen: boolean;
+}
+
 const INITIAL_FORM: CoverLetterFormData = {
   jobTitle: "",
   company: "",
@@ -76,6 +90,7 @@ export default function CoverLetterPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [synced, setSynced] = useState(false);
+  const [mode, setMode] = useState<EmailMode>("cover-letter");
   const hydratedRef = useRef(false);
   const skipPersistRef = useRef(false);
 
@@ -186,14 +201,43 @@ export default function CoverLetterPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const MODES: { id: EmailMode; label: string }[] = [
+    { id: "cover-letter", label: t("coverLetter.modes.coverLetter") },
+    { id: "decline-offer", label: t("coverLetter.modes.declineOffer") },
+    { id: "reject-candidate", label: t("coverLetter.modes.rejectCandidate") },
+  ];
+  const headerTitle = mode === "cover-letter" ? t("coverLetter.title") : MODES.find(m => m.id === mode)!.label;
+  const headerSubtitle = mode === "cover-letter"
+    ? t("coverLetter.subtitle")
+    : mode === "decline-offer" ? t("coverLetter.email.declineSubtitle") : t("coverLetter.email.rejectSubtitle");
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-10">
       <PipelineWorkflow />
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">{t("coverLetter.title")}</h1>
-        <p className="text-gray-400 text-sm mt-1">{t("coverLetter.subtitle")}</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">{headerTitle}</h1>
+        <p className="text-gray-400 text-sm mt-1">{headerSubtitle}</p>
       </div>
 
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {MODES.map(m => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => setMode(m.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${focusRing} ${
+              mode === m.id ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      {mode !== "cover-letter" ? (
+        <RejectionEmailForm type={mode} />
+      ) : (
+      <>
       {/* Auto-synced job context */}
       {synced && (
         <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3">
@@ -292,6 +336,154 @@ export default function CoverLetterPage() {
           </form>
         )}
       </div>
+      </>
+      )}
     </main>
+  );
+}
+
+function RejectionEmailForm({ type }: { type: "decline-offer" | "reject-candidate" }) {
+  const { t } = useTranslation();
+  const isReject = type === "reject-candidate";
+  const [form, setForm] = useState<RejectionForm>({
+    company: "",
+    role: "",
+    recipientName: "",
+    senderName: "",
+    reason: "",
+    tone: "Professional",
+    keepDoorOpen: type === "decline-offer",
+  });
+  const [result, setResult] = useState<string | null>(null);
+  const [edited, setEdited] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function update<K extends keyof RejectionForm>(field: K, value: RejectionForm[K]) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function submit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch("/api/cover-letter/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          tone: form.tone,
+          company: form.company,
+          role: form.role,
+          recipientName: form.recipientName || null,
+          senderName: form.senderName || null,
+          reason: form.reason || null,
+          keepDoorOpen: form.keepDoorOpen,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? t("coverLetter.generationFailed"));
+      setResult(data.data.text);
+      setEdited(data.data.text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copy() {
+    navigator.clipboard.writeText(edited);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const opt = ` ${t("coverLetter.email.optional")}`;
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      {loading ? (
+        <LoadingSpinner message={t("coverLetter.email.generating")} subMessage={t("coverLetter.email.generatingSubtext")} />
+      ) : result ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">{t("coverLetter.email.yourEmail")}</h2>
+            <Button variant="link" size="sm" className="text-xs" onClick={() => { setResult(null); setEdited(""); }}>
+              {t("coverLetter.regenerate")}
+            </Button>
+          </div>
+          <textarea
+            aria-label={t("coverLetter.email.yourEmail")}
+            className="bg-gray-950 border border-gray-800 rounded-xl p-5 text-gray-200 text-sm leading-relaxed font-mono w-full resize-none focus:outline-none focus:border-blue-500"
+            rows={14}
+            value={edited}
+            onChange={e => setEdited(e.target.value)}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">{edited.length} {t("coverLetter.characters")}</span>
+            <Button onClick={copy}>{copied ? t("common.copied") : t("common.copy")}</Button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-5">
+          {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label={t("coverLetter.email.company")} labelClassName={labelClass()}>
+              <input className={inputClass()} placeholder={t("coverLetter.email.companyPlaceholder")} value={form.company} onChange={e => update("company", e.target.value)} required />
+            </Field>
+            <Field label={isReject ? t("coverLetter.email.roleReject") : t("coverLetter.email.roleDecline")} labelClassName={labelClass()}>
+              <input className={inputClass()} placeholder={t("coverLetter.email.rolePlaceholder")} value={form.role} onChange={e => update("role", e.target.value)} required />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label={(isReject ? t("coverLetter.email.recipientReject") : t("coverLetter.email.recipientDecline")) + opt} labelClassName={labelClass()}>
+              <input className={inputClass()} placeholder={t("coverLetter.email.recipientPlaceholder")} value={form.recipientName} onChange={e => update("recipientName", e.target.value)} />
+            </Field>
+            <Field label={(isReject ? t("coverLetter.email.senderReject") : t("coverLetter.email.senderDecline")) + opt} labelClassName={labelClass()}>
+              <input className={inputClass()} placeholder={t("coverLetter.email.senderPlaceholder")} value={form.senderName} onChange={e => update("senderName", e.target.value)} />
+            </Field>
+          </div>
+
+          <Field label={t("coverLetter.email.reason") + opt} labelClassName={labelClass()}>
+            <textarea className={inputClass("resize-none")} rows={3} placeholder={isReject ? t("coverLetter.email.reasonRejectPlaceholder") : t("coverLetter.email.reasonDeclinePlaceholder")} value={form.reason} onChange={e => update("reason", e.target.value)} />
+          </Field>
+
+          <div>
+            <p className={labelClass()}>{t("coverLetter.email.tone")}</p>
+            <div className="flex gap-2">
+              {EMAIL_TONES.map(tone => (
+                <button
+                  key={tone}
+                  type="button"
+                  onClick={() => update("tone", tone)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${focusRing} ${
+                    form.tone === tone ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
+                  }`}
+                >
+                  {t(`coverLetter.tonesEmail.${tone.toLowerCase()}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.keepDoorOpen}
+              onChange={e => update("keepDoorOpen", e.target.checked)}
+              className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-300">{isReject ? t("coverLetter.email.keepDoorOpenReject") : t("coverLetter.email.keepDoorOpenDecline")}</span>
+          </label>
+
+          <Button type="submit" size="lg" fullWidth>{t("coverLetter.email.generate")}</Button>
+        </form>
+      )}
+    </div>
   );
 }

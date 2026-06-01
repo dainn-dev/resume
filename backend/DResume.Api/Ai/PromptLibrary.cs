@@ -347,6 +347,51 @@ Target length: {lengthGuide}
 Address the letter to ""Hiring Manager"". End with ""Sincerely,"".";
     }
 
+    public static string RejectionEmailSystem(string type, string tone)
+    {
+        var toneGuide = tone switch
+        {
+            "Warm" => "warm, empathetic and personable while staying professional",
+            "Brief" => "concise and direct — a few short sentences, no filler",
+            _ => "polished, formal and professional",
+        };
+        return type == "reject-candidate"
+            ? $"You are an experienced recruiter writing a respectful candidate-rejection email on behalf of a company. Tone: {toneGuide}. Be appreciative and kind, deliver the decision clearly without false hope, never give legally risky or discriminatory specifics, and keep it brief. Start with a 'Subject: ...' line, then the email body. Return ONLY the email — no commentary."
+            : $"You are helping a job candidate write a gracious email that declines a job offer they received. Tone: {toneGuide}. Express genuine gratitude, decline clearly and politely, and keep the relationship positive. Start with a 'Subject: ...' line, then the email body. Return ONLY the email — no commentary.";
+    }
+
+    public static string RejectionEmailUser(RejectionEmailFormDataDto d)
+    {
+        var reason = string.IsNullOrWhiteSpace(d.Reason)
+            ? "(not specified — keep it gracious and non-specific)"
+            : d.Reason;
+
+        if (d.Type == "reject-candidate")
+        {
+            var reapply = d.KeepDoorOpen
+                ? "Warmly encourage them to apply for future openings."
+                : "Do not invite future applications.";
+            return $@"Write a rejection email to a job applicant.
+Candidate name: {(string.IsNullOrWhiteSpace(d.RecipientName) ? "the candidate" : d.RecipientName)}
+Role applied for: {d.Role}
+Company: {d.Company}
+Sender (recruiter / hiring manager): {(string.IsNullOrWhiteSpace(d.SenderName) ? "the hiring team" : d.SenderName)}
+Reason for the decision: {reason}
+{reapply}";
+        }
+
+        var future = d.KeepDoorOpen
+            ? "Express genuine interest in staying in touch for future opportunities."
+            : "No need to mention future opportunities.";
+        return $@"Write an email that declines a job offer.
+Position offered: {d.Role}
+Company: {d.Company}
+Recipient (hiring manager): {(string.IsNullOrWhiteSpace(d.RecipientName) ? "the hiring manager" : d.RecipientName)}
+Your name (sender): {(string.IsNullOrWhiteSpace(d.SenderName) ? "the candidate" : d.SenderName)}
+Reason for declining: {reason}
+{future}";
+    }
+
     public const string CareerCoachSystem1 =
         "You are an expert career strategist and coach with deep knowledge of industry trends, skill development pathways, and job market dynamics. Generate a personalized career development plan. Return ONLY valid JSON — no markdown fences, no commentary outside the JSON object.";
 

@@ -71,6 +71,18 @@ public sealed record CoverLetterFormDataDto(
     string Tone,
     Guid? ResumeId);
 
+// Decline-a-job-offer / reject-a-candidate email generation. Type is "decline-offer" or
+// "reject-candidate"; Tone is Professional | Warm | Brief.
+public sealed record RejectionEmailFormDataDto(
+    string Type,
+    string Tone,
+    string Company,
+    string Role,
+    string? RecipientName,
+    string? SenderName,
+    string? Reason,
+    bool KeepDoorOpen);
+
 public sealed record SalaryEstimatorFormDataDto(
     string JobTitle,
     string Industry,
