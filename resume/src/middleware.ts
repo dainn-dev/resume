@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Hosts that are the main app, never a portfolio.
-const RESERVED_SUBS = new Set(["www", "app", "api", "admin"]);
+// Subdomains that are the main app (or infra), never a portfolio. "dresume" is the app's own
+// host (dresume.dainn.online) — without it the whole app would be rewritten to a portfolio 404.
+// Extend per-deployment via RESERVED_SUBDOMAINS (comma-separated) without a code change.
+const DEFAULT_RESERVED = ["www", "app", "api", "admin", "dresume"];
+const RESERVED_SUBS = new Set(
+  [
+    ...DEFAULT_RESERVED,
+    ...(process.env.RESERVED_SUBDOMAINS ?? process.env.NEXT_PUBLIC_RESERVED_SUBDOMAINS ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  ],
+);
 
 const BASE_DOMAIN =
   process.env.PORTFOLIO_BASE_DOMAIN ??
