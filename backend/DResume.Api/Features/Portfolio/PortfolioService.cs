@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using DResume.Api.Billing;
 using DResume.Api.Contracts;
 using DResume.Api.Data;
 using DResume.Api.Data.Entities;
@@ -168,7 +169,24 @@ public sealed class PortfolioService : IPortfolioService
         // Security boundary: only Approved sites are ever served publicly.
         var site = await _db.PortfolioSites
             .FirstOrDefaultAsync(p => p.Subdomain == sub && p.Status == PortfolioStatus.Approved, ct);
-        return site is null ? null : await BuildPublicDtoAsync(site, ct);
+        if (site is null) return null;
+
+        // Premium is required to keep a portfolio published. If the owner has since downgraded,
+        // the site goes dark (404) — and automatically comes back if they re-subscribe, since the
+        // Approved status is preserved.
+        if (!await OwnerHasPremiumAsync(site.UserId, ct)) return null;
+
+        return await BuildPublicDtoAsync(site, ct);
+    }
+
+    // Owner's effective plan, derived directly from their subscription (no admin override here —
+    // this is evaluated for an anonymous public request, about the owner, not the viewer).
+    private async Task<bool> OwnerHasPremiumAsync(Guid userId, CancellationToken ct)
+    {
+        var sub = await _db.UserSubscriptions.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        if (sub is null) return false;
+        var active = sub.Status is "active" or "trialing";
+        return active && sub.PlanCode == PlanCode.Premium;
     }
 
     // Admin-only: render a site's portfolio regardless of status, so reviewers can see exactly
