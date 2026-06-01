@@ -114,22 +114,22 @@ export default function AdminUsersPage() {
         <p className="text-gray-400 text-sm mt-1">{t("adminUsers.subtitle")}</p>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-3">
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-3 mb-4 flex flex-wrap items-center gap-2">
         <form onSubmit={(e) => { e.preventDefault(); setPage(1); void load(); }} className="flex gap-2 w-full sm:flex-1 sm:w-auto sm:min-w-[220px]">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("adminUsers.searchPlaceholder")}
-            className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />
-          <Button type="submit">{t("adminUsers.search")}</Button>
+          <Button type="submit" size="sm">{t("adminUsers.search")}</Button>
         </form>
 
         <select
           value={planFilter}
           onChange={(e) => { setPage(1); setPlanFilter(e.target.value); }}
-          className="flex-1 sm:flex-none min-w-[130px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          className="flex-1 sm:flex-none min-w-[120px] bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
         >
           <option value="">{t("adminUsers.filterAllPlans")}</option>
           <option value="Free">Free</option>
@@ -140,7 +140,7 @@ export default function AdminUsersPage() {
         <select
           value={statusFilter}
           onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
-          className="flex-1 sm:flex-none min-w-[130px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          className="flex-1 sm:flex-none min-w-[120px] bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500"
         >
           <option value="">{t("adminUsers.filterAllStatuses")}</option>
           <option value="active">{t("adminUsers.filterActive")}</option>
@@ -148,7 +148,7 @@ export default function AdminUsersPage() {
           <option value="unverified">{t("adminUsers.filterUnverified")}</option>
         </select>
 
-        <Button variant="secondary" onClick={exportCsv}>
+        <Button variant="secondary" size="sm" onClick={exportCsv}>
           {t("adminUsers.export")}{selected.size > 0 ? ` (${selected.size})` : ""}
         </Button>
         {selected.size > 0 && (
