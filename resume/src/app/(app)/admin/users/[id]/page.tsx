@@ -16,7 +16,7 @@ interface UserDetail {
   profile: { firstName: string; lastName: string; displayName: string; avatarUrl: string; language: string; timezone: string; bio: string; website: string } | null;
   subscription: { plan: string; status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null; stripeCustomerId: string | null; stripeSubscriptionId: string | null; updatedAt: string; isAdminGranted: boolean; grantedByEmail: string | null; grantedAt: string | null; grantNote: string | null } | null;
   totals: { resumes: number; jobMatches: number; coverLetters: number; careerCoach: number; interviewCoach: number; salaryEstimates: number };
-  resumes: Array<{ id: string; title: string | null; sourceFileName: string | null; createdAt: string; updatedAt: string; hasParsedData: boolean; latestAnalysis: { id: string; score: number; createdAt: string } | null }>;
+  resumes: Array<{ id: string; title: string | null; sourceFileName: string | null; createdAt: string; updatedAt: string; hasParsedData: boolean; hasFile: boolean; latestAnalysis: { id: string; score: number; createdAt: string } | null }>;
   invoices: Array<{ id: string; number: string | null; status: string; amountPaid: number; amountDue: number; currency: string; created: number; hostedInvoiceUrl: string | null }> | null;
 }
 
@@ -316,6 +316,12 @@ export default function AdminUserDetailPage() {
                   <p className="text-xs text-gray-500">{new Date(r.updatedAt).toLocaleDateString()} · {r.hasParsedData ? "parsed" : "raw"}</p>
                 </div>
                 {r.latestAnalysis && <span className="text-xs font-semibold text-amber-400 px-2 mr-3">Score: {r.latestAnalysis.score}</span>}
+                <a
+                  href={`/api/admin/resumes/${r.id}/file`}
+                  className={`text-xs text-blue-400 hover:text-blue-300 underline-offset-2 hover:underline mr-4 rounded ${focusRing}`}
+                >
+                  {r.hasFile ? "Download" : "Download .txt"}
+                </a>
                 <Button
                   variant="link"
                   onClick={() => deleteResume(r.id)}

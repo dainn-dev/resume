@@ -1078,6 +1078,16 @@
     "prev": "Prev",
     "next": "Next",
     "loadFailed": "Failed to load users.",
-    "errorOccurred": "An error occurred."
+    "errorOccurred": "An error occurred.",
+    "filterAllPlans": "All plans",
+    "filterAllStatuses": "All statuses",
+    "filterActive": "Active",
+    "filterLocked": "Locked",
+    "filterUnverified": "Unverified",
+    "export": "Export CSV",
+    "selectedCount": "{count} selected",
+    "clearSelection": "Clear",
+    "selectAll": "Select all",
+    "download": "Download"
   }
 }
