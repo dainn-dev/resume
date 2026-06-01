@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
         <table className="w-full text-sm min-w-[760px]">
           <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
             <tr>
-              <th className="px-3 py-2 w-10">
+              <th className="px-2 py-1.5 sm:px-3 sm:py-2 w-10">
                 <input
                   type="checkbox"
                   aria-label={t("adminUsers.selectAll")}
@@ -176,13 +176,13 @@ export default function AdminUsersPage() {
                   className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
                 />
               </th>
-              <th className="text-left px-3 py-2 font-medium">{t("adminUsers.colEmail")}</th>
-              <th className="text-left px-3 py-2 font-medium">{t("adminUsers.colUsername")}</th>
-              <th className="text-left px-3 py-2 font-medium">{t("adminUsers.colPlan")}</th>
-              <th className="text-left px-3 py-2 font-medium">{t("adminUsers.colStatus")}</th>
-              <th className="text-right px-3 py-2 font-medium">{t("adminUsers.colResumes")}</th>
-              <th className="text-left px-3 py-2 font-medium">{t("adminUsers.colJoined")}</th>
-              <th className="text-left px-3 py-2 font-medium">{t("adminUsers.colLastLogin")}</th>
+              <th className="text-left px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colEmail")}</th>
+              <th className="text-left px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colUsername")}</th>
+              <th className="text-left px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colPlan")}</th>
+              <th className="text-left px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colStatus")}</th>
+              <th className="text-right px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colResumes")}</th>
+              <th className="text-left px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colJoined")}</th>
+              <th className="text-left px-2 py-1.5 sm:px-3 sm:py-2 font-medium">{t("adminUsers.colLastLogin")}</th>
             </tr>
           </thead>
           <tbody>
@@ -190,7 +190,7 @@ export default function AdminUsersPage() {
             {!loading && data && data.users.length === 0 && <tr><td colSpan={8} className="text-center text-gray-500 py-12">{t("adminUsers.empty")}</td></tr>}
             {!loading && data && data.users.map((u) => (
               <tr key={u.id} className={`border-t border-gray-800 transition-colors ${selected.has(u.id) ? "bg-blue-500/5" : "hover:bg-gray-800/30"}`}>
-                <td className="px-3 py-2">
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2">
                   <input
                     type="checkbox"
                     aria-label={u.email}
@@ -199,22 +199,22 @@ export default function AdminUsersPage() {
                     className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
                   />
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2">
                   <Link href={`/admin/users/${u.id}`} className="text-blue-400 hover:text-blue-300 font-medium">{u.email}</Link>
                   {!u.emailVerified && <span className="ml-2 text-[10px] text-amber-400">{t("adminUsers.unverified")}</span>}
                 </td>
-                <td className="px-3 py-2 text-gray-300">{u.username}</td>
-                <td className="px-3 py-2">
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2 text-gray-300">{u.username}</td>
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2">
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${planColor(u.plan)}`}>{u.plan}</span>
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2">
                   {u.isLocked
                     ? <span className="text-xs text-red-400">{t("adminUsers.locked")}</span>
                     : <span className="text-xs text-green-400">{t("adminUsers.active")}</span>}
                 </td>
-                <td className="px-3 py-2 text-right text-gray-300">{u.resumeCount}</td>
-                <td className="px-3 py-2 text-gray-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="px-3 py-2 text-gray-500 text-xs">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : t("adminUsers.dash")}</td>
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2 text-right text-gray-300">{u.resumeCount}</td>
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2 text-gray-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className="px-2 py-1.5 sm:px-3 sm:py-2 text-gray-500 text-xs">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : t("adminUsers.dash")}</td>
               </tr>
             ))}
           </tbody>
