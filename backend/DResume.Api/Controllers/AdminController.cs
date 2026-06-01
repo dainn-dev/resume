@@ -1,3 +1,4 @@
+using System.Text;
 using DainnUser.Core.Entities;
 using DainnUser.Core.Interfaces.Services;
 using DainnUser.Infrastructure.Data;
@@ -7,6 +8,7 @@ using DResume.Api.Contracts;
 using DResume.Api.Data;
 using DResume.Api.Data.Entities;
 using DResume.Api.Features.Portfolio;
+using DResume.Api.Features.Resumes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -49,17 +51,14 @@ public sealed class AdminController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int size = 20,
         [FromQuery] string? search = null,
+        [FromQuery] string? plan = null,
+        [FromQuery] string? status = null,
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         size = Math.Clamp(size, 1, 100);
 
-        var query = _userDb.Users.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.Trim().ToLower();
-            query = query.Where(u => u.Email.ToLower().Contains(s) || u.Username.ToLower().Contains(s));
-        }
+        var query = await BuildFilteredUsersAsync(search, plan, status, null, ct);
 
         var total = await query.CountAsync(ct);
         var users = await query
@@ -112,6 +111,133 @@ public sealed class AdminController : ControllerBase
         return Ok(ApiResult.Ok(new { total, page, size, users = rows }));
     }
 
+    // Shared user filtering for the list + export endpoints. Plan lives in resumeDb (a different
+    // DbContext/DB than userDb), so we can't SQL-join it — instead we pull the matching user ids
+    // and filter the userDb query with them.
+    private async Task<IQueryable<User>> BuildFilteredUsersAsync(
+        string? search, string? plan, string? status, List<Guid>? ids, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var query = _userDb.Users.AsNoTracking();
+
+        if (ids is { Count: > 0 })
+            query = query.Where(u => ids.Contains(u.Id));
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(u => u.Email.ToLower().Contains(s) || u.Username.ToLower().Contains(s));
+        }
+
+        if (string.Equals(status, "locked", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(u => u.LockoutEnd != null && u.LockoutEnd > now);
+        else if (string.Equals(status, "active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(u => u.LockoutEnd == null || u.LockoutEnd <= now);
+        else if (string.Equals(status, "unverified", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(u => !u.EmailVerified);
+
+        if (Enum.TryParse<PlanCode>(plan, true, out var planCode))
+        {
+            if (planCode == PlanCode.Free)
+            {
+                // Free = anyone who is NOT an active paid subscriber.
+                var paidIds = await _resumeDb.UserSubscriptions.AsNoTracking()
+                    .Where(s => (s.Status == "active" || s.Status == "trialing") && s.PlanCode != PlanCode.Free)
+                    .Select(s => s.UserId).ToListAsync(ct);
+                query = query.Where(u => !paidIds.Contains(u.Id));
+            }
+            else
+            {
+                var planIds = await _resumeDb.UserSubscriptions.AsNoTracking()
+                    .Where(s => (s.Status == "active" || s.Status == "trialing") && s.PlanCode == planCode)
+                    .Select(s => s.UserId).ToListAsync(ct);
+                query = query.Where(u => planIds.Contains(u.Id));
+            }
+        }
+
+        return query;
+    }
+
+    [HttpGet("users/export")]
+    public async Task<IActionResult> ExportUsers(
+        [FromQuery] string? search = null,
+        [FromQuery] string? plan = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? ids = null,
+        CancellationToken ct = default)
+    {
+        var idList = (ids ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => Guid.TryParse(x, out var g) ? g : (Guid?)null)
+            .Where(g => g.HasValue).Select(g => g!.Value).ToList();
+
+        var query = await BuildFilteredUsersAsync(search, plan, status, idList.Count > 0 ? idList : null, ct);
+        var users = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .Take(5000) // safety cap
+            .Select(u => new { u.Id, u.Email, u.Username, u.EmailVerified, u.Status, u.LockoutEnd, u.CreatedAt, u.LastLoginAt })
+            .ToListAsync(ct);
+
+        var userIds = users.Select(u => u.Id).ToList();
+        var subs = await _resumeDb.UserSubscriptions.AsNoTracking()
+            .Where(s => userIds.Contains(s.UserId)).ToDictionaryAsync(s => s.UserId, ct);
+        var resumeCounts = await _resumeDb.Resumes.AsNoTracking()
+            .Where(r => userIds.Contains(r.UserId)).GroupBy(r => r.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count, ct);
+
+        var now = DateTime.UtcNow;
+        var sb = new StringBuilder();
+        sb.Append('﻿'); // UTF-8 BOM so Excel reads diacritics correctly
+        sb.AppendLine("Email,Username,EmailVerified,Status,Locked,Plan,SubStatus,Resumes,CreatedAt,LastLoginAt");
+        foreach (var u in users)
+        {
+            var locked = u.LockoutEnd.HasValue && u.LockoutEnd.Value > now;
+            var planName = subs.TryGetValue(u.Id, out var sub) ? sub.PlanCode.ToString() : "Free";
+            var subStatus = subs.TryGetValue(u.Id, out var s2) ? s2.Status : "";
+            var cols = new[]
+            {
+                u.Email, u.Username, u.EmailVerified ? "yes" : "no", u.Status.ToString(),
+                locked ? "yes" : "no", planName, subStatus ?? "",
+                resumeCounts.GetValueOrDefault(u.Id, 0).ToString(),
+                u.CreatedAt.ToString("u"),
+                u.LastLoginAt?.ToString("u") ?? "",
+            };
+            sb.AppendLine(string.Join(",", cols.Select(Csv)));
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+        return File(bytes, "text/csv; charset=utf-8", $"users-{now:yyyyMMdd-HHmmss}.csv");
+    }
+
+    // Quote a CSV field and escape embedded quotes (RFC 4180).
+    private static string Csv(string? value)
+    {
+        var v = value ?? "";
+        return $"\"{v.Replace("\"", "\"\"")}\"";
+    }
+
+    [HttpGet("resumes/{resumeId:guid}/file")]
+    public async Task<IActionResult> DownloadResume(
+        Guid resumeId, [FromServices] IFileStorageService files, [FromQuery] bool inline = false, CancellationToken ct = default)
+    {
+        var resume = await _resumeDb.Resumes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == resumeId, ct)
+            ?? throw new KeyNotFoundException("Resume not found.");
+
+        // Prefer the original uploaded file; fall back to the extracted text as a .txt download.
+        if (!string.IsNullOrEmpty(resume.StoredFilePath))
+        {
+            var stream = files.OpenRead(resume.StoredFilePath);
+            var contentType = resume.FileContentType ?? "application/octet-stream";
+            var fileName = resume.SourceFileName ?? $"resume-{resumeId}";
+            return inline ? File(stream, contentType, enableRangeProcessing: true) : File(stream, contentType, fileName);
+        }
+
+        var textBytes = Encoding.UTF8.GetBytes(resume.RawText ?? "");
+        var txtName = $"{(string.IsNullOrWhiteSpace(resume.Title) ? "resume" : resume.Title)}.txt";
+        return File(textBytes, "text/plain; charset=utf-8", txtName);
+    }
+
     [HttpGet("users/{id:guid}")]
     public async Task<IActionResult> GetUser(Guid id, CancellationToken ct)
     {
@@ -133,6 +259,7 @@ public sealed class AdminController : ControllerBase
                 r.CreatedAt,
                 r.UpdatedAt,
                 hasParsedData = r.ParsedDataJson != null,
+                hasFile = r.StoredFilePath != null,
                 latestAnalysis = _resumeDb.ResumeAnalyses
                     .Where(a => a.ResumeId == r.Id)
                     .OrderByDescending(a => a.CreatedAt)

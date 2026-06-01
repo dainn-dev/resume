@@ -1079,6 +1079,16 @@
     "prev": "Trước",
     "next": "Sau",
     "loadFailed": "Không tải được danh sách người dùng.",
-    "errorOccurred": "Đã xảy ra lỗi."
+    "errorOccurred": "Đã xảy ra lỗi.",
+    "filterAllPlans": "Tất cả gói",
+    "filterAllStatuses": "Tất cả trạng thái",
+    "filterActive": "Hoạt động",
+    "filterLocked": "Đã khoá",
+    "filterUnverified": "Chưa xác minh",
+    "export": "Xuất CSV",
+    "selectedCount": "Đã chọn {count}",
+    "clearSelection": "Bỏ chọn",
+    "selectAll": "Chọn tất cả",
+    "download": "Tải về"
   }
 }
