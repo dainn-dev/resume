@@ -1,6 +1,6 @@
-// Central SEO/site constants. The canonical marketing origin defaults to the apex domain
-// (which Caddy routes to this same app); override per-deployment with NEXT_PUBLIC_SITE_URL.
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://dainn.online").replace(/\/$/, "");
+// Central SEO/site constants. The app is served at dresume.dainn.online (portfolios live on the
+// other *.dainn.online subdomains); override per-deployment with NEXT_PUBLIC_SITE_URL.
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://dresume.dainn.online").replace(/\/$/, "");
 
 export const SITE_NAME = "DResume";
 

@@ -1,8 +1,10 @@
 # Wildcard reverse proxy for DResume portfolio subdomains.
 #
 # Routes:
-#   dainn.online, app.dainn.online, *.dainn.online  -> Next.js frontend (app:3000)
-#   /api/*                                          -> .NET backend  (api:5267)
+#   dresume.dainn.online (the app) + *.dainn.online (portfolios)  -> Next.js frontend (app:3000)
+#   /api/*                                                         -> .NET backend  (api:5267)
+# The app host (dresume) is reserved in the Next.js middleware so it serves the app, not a
+# portfolio; all other *.dainn.online labels render the matching portfolio.
 #
 # Wildcard TLS is provisioned automatically via the ACME DNS-01 challenge, which needs a
 # DNS-provider plugin baked into the Caddy image and an API token. Example below uses Cloudflare;
@@ -16,7 +18,7 @@
 	email admin@dainn.online
 }
 
-dainn.online, app.dainn.online, *.dainn.online {
+dresume.dainn.online, dainn.online, *.dainn.online {
 	tls {
 		dns cloudflare {env.DNS_API_TOKEN}
 		resolvers 1.1.1.1
