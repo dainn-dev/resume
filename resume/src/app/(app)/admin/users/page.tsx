@@ -163,56 +163,7 @@ export default function AdminUsersPage() {
 
       {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-red-400 text-sm">{error}</div>}
 
-      {/* Mobile: card list (no horizontal scrolling) */}
-      <div className="md:hidden space-y-2">
-        {!loading && data && data.users.length > 0 && (
-          <label className="flex items-center gap-2 px-1 pb-1 text-xs text-gray-400">
-            <input
-              type="checkbox"
-              checked={allOnPageSelected}
-              onChange={toggleSelectAllOnPage}
-              className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
-            />
-            {t("adminUsers.selectAll")}
-          </label>
-        )}
-        {loading && <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center text-gray-500 text-sm">{t("adminUsers.loading")}</div>}
-        {!loading && data && data.users.length === 0 && <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center text-gray-500 text-sm">{t("adminUsers.empty")}</div>}
-        {!loading && data && data.users.map((u) => (
-          <div key={u.id} className={`rounded-2xl border p-4 ${selected.has(u.id) ? "border-blue-500/50 bg-blue-500/5" : "border-gray-800 bg-gray-900"}`}>
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                aria-label={u.email}
-                checked={selected.has(u.id)}
-                onChange={() => toggleSelect(u.id)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <Link href={`/admin/users/${u.id}`} className="text-blue-400 hover:text-blue-300 font-medium text-sm truncate">{u.email}</Link>
-                  <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded border ${planColor(u.plan)}`}>{u.plan}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-0.5 truncate">
-                  {u.username}
-                  {!u.emailVerified && <span className="ml-2 text-amber-400">{t("adminUsers.unverified")}</span>}
-                </p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs">
-                  {u.isLocked
-                    ? <span className="text-red-400">{t("adminUsers.locked")}</span>
-                    : <span className="text-green-400">{t("adminUsers.active")}</span>}
-                  <span className="text-gray-500">{u.resumeCount} {t("adminUsers.colResumes").toLowerCase()}</span>
-                  <span className="text-gray-600">·</span>
-                  <span className="text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop: table */}
-      <div className="hidden md:block bg-gray-900 border border-gray-800 rounded-2xl overflow-x-auto">
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-x-auto">
         <table className="w-full text-sm min-w-[760px]">
           <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
             <tr>
