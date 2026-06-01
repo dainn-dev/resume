@@ -260,6 +260,43 @@
       "professional": "Professional",
       "enthusiastic": "Enthusiastic",
       "concise": "Concise"
+    },
+    "modes": {
+      "coverLetter": "Cover Letter",
+      "declineOffer": "Decline Offer",
+      "rejectCandidate": "Reject Candidate"
+    },
+    "email": {
+      "synced": "✓ Company and role filled from your job match — add the details below.",
+      "declineSubtitle": "Politely turn down a job offer you received.",
+      "rejectSubtitle": "Send a respectful rejection to a job applicant.",
+      "company": "Company *",
+      "companyPlaceholder": "Acme Corp",
+      "roleDecline": "Position offered *",
+      "roleReject": "Role applied for *",
+      "rolePlaceholder": "Software Engineer",
+      "recipientDecline": "Hiring manager name",
+      "recipientReject": "Candidate name",
+      "recipientPlaceholder": "Jane Smith",
+      "senderDecline": "Your name",
+      "senderReject": "Your name / recruiter",
+      "senderPlaceholder": "Your name",
+      "reason": "Reason",
+      "reasonDeclinePlaceholder": "e.g. I've accepted another offer that better fits my goals",
+      "reasonRejectPlaceholder": "e.g. We moved forward with a candidate whose experience aligned more closely",
+      "optional": "(optional)",
+      "tone": "Tone",
+      "keepDoorOpenDecline": "Express interest in future opportunities",
+      "keepDoorOpenReject": "Encourage them to apply again in future",
+      "generate": "Generate Email",
+      "generating": "Writing your email…",
+      "generatingSubtext": "DResume AI is drafting a polished, professional email",
+      "yourEmail": "Your Email"
+    },
+    "tonesEmail": {
+      "professional": "Professional",
+      "warm": "Warm",
+      "brief": "Brief"
     }
   },
   "aiLimit": {
@@ -1078,6 +1115,16 @@
     "prev": "Prev",
     "next": "Next",
     "loadFailed": "Failed to load users.",
-    "errorOccurred": "An error occurred."
+    "errorOccurred": "An error occurred.",
+    "filterAllPlans": "All plans",
+    "filterAllStatuses": "All statuses",
+    "filterActive": "Active",
+    "filterLocked": "Locked",
+    "filterUnverified": "Unverified",
+    "export": "Export CSV",
+    "selectedCount": "{count} selected",
+    "clearSelection": "Clear",
+    "selectAll": "Select all",
+    "download": "Download"
   }
 }

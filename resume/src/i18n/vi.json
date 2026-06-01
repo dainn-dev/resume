@@ -260,6 +260,43 @@
       "professional": "Chuyên Nghiệp",
       "enthusiastic": "Nhiệt Tình",
       "concise": "Ngắn Gọn"
+    },
+    "modes": {
+      "coverLetter": "Thư Xin Việc",
+      "declineOffer": "Từ Chối Offer",
+      "rejectCandidate": "Từ Chối Ứng Viên"
+    },
+    "email": {
+      "synced": "✓ Đã điền Công ty và Vị trí từ job match — bổ sung chi tiết bên dưới.",
+      "declineSubtitle": "Lịch sự từ chối một lời mời làm việc bạn nhận được.",
+      "rejectSubtitle": "Gửi email từ chối ứng viên một cách tôn trọng.",
+      "company": "Công ty *",
+      "companyPlaceholder": "Acme Corp",
+      "roleDecline": "Vị trí được mời *",
+      "roleReject": "Vị trí ứng tuyển *",
+      "rolePlaceholder": "Kỹ sư phần mềm",
+      "recipientDecline": "Tên người tuyển dụng",
+      "recipientReject": "Tên ứng viên",
+      "recipientPlaceholder": "Nguyễn Văn A",
+      "senderDecline": "Tên của bạn",
+      "senderReject": "Tên bạn / nhà tuyển dụng",
+      "senderPlaceholder": "Tên của bạn",
+      "reason": "Lý do",
+      "reasonDeclinePlaceholder": "vd: Tôi đã nhận một lời mời khác phù hợp hơn với mục tiêu",
+      "reasonRejectPlaceholder": "vd: Chúng tôi đã chọn ứng viên có kinh nghiệm phù hợp hơn",
+      "optional": "(không bắt buộc)",
+      "tone": "Tôn điệu",
+      "keepDoorOpenDecline": "Bày tỏ mong muốn hợp tác trong tương lai",
+      "keepDoorOpenReject": "Khuyến khích ứng tuyển lại trong tương lai",
+      "generate": "Tạo Email",
+      "generating": "Đang viết email…",
+      "generatingSubtext": "DResume AI đang soạn email chuyên nghiệp, lịch sự",
+      "yourEmail": "Email Của Bạn"
+    },
+    "tonesEmail": {
+      "professional": "Chuyên Nghiệp",
+      "warm": "Ấm Áp",
+      "brief": "Ngắn Gọn"
     }
   },
   "aiLimit": {
@@ -1078,6 +1115,16 @@
     "prev": "Trước",
     "next": "Sau",
     "loadFailed": "Không tải được danh sách người dùng.",
-    "errorOccurred": "Đã xảy ra lỗi."
+    "errorOccurred": "Đã xảy ra lỗi.",
+    "filterAllPlans": "Tất cả gói",
+    "filterAllStatuses": "Tất cả trạng thái",
+    "filterActive": "Hoạt động",
+    "filterLocked": "Đã khoá",
+    "filterUnverified": "Chưa xác minh",
+    "export": "Xuất CSV",
+    "selectedCount": "Đã chọn {count}",
+    "clearSelection": "Bỏ chọn",
+    "selectAll": "Chọn tất cả",
+    "download": "Tải về"
   }
 }

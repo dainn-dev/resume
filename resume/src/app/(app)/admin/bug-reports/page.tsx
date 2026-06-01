@@ -124,8 +124,8 @@ export default function AdminBugReportsPage() {
 
       {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-red-400 text-sm">{error}</div>}
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
             <tr>
               <th className="text-left px-4 py-3 font-medium">{t("adminBugReports.colSeverity")}</th>
