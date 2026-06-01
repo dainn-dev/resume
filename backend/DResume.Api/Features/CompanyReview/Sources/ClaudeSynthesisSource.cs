@@ -52,13 +52,21 @@ public sealed class ClaudeSynthesisSource : ICompanyReviewSource
                          "(10) Goal: help the reader see REALITY, not a marketing brochure. " +
                          "(11) DATES: provide a realistic 'date' string per review like 'March 2025' / 'Q2 2024' / 'Late 2023'. " +
                          "Spread dates across the last ~2-3 years to reflect that opinions evolve. Use the review's language " +
-                         "(English: 'March 2025'; Vietnamese: 'Tháng 3/2025').";
+                         "(English: 'March 2025'; Vietnamese: 'Tháng 3/2025'). " +
+                         "(12) CONTROVERSIES / DRAMA: separately from individual reviews, list publicly-discussed company-level " +
+                         "controversies — layoffs / mass resignations, unpaid or delayed salaries, labor disputes & lawsuits, " +
+                         "leadership/founder scandals, financial trouble or near-bankruptcy, PR/ethics scandals, the kind of " +
+                         "'phốt công ty' surfaced on Voz, Reddit, Facebook groups and news. ONLY include controversies you " +
+                         "actually have grounding for — NEVER fabricate. Empty array is correct when none are known. Each must " +
+                         "be SPECIFIC (what happened, roughly when), not vague.";
 
             var user = $@"Company: {companyName}
 
 Synthesize ~20 distinct publicly-discussed reviews + company info + benefits list. REQUIREMENT: roughly half of reviews must surface real problems — be specific and candid.
 
 For benefits: list 6-12 known benefits/perks. Mark ""highlight"": true only for STANDOUT benefits (e.g. stock options/RSU, signing bonus, premium private healthcare (PVI Gold/Bao Viet premium), 14-15th month bonus, performance bonus >30% salary, unlimited PTO, sabbatical leave, WFH stipend, education/learning budget >5M, long parental leave, daycare allowance). Standard benefits get highlight=false (e.g. mandatory BHXH/BHYT, basic 13th-month, lunch allowance, birthday gift, basic annual leave).
+
+For controversies: list ONLY company-level dramas you have real grounding for (layoffs, unpaid/delayed salaries, lawsuits, leadership scandals, financial trouble, PR/ethics scandals). Empty array if none known. Do NOT invent.
 
 Output JSON:
 {{
@@ -72,6 +80,15 @@ Output JSON:
         ""name"": ""concise benefit name (e.g. 'Stock options (RSU)' / 'Lương tháng 13 + thưởng KPI')"",
         ""highlight"": true_or_false,
         ""category"": ""Compensation / Healthcare / Time-off / Learning / Lifestyle / Family""
+      }}
+    ],
+    ""controversies"": [
+      {{
+        ""title"": ""short headline (e.g. 'Sa thải 15% nhân sự Q3/2023' / 'Delayed salaries 2 months')"",
+        ""summary"": ""1-2 sentences: what happened, impact"",
+        ""severity"": ""low | medium | high"",
+        ""date"": ""e.g. 'Q3 2023' / 'Tháng 8/2023'"",
+        ""category"": ""Layoffs | Pay | Legal | Leadership | Culture | Financial""
       }}
     ]
   }},
@@ -105,6 +122,15 @@ Output JSON:
                     Benefits: parsed.Info.Benefits?
                         .Where(b => !string.IsNullOrWhiteSpace(b.Name))
                         .Select(b => new BenefitDto(b.Name!.Trim(), b.Highlight ?? false, NullIfEmpty(b.Category)))
+                        .ToList(),
+                    Controversies: parsed.Info.Controversies?
+                        .Where(c => !string.IsNullOrWhiteSpace(c.Title))
+                        .Select(c => new ControversyDto(
+                            c.Title!.Trim(),
+                            NullIfEmpty(c.Summary),
+                            NullIfEmpty(c.Severity)?.ToLowerInvariant(),
+                            NullIfEmpty(c.Date),
+                            NullIfEmpty(c.Category)))
                         .ToList());
 
             var reviews = (parsed.Reviews ?? [])
@@ -147,12 +173,22 @@ Output JSON:
         public string? Industry { get; set; }
         public string? Headquarters { get; set; }
         public List<ClaudeBenefit>? Benefits { get; set; }
+        public List<ClaudeControversy>? Controversies { get; set; }
     }
 
     private sealed class ClaudeBenefit
     {
         public string? Name { get; set; }
         public bool? Highlight { get; set; }
+        public string? Category { get; set; }
+    }
+
+    private sealed class ClaudeControversy
+    {
+        public string? Title { get; set; }
+        public string? Summary { get; set; }
+        public string? Severity { get; set; }
+        public string? Date { get; set; }
         public string? Category { get; set; }
     }
 

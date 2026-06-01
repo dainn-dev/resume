@@ -4,6 +4,16 @@ export interface Benefit {
   category: string | null;
 }
 
+export type ControversySeverity = "low" | "medium" | "high";
+
+export interface Controversy {
+  title: string;
+  summary: string | null;
+  severity: ControversySeverity | string | null;
+  date: string | null;
+  category: string | null;
+}
+
 export interface CompanyInfo {
   name: string;
   rating: number | null;
@@ -11,6 +21,7 @@ export interface CompanyInfo {
   industry: string | null;
   headquarters: string | null;
   benefits: Benefit[] | null;
+  controversies: Controversy[] | null;
 }
 
 export interface ReviewItem {

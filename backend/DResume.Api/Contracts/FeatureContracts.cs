@@ -95,9 +95,21 @@ public sealed record CompanyInfoDto(
     int? EmployeeCount,
     string? Industry,
     string? Headquarters,
-    List<BenefitDto>? Benefits = null);
+    List<BenefitDto>? Benefits = null,
+    List<ControversyDto>? Controversies = null);
 
 public sealed record BenefitDto(string Name, bool Highlight, string? Category);
+
+/// <summary>
+/// A company-level controversy / "drama" (layoffs, unpaid wages, lawsuits, leadership scandal,
+/// mass resignations, etc.) — distinct from an individual employee review.
+/// </summary>
+public sealed record ControversyDto(
+    string Title,
+    string? Summary,
+    string? Severity,
+    string? Date,
+    string? Category);
 
 public sealed record ReviewItemDto(
     string Source,

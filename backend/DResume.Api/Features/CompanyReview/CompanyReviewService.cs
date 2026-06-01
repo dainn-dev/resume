@@ -158,6 +158,7 @@ public sealed class CompanyReviewService : ICompanyReviewService
         string? bestIndustry = null;
         string? bestHq = null;
         List<BenefitDto>? bestBenefits = null;
+        List<ControversyDto>? bestControversies = null;
 
         foreach (var (sourceName, result) in results)
         {
@@ -174,6 +175,8 @@ public sealed class CompanyReviewService : ICompanyReviewService
                 bestHq ??= result.Info.Headquarters;
                 if (bestBenefits is null && result.Info.Benefits is { Count: > 0 })
                     bestBenefits = result.Info.Benefits;
+                if (bestControversies is null && result.Info.Controversies is { Count: > 0 })
+                    bestControversies = result.Info.Controversies;
             }
         }
 
@@ -198,7 +201,8 @@ public sealed class CompanyReviewService : ICompanyReviewService
             EmployeeCount: bestEmployees,
             Industry: bestIndustry,
             Headquarters: bestHq,
-            Benefits: bestBenefits);
+            Benefits: bestBenefits,
+            Controversies: bestControversies);
 
         return new CachedPayload(info, dedupedReviews, statuses);
     }

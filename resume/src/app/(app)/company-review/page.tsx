@@ -5,10 +5,19 @@ import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
 import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { CompanyReviewResponse, ReviewItem, SourceStatus, TopTechCompany } from "@/types/companyReview";
+import type { CompanyReviewResponse, Controversy, ReviewItem, SourceStatus, TopTechCompany } from "@/types/companyReview";
 
 function inputClass(extra = "") {
   return `w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 ${extra}`;
+}
+
+function sevRank(severity: string | null): number {
+  switch ((severity || "").toLowerCase()) {
+    case "high": return 3;
+    case "medium": return 2;
+    case "low": return 1;
+    default: return 0;
+  }
 }
 
 function StarRow({ rating }: { rating: number | null }) {
@@ -43,6 +52,31 @@ function SourceChip({ s, t }: { s: SourceStatus; t: (k: string) => string }) {
         {ok ? `${s.reviewCount} reviews` : blocked ? t("companyReview.sourceBlocked") : t("companyReview.sourceError")}
       </span>
     </span>
+  );
+}
+
+function ControversyCard({ c, t }: { c: Controversy; t: (k: string) => string }) {
+  const sev = (c.severity || "").toLowerCase();
+  const style = sev === "high"
+    ? { ring: "border-red-500/40 bg-red-500/5", chip: "text-red-300 bg-red-500/15 border-red-500/40", label: t("companyReview.severityHigh"), icon: "🔴" }
+    : sev === "medium"
+      ? { ring: "border-amber-500/40 bg-amber-500/5", chip: "text-amber-300 bg-amber-500/15 border-amber-500/40", label: t("companyReview.severityMedium"), icon: "🟠" }
+      : { ring: "border-gray-700 bg-gray-800/30", chip: "text-gray-300 bg-gray-700/40 border-gray-600", label: t("companyReview.severityLow"), icon: "⚪" };
+  return (
+    <div className={`rounded-2xl border p-4 space-y-2 ${style.ring}`}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-semibold text-white leading-snug">{c.title}</p>
+        <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${style.chip}`}>
+          <span>{style.icon}</span>{style.label}
+        </span>
+      </div>
+      {c.summary && <p className="text-sm text-gray-300 leading-relaxed">{c.summary}</p>}
+      <div className="flex items-center gap-2 text-xs text-gray-500 pt-1">
+        {c.category && <span className="font-medium text-gray-400">{c.category}</span>}
+        {c.category && c.date && <span>·</span>}
+        {c.date && <span>{c.date}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -304,6 +338,24 @@ export default function CompanyReviewPage() {
                     {b.name}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Controversies / drama */}
+          {result.info.controversies && result.info.controversies.length > 0 && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white">{t("companyReview.controversiesTitle")}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{t("companyReview.controversiesSubtitle")}</p>
+                </div>
+                <span className="text-[10px] text-gray-600">{result.info.controversies.length}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[...result.info.controversies]
+                  .sort((a, b) => sevRank(b.severity) - sevRank(a.severity))
+                  .map((c, i) => <ControversyCard key={i} c={c} t={t} />)}
               </div>
             </div>
           )}
