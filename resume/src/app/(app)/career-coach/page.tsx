@@ -388,13 +388,13 @@ export default function CareerCoachPage() {
 
             <div>
               <p className={labelClass()}>{t("careerCoach.focusAreas")}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {FOCUS_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => toggleFocus(opt.value)}
-                    className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 ${
+                    className={`py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 ${
                       form.focusAreas.includes(opt.value)
                         ? "bg-blue-600/20 border-blue-500/50 text-blue-400"
                         : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-600"
