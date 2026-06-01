@@ -30,6 +30,7 @@ public sealed record AdminPortfolioDto(
     Guid ResumeId,
     string? ResumeTitle,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? RejectReason);
 
 public sealed record RejectPortfolioRequest(string Reason);

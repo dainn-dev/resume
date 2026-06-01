@@ -214,7 +214,7 @@ public sealed class PortfolioService : IPortfolioService
         // UserEmail is filled in by the controller (it owns the user DB).
         return sites.Select(p => new AdminPortfolioDto(
             p.Id, p.UserId, null, p.Subdomain, p.Theme, p.Status.ToString(),
-            p.ResumeId, titles.GetValueOrDefault(p.ResumeId), p.CreatedAt, p.UpdatedAt)).ToList();
+            p.ResumeId, titles.GetValueOrDefault(p.ResumeId), p.CreatedAt, p.UpdatedAt, p.RejectReason)).ToList();
     }
 
     public async Task ApproveAsync(Guid siteId, string adminEmail, CancellationToken ct = default)

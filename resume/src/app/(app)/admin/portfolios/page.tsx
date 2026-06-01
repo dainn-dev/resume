@@ -18,6 +18,7 @@ interface AdminPortfolio {
   status: "Pending" | "Approved" | "Rejected";
   resumeId: string;
   resumeTitle: string | null;
+  rejectReason: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -155,7 +156,12 @@ export default function AdminPortfoliosPage() {
                 <td className="px-4 py-3 text-gray-300 text-xs">{p.userEmail ?? p.userId}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs max-w-[14rem] truncate">{p.resumeTitle ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs capitalize">{p.theme}</td>
-                <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded border ${statusColor(p.status)}`}>{p.status}</span></td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${statusColor(p.status)}`}>{p.status}</span>
+                  {p.status === "Rejected" && p.rejectReason && (
+                    <p className="mt-1 text-[11px] text-gray-500 max-w-[12rem] truncate" title={p.rejectReason}>{p.rejectReason}</p>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(p.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2 whitespace-nowrap">
@@ -236,6 +242,11 @@ function PreviewModal({
             <p className="text-xs text-gray-500 truncate">
               {portfolio.userEmail ?? portfolio.userId} · <span className="capitalize">{portfolio.theme}</span> theme
             </p>
+            {portfolio.status === "Rejected" && portfolio.rejectReason && (
+              <p className="text-xs text-red-400 mt-0.5 truncate" title={portfolio.rejectReason}>
+                Rejected: {portfolio.rejectReason}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${statusColor(portfolio.status)}`}>{portfolio.status}</span>
