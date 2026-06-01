@@ -32,9 +32,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/logo.png",
+    icon: "/DAINN-02.png",
+    shortcut: "/DAINN-02.png",
+    apple: "/DAINN-02.png",
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
