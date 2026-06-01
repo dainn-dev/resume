@@ -14,6 +14,11 @@
     "reportBug": "Báo Lỗi",
     "help": "Trung Tâm Trợ Giúp"
   },
+  "featureGate": {
+    "title": "Tính năng gói {plan}",
+    "body": "Tính năng này có ở gói {plan}. Nâng cấp để mở khoá.",
+    "cta": "Nâng cấp lên {plan}"
+  },
   "build": {
     "title": "Xây Dựng CV của Bạn",
     "subtitle": "Tạo một CV chuyên nghiệp với hướng dẫn AI",

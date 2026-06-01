@@ -14,6 +14,11 @@
     "reportBug": "Report a Bug",
     "help": "Help Center"
   },
+  "featureGate": {
+    "title": "A {plan} feature",
+    "body": "This feature is available on the {plan} plan. Upgrade to unlock it.",
+    "cta": "Upgrade to {plan}"
+  },
   "build": {
     "title": "Build Your Resume",
     "subtitle": "Create a professional resume with AI guidance",

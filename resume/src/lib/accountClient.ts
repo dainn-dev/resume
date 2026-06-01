@@ -11,11 +11,24 @@ export interface AccountSummaryUser {
   avatarUrl?: string;
 }
 
+export type FeatureKey =
+  | "jobMatch"
+  | "coverLetter"
+  | "careerCoach"
+  | "interviewCoach"
+  | "salaryEstimator"
+  | "calendar"
+  | "companyReview";
+
 export interface AccountSummaryPlan {
   code: "Free" | "Pro" | "Premium";
   name: string;
   lookupKey: string;
   isPaid: boolean;
+  // Per-feature access for the current plan (admin-editable in /admin/plans).
+  features?: Partial<Record<FeatureKey, boolean>>;
+  // Lowest plan name that unlocks each feature (for the upsell label).
+  featurePlans?: Partial<Record<FeatureKey, string | null>>;
 }
 
 export interface AccountSummarySubscription {
