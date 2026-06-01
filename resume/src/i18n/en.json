@@ -267,6 +267,7 @@
       "rejectCandidate": "Reject Candidate"
     },
     "email": {
+      "synced": "✓ Company and role filled from your job match — add the details below.",
       "declineSubtitle": "Politely turn down a job offer you received.",
       "rejectSubtitle": "Send a respectful rejection to a job applicant.",
       "company": "Company *",
