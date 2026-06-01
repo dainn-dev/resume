@@ -17,6 +17,7 @@ public interface IPortfolioService
     Task<PublicPortfolioDto?> GetPublicAsync(string subdomain, CancellationToken ct = default);
 
     // Admin
+    Task<PublicPortfolioDto?> GetPreviewAsync(Guid siteId, CancellationToken ct = default);
     Task<List<AdminPortfolioDto>> ListForAdminAsync(PortfolioStatus? status, CancellationToken ct = default);
     Task ApproveAsync(Guid siteId, string adminEmail, CancellationToken ct = default);
     Task RejectAsync(Guid siteId, string adminEmail, string reason, CancellationToken ct = default);
@@ -167,8 +168,19 @@ public sealed class PortfolioService : IPortfolioService
         // Security boundary: only Approved sites are ever served publicly.
         var site = await _db.PortfolioSites
             .FirstOrDefaultAsync(p => p.Subdomain == sub && p.Status == PortfolioStatus.Approved, ct);
-        if (site is null) return null;
+        return site is null ? null : await BuildPublicDtoAsync(site, ct);
+    }
 
+    // Admin-only: render a site's portfolio regardless of status, so reviewers can see exactly
+    // what they're approving/rejecting before it goes live. Never exposed to the public route.
+    public async Task<PublicPortfolioDto?> GetPreviewAsync(Guid siteId, CancellationToken ct = default)
+    {
+        var site = await _db.PortfolioSites.FirstOrDefaultAsync(p => p.Id == siteId, ct);
+        return site is null ? null : await BuildPublicDtoAsync(site, ct);
+    }
+
+    private async Task<PublicPortfolioDto?> BuildPublicDtoAsync(PortfolioSite site, CancellationToken ct)
+    {
         // ParsedDataJson is auto-decrypted by EF's EncryptedStringConverter on read.
         var resume = await _db.Resumes.FirstOrDefaultAsync(r => r.Id == site.ResumeId, ct);
         if (resume is null || string.IsNullOrEmpty(resume.ParsedDataJson)) return null;
