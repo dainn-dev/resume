@@ -3,7 +3,10 @@ using DainnUser.Core.Interfaces.Services;
 using DainnUser.Infrastructure.Data;
 using DResume.Api.Billing;
 using DResume.Api.Common;
+using DResume.Api.Contracts;
 using DResume.Api.Data;
+using DResume.Api.Data.Entities;
+using DResume.Api.Features.Portfolio;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -355,6 +358,39 @@ public sealed class AdminController : ControllerBase
         await _resumeDb.SaveChangesAsync(ct);
 
         return Ok(ApiResult.Ok(new { deleted = true, resumeId }));
+    }
+
+    [HttpGet("portfolios")]
+    public async Task<IActionResult> ListPortfolios(
+        [FromServices] IPortfolioService portfolios,
+        [FromQuery] string? status,
+        CancellationToken ct = default)
+    {
+        PortfolioStatus? filter = Enum.TryParse<PortfolioStatus>(status, true, out var s) ? s : null;
+        var items = await portfolios.ListForAdminAsync(filter, ct);
+
+        var userIds = items.Select(p => p.UserId).Distinct().ToList();
+        var emails = await _userDb.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Email, ct);
+
+        var rows = items.Select(p => p with { UserEmail = emails.GetValueOrDefault(p.UserId) });
+        return Ok(ApiResult.Ok(rows));
+    }
+
+    [HttpPost("portfolios/{id:guid}/approve")]
+    public async Task<IActionResult> ApprovePortfolio(Guid id, [FromServices] IPortfolioService portfolios, CancellationToken ct)
+    {
+        await portfolios.ApproveAsync(id, _current.Email ?? "admin", ct);
+        return Ok(ApiResult.Ok(new { approved = true, id }));
+    }
+
+    [HttpPost("portfolios/{id:guid}/reject")]
+    public async Task<IActionResult> RejectPortfolio(Guid id, [FromBody] RejectPortfolioRequest req,
+        [FromServices] IPortfolioService portfolios, CancellationToken ct)
+    {
+        await portfolios.RejectAsync(id, _current.Email ?? "admin", req?.Reason ?? "", ct);
+        return Ok(ApiResult.Ok(new { rejected = true, id }));
     }
 
     [HttpGet("plans")]

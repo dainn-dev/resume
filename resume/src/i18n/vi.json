@@ -10,6 +10,7 @@
     "careerCoach": "Huấn Luyện Nghề Nghiệp",
     "calendar": "Mục Tiêu & Nhiệm Vụ",
     "companyReview": "Đánh Giá Công Ty",
+    "portfolio": "Trang Portfolio",
     "reportBug": "Báo Lỗi",
     "help": "Trung Tâm Trợ Giúp"
   },
@@ -271,6 +272,8 @@
     "active": "Hệ thống đang bảo trì định kỳ đến 5:00 sáng (GMT+7). Một số tính năng có thể không khả dụng.",
     "pageTitle": "Đang bảo trì",
     "pageBody": "Hệ thống đang trong quá trình bảo trì theo khung giờ cố định từ 2:00 đến 5:00 sáng (GMT+7). Vui lòng quay lại sau 5:00 sáng.",
+    "errorTitle": "Đã xảy ra lỗi",
+    "errorBody": "Hiện không kết nối được tới máy chủ. Vui lòng thử lại sau giây lát.",
     "retry": "Thử lại"
   },
   "notFound": {

@@ -10,6 +10,7 @@
     "careerCoach": "Career Coach",
     "calendar": "Goals & Tasks",
     "companyReview": "Company Reviews",
+    "portfolio": "Portfolio Site",
     "reportBug": "Report a Bug",
     "help": "Help Center"
   },
@@ -271,6 +272,8 @@
     "active": "The system is under scheduled maintenance until 5:00 AM (GMT+7). Some features may be unavailable.",
     "pageTitle": "Under maintenance",
     "pageBody": "The system is undergoing maintenance during the scheduled window from 2:00 to 5:00 AM (GMT+7). Please come back after 5:00 AM.",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We’re having trouble reaching the server right now. Please try again in a moment.",
     "retry": "Try again"
   },
   "notFound": {
