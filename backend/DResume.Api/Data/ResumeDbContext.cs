@@ -32,6 +32,7 @@ public class ResumeDbContext : DbContext
     public DbSet<BugReport> BugReports => Set<BugReport>();
     public DbSet<AiUsageRecord> AiUsages => Set<AiUsageRecord>();
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
+    public DbSet<PortfolioSite> PortfolioSites => Set<PortfolioSite>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -246,6 +247,22 @@ public class ResumeDbContext : DbContext
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.CreatedAt);
+        });
+
+        b.Entity<PortfolioSite>(e =>
+        {
+            e.ToTable("portfolio_sites");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.UserId).IsUnique();      // 1 portfolio per user
+            e.HasIndex(x => x.Subdomain).IsUnique();   // globally unique subdomain
+            e.HasIndex(x => x.Status);
+            e.Property(x => x.Subdomain).HasMaxLength(63);
+            e.Property(x => x.Theme).HasMaxLength(20);
+            e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.ReviewedByEmail).HasMaxLength(256);
+            e.Property(x => x.RejectReason).HasColumnType("text");
+            // Deleting the backing resume removes its portfolio.
+            e.HasOne<Resume>().WithMany().HasForeignKey(x => x.ResumeId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

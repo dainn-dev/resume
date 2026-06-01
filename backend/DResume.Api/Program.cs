@@ -19,6 +19,7 @@ using DResume.Api.Features.Resumes;
 using DResume.Api.Features.Salary;
 using DResume.Api.Features.Calendar;
 using DResume.Api.Features.CompanyReview;
+using DResume.Api.Features.Portfolio;
 using DResume.Api.Security;
 using DResume.Api.Features.CompanyReview.Sources;
 using DResume.Api.Features.Translation;
@@ -95,6 +96,7 @@ builder.Services.AddScoped<ITaskGeneratorService, TaskGeneratorService>();
 builder.Services.AddScoped<ICompanyReviewSource, ClaudeSynthesisSource>();
 builder.Services.AddScoped<ICompanyReviewSource, ITViecSource>();
 builder.Services.AddScoped<ICompanyReviewService, CompanyReviewService>();
+builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -130,8 +132,19 @@ builder.Services.AddScoped<IBillingNotifier, BillingNotifier>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:3000" };
+// Portfolio sites are served from wildcard subdomains (*.dainn.online); allow any of them in
+// addition to the explicit origins. The frontend proxies most calls (same-origin), so this is a
+// safety net for any direct browser→backend request from a portfolio subdomain.
+var portfolioBaseDomain = builder.Configuration["Portfolio:BaseDomain"];
 builder.Services.AddCors(o => o.AddPolicy("Frontend", p => p
-    .WithOrigins(allowedOrigins)
+    .SetIsOriginAllowed(origin =>
+    {
+        if (allowedOrigins.Contains(origin)) return true;
+        if (string.IsNullOrWhiteSpace(portfolioBaseDomain)) return false;
+        return Uri.TryCreate(origin, UriKind.Absolute, out var u)
+            && (u.Host.Equals(portfolioBaseDomain, StringComparison.OrdinalIgnoreCase)
+                || u.Host.EndsWith($".{portfolioBaseDomain}", StringComparison.OrdinalIgnoreCase));
+    })
     .AllowAnyHeader()
     .AllowAnyMethod()
     .AllowCredentials()));

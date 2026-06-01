@@ -96,6 +96,15 @@ const tabs = [
       </svg>
     ),
   },
+  {
+    label: "portfolio",
+    href: "/portfolio",
+    icon: (
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

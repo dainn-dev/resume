@@ -25,6 +25,7 @@ name: dresume-backend
 #   FROM_EMAIL             noreply@yourdomain.com
 #   FROM_NAME              DResume
 #   FRONTEND_ORIGIN        https://app.yourdomain.com  (for CORS + email links)
+#   PORTFOLIO_BASE_DOMAIN  dainn.online  (wildcard portfolio subdomain base; CORS + links)
 
 services:
   postgres:
@@ -88,6 +89,9 @@ services:
       DainnUser__Email__FromEmail: ${FROM_EMAIL}
       DainnUser__Email__FromName: ${FROM_NAME}
       Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
+      # Portfolio wildcard subdomains — allows CORS from any <sub>.${PORTFOLIO_BASE_DOMAIN}
+      # and is used to build absolute portfolio links. e.g. dainn.online
+      Portfolio__BaseDomain: ${PORTFOLIO_BASE_DOMAIN}
       # Billing redirect URLs (replace localhost with public frontend URL)
       Billing__SuccessUrl: "${FRONTEND_ORIGIN}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}"
       Billing__CancelUrl: "${FRONTEND_ORIGIN}/account?checkout=cancel"
