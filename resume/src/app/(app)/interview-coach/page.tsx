@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { InterviewCoachFormData, InterviewCoachResult } from "@/types/builder";
+import type { InterviewCoachFormData, InterviewCoachResult, ResumeFormData, WorkEntry } from "@/types/builder";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -9,12 +9,14 @@ import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
 import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { fetchResumeDetail } from "@/lib/accountClient";
 import {
   getInterviewCoachForm,
   getInterviewCoachResult,
   getInterviewCoachAnalysis,
   getJobMatchContext,
   getResumeText,
+  getParsedResumeForm,
   getCurrentResumeId,
   setCurrentResumeId,
   setInterviewCoachForm,
@@ -22,6 +24,13 @@ import {
   setInterviewCoachAnalysis,
   type JobMatchContext,
 } from "@/lib/pipeline";
+
+// Current/most-recent role (prefer an ongoing job), else the first listed entry.
+function mostRecentTitle(entries: WorkEntry[] | undefined): string {
+  if (!entries?.length) return "";
+  const ongoing = entries.find((e) => /present|current|now|hiện tại|nay|đang/i.test(e.endDate ?? "") || !e.endDate?.trim());
+  return (ongoing ?? entries[0]).title?.trim() ?? "";
+}
 
 const INTERVIEW_TYPES: InterviewCoachFormData["interviewType"][] = ["behavioral", "technical", "mixed"];
 
@@ -114,6 +123,28 @@ export default function InterviewCoachPage() {
     if (cachedAnalysis) setAnalysis(cachedAnalysis);
 
     hydratedRef.current = true;
+
+    // Autofill blanks from the uploaded résumé: jobTitle = most recent role, resumeSummary
+    // = the CV's summary (or its raw text). Job-match context above takes precedence.
+    const applyParsed = (p: ResumeFormData | undefined, raw: string) => {
+      const title = mostRecentTitle(p?.workEntries);
+      const summary = (p?.summary?.trim() || raw.slice(0, 8000)).trim();
+      setForm((prev) => ({
+        ...prev,
+        jobTitle: prev.jobTitle || title,
+        resumeSummary: prev.resumeSummary || summary,
+      }));
+      if (title || summary) setSynced(true);
+    };
+
+    const parsed = getParsedResumeForm();
+    applyParsed(parsed ?? undefined, resumeText);
+    // Score-Resume flow caches raw text but not the parsed form — fetch it for the job title.
+    if (!parsed) {
+      fetchResumeDetail(urlResumeId).then((detail) => {
+        if (detail?.parsed || detail?.rawText) applyParsed(detail.parsed ?? undefined, detail.rawText ?? "");
+      }).catch(() => {});
+    }
   }, [searchParams]);
 
   useEffect(() => {
