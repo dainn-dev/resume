@@ -6,6 +6,7 @@ import FileUpload from "@/components/FileUpload";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { AnalyzeApiResponse } from "@/types/resume";
 import { clearPipeline, setResumeAnalysis, setCurrentResumeId } from "@/lib/pipeline";
+import { focusRing } from "@/components/ui/Button";
 
 interface ResumeListItem {
   id: string;
@@ -35,10 +36,17 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function RecentCard({ item, onSelect }: { item: ResumeListItem; onSelect: () => void }) {
+  const title = item.title ?? item.sourceFileName ?? "Untitled";
+  const ariaLabel = [
+    item.lastScore !== null ? `Score ${item.lastScore}` : null,
+    title,
+    `updated ${formatRelativeTime(item.updatedAt)}`,
+  ].filter(Boolean).join(" — ");
   return (
     <button
       onClick={onSelect}
-      className="w-full text-left bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-xl px-4 py-3 flex items-center gap-4 transition-colors group"
+      aria-label={ariaLabel}
+      className={`w-full text-left bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-xl px-4 py-3 flex items-center gap-4 transition-colors group ${focusRing}`}
     >
       {item.lastScore !== null && (
         <span className={`shrink-0 text-sm font-bold px-2.5 py-1 rounded-lg border ${scoreColor(item.lastScore)}`}>
@@ -48,7 +56,7 @@ function RecentCard({ item, onSelect }: { item: ResumeListItem; onSelect: () => 
 
       <div className="flex-1 min-w-0">
         <p className="text-sm text-white font-medium truncate group-hover:text-blue-300 transition-colors">
-          {item.title ?? item.sourceFileName ?? "Untitled"}
+          {title}
         </p>
         <p className="text-xs text-gray-500 mt-0.5">{formatRelativeTime(item.updatedAt)}</p>
       </div>
@@ -123,7 +131,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="flex flex-col items-center justify-center px-4 py-8">
+    <main className="flex flex-col items-center justify-start sm:justify-center px-4 py-8">
       {loading ? (
         <LoadingSpinner />
       ) : (
@@ -153,7 +161,7 @@ export default function HomePage() {
           {/* Recent resumes from backend */}
           {recents.length > 0 && (
             <div className="w-full space-y-2">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide px-1">Recent</p>
+              <h2 className="text-xs font-medium text-gray-500 uppercase tracking-wide px-1">Recent</h2>
               {recents.map((item) => (
                 <RecentCard key={item.id} item={item} onSelect={() => handleSelectRecent(item)} />
               ))}

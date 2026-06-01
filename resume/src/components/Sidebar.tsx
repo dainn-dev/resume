@@ -9,6 +9,7 @@ import en from "@/i18n/en.json";
 import vi from "@/i18n/vi.json";
 import { useAuth } from "./AuthProvider";
 import { useReportBug } from "./ReportBugModal";
+import { focusRing } from "@/components/ui/Button";
 
 type Messages = typeof en;
 const translations: Record<Locale, Messages> = { en, vi };
@@ -143,11 +144,11 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-gray-800 shrink-0">
           <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity" onClick={onClose}>
-            <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
+            <Image src="/logo.png" alt="DResume" width={68} height={32} className="h-8 w-auto" priority />
           </Link>
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 text-gray-400 hover:text-white transition-colors"
+            className={`lg:hidden p-1.5 text-gray-400 hover:text-white transition-colors ${focusRing}`}
             aria-label="Close sidebar"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -164,7 +165,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 key={tab.href}
                 href={tab.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${focusRing} ${
                   isActive
                     ? "bg-gray-800 text-white"
                     : "text-gray-400 hover:text-white hover:bg-gray-800/50"
@@ -182,7 +183,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <Link
               href="/help"
               onClick={onClose}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors ${focusRing}`}
             >
               <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 1.875-2 3.272-2 2.21 0 4 1.567 4 3.5 0 1.933-1.79 3.5-4 3.5h-1m1 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -191,7 +192,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             </Link>
             <button
               onClick={() => { onClose(); openReportBug(); }}
-              className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+              className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors ${focusRing}`}
             >
               <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zM12 15.75h.008v.008H12v-.008z" />
@@ -201,7 +202,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <Link
               href="/resumes"
               onClick={onClose}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${focusRing} ${
                 pathname === "/resumes"
                   ? "bg-gray-800 text-white"
                   : "text-gray-400 hover:text-white hover:bg-gray-800/50"
@@ -215,7 +216,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <Link
               href="/account"
               onClick={onClose}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${focusRing} ${
                 pathname === "/account"
                   ? "bg-gray-800 text-white"
                   : "text-gray-400 hover:text-white hover:bg-gray-800/50"
@@ -228,7 +229,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             </Link>
             <button
               onClick={() => { onClose(); logout(); router.push("/"); }}
-              className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+              className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors ${focusRing}`}
             >
               <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

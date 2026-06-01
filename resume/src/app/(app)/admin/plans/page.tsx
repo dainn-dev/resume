@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AdminNav from "@/components/AdminNav";
 import DiscountCountdown, { isDiscountActive, isSoldOut, remainingRedemptions } from "@/components/DiscountCountdown";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 interface BankTier {
   id: string;
@@ -297,21 +299,21 @@ export default function AdminPlansPage() {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setEditing(p)} className="text-xs bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/40 px-3 py-1.5 rounded-lg">Edit info & limits</button>
+            <button onClick={() => setEditing(p)} className={`text-xs bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/40 px-3 py-1.5 rounded-lg ${focusRing}`}>Edit info & limits</button>
             {p.code !== "Free" && (
               <PriceForm planCode={p.code} currentCents={p.monthlyPriceCents} onChange={changePrice} busy={busy === `price-${p.code}`} />
             )}
-            <button onClick={() => loadPrices(p.code)} className="text-xs text-gray-400 hover:text-gray-300 border border-gray-700 px-3 py-1.5 rounded-lg">
+            <Button variant="secondary" size="sm" onClick={() => loadPrices(p.code)}>
               {prices[p.code] ? "Refresh prices" : "Show Stripe prices"}
-            </button>
+            </Button>
             {p.code !== "Free" && (
-              <button onClick={() => loadMigrationPreview(p.code)} className="text-xs text-gray-400 hover:text-gray-300 border border-gray-700 px-3 py-1.5 rounded-lg">
+              <Button variant="secondary" size="sm" onClick={() => loadMigrationPreview(p.code)}>
                 {migCounts[p.code] !== undefined ? `Refresh count (${migCounts[p.code]} on old prices)` : "Check migration"}
-              </button>
+              </Button>
             )}
             {p.code !== "Free" && migCounts[p.code] !== undefined && migCounts[p.code] > 0 && (
               <button onClick={() => migrateSubscribers(p.code)} disabled={busy === `mig-${p.code}`}
-                className="text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50">
+                className={`text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50 ${focusRing}`}>
                 {busy === `mig-${p.code}` ? "Migrating…" : `Migrate ${migCounts[p.code]} subscriber(s) → default price`}
               </button>
             )}
@@ -332,10 +334,10 @@ export default function AdminPlansPage() {
                     </div>
                     <div className="flex gap-1 shrink-0">
                       {sp.active && !sp.isDefault && (
-                        <button onClick={() => setDefault(p.code, sp.stripePriceId)} disabled={busy === `def-${sp.stripePriceId}`} className="text-[10px] text-blue-400 hover:text-blue-300 px-2 py-1">Set default</button>
+                        <Button variant="link" onClick={() => setDefault(p.code, sp.stripePriceId)} loading={busy === `def-${sp.stripePriceId}`} className="text-[10px]">Set default</Button>
                       )}
                       {sp.active && (
-                        <button onClick={() => archivePrice(p.code, sp.stripePriceId)} disabled={busy === `arch-${sp.stripePriceId}`} className="text-[10px] text-amber-400 hover:text-amber-300 px-2 py-1">Archive</button>
+                        <button onClick={() => archivePrice(p.code, sp.stripePriceId)} disabled={busy === `arch-${sp.stripePriceId}`} className={`text-[10px] text-amber-400 hover:text-amber-300 px-2 py-1 rounded disabled:opacity-50 ${focusRing}`}>Archive</button>
                       )}
                     </div>
                   </div>
@@ -387,7 +389,7 @@ function PriceForm({ planCode, currentCents, onChange, busy }: { planCode: strin
     <form onSubmit={(e) => { e.preventDefault(); onChange(planCode, val); }} className="flex gap-1 items-center">
       <span className="text-xs text-gray-500">$</span>
       <input type="number" step="0.01" min="0.01" value={val} onChange={(e) => setVal(e.target.value)} className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
-      <button type="submit" disabled={busy} className="text-xs bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 border border-amber-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50">
+      <button type="submit" disabled={busy} className={`text-xs bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 border border-amber-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50 ${focusRing}`}>
         {busy ? "…" : "Update price"}
       </button>
     </form>
@@ -483,11 +485,11 @@ function BankTierEditor({ plan, busy, savedFlash, onAdd, onUpdate, onDelete }: {
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button onClick={() => onUpdate(plan.code, t.id, { active: !t.active })} disabled={busy === `tier-${t.id}`}
-                    className={`text-[10px] px-2 py-1 rounded ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
+                    className={`text-[10px] px-2 py-1 rounded disabled:opacity-50 ${focusRing} ${t.active ? "text-amber-400 hover:text-amber-300" : "text-green-400 hover:text-green-300"}`}>
                     {t.active ? "Disable" : "Enable"}
                   </button>
-                  <button onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
-                    className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1">Delete</button>
+                  <Button variant="link" onClick={() => onDelete(plan.code, t.id)} disabled={busy === `tier-${t.id}`}
+                    className="text-[10px] text-red-400 hover:text-red-300">Delete</Button>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 pl-0 sm:pl-2">
@@ -535,28 +537,24 @@ function BankTierEditor({ plan, busy, savedFlash, onAdd, onUpdate, onDelete }: {
         )}
       </div>
       <form onSubmit={submitNew} className="flex flex-wrap items-end gap-2 mt-3 pt-3 border-t border-gray-800">
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-0.5">Months</label>
+        <Field label="Months" labelClassName="block text-[10px] text-gray-500 mb-0.5">
           <input type="number" min="1" value={newMonths} onChange={(e) => setNewMonths(e.target.value)} placeholder="e.g. 24"
             className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
-        </div>
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-0.5">Discount %</label>
+        </Field>
+        <Field label="Discount %" labelClassName="block text-[10px] text-gray-500 mb-0.5">
           <input type="number" min="0" max="100" value={newDiscount} onChange={(e) => setNewDiscount(e.target.value)}
             className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
-        </div>
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-0.5">Ends (optional)</label>
+        </Field>
+        <Field label="Ends (optional)" labelClassName="block text-[10px] text-gray-500 mb-0.5">
           <input type="datetime-local" value={newEnd} onChange={(e) => setNewEnd(e.target.value)}
             className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
-        </div>
-        <div>
-          <label className="block text-[10px] text-gray-500 mb-0.5">Qty (blank = ∞)</label>
+        </Field>
+        <Field label="Qty (blank = ∞)" labelClassName="block text-[10px] text-gray-500 mb-0.5">
           <input type="number" min="1" value={newQty} onChange={(e) => setNewQty(e.target.value)} placeholder="∞"
             className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
-        </div>
+        </Field>
         <button type="submit" disabled={busy === `tier-add-${plan.code}`}
-          className="text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50">
+          className={`text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50 ${focusRing}`}>
           {busy === `tier-add-${plan.code}` ? "…" : "Add duration"}
         </button>
       </form>
@@ -571,32 +569,27 @@ function EditModal({ plan, onClose, onSave, busy }: { plan: Plan; onClose: () =>
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-lg my-8">
         <h2 className="text-lg font-bold text-white mb-4">Edit {plan.name}</h2>
         <div className="space-y-3 text-sm">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Name</label>
+          <Field label="Name" labelClassName="block text-xs text-gray-400 mb-1">
             <input value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Description</label>
+          </Field>
+          <Field label="Description" labelClassName="block text-xs text-gray-400 mb-1">
             <textarea value={p.description} onChange={(e) => setP({ ...p, description: e.target.value })} rows={2} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
-          </div>
+          </Field>
           {plan.code !== "Free" && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Monthly price (VND) — base for bank transfer</label>
+            <Field label="Monthly price (VND) — base for bank transfer" labelClassName="block text-xs text-gray-400 mb-1"
+              hint={`${formatVnd(p.monthlyPriceVnd)} / month. Stripe (USD) price is changed separately.`}>
               <input type="number" min="0" step="1000" value={p.monthlyPriceVnd}
                 onChange={(e) => setP({ ...p, monthlyPriceVnd: Number(e.target.value) })}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
-              <p className="text-[10px] text-gray-500 mt-1">{formatVnd(p.monthlyPriceVnd)} / month. Stripe (USD) price is changed separately.</p>
-            </div>
+            </Field>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Max resumes</label>
+            <Field label="Max resumes" labelClassName="block text-xs text-gray-400 mb-1">
               <input type="number" value={p.limits.maxResumes} onChange={(e) => setP({ ...p, limits: { ...p.limits, maxResumes: Number(e.target.value) } })} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">AI calls / month</label>
+            </Field>
+            <Field label="AI calls / month" labelClassName="block text-xs text-gray-400 mb-1">
               <input type="number" value={p.limits.monthlyAiCalls} onChange={(e) => setP({ ...p, limits: { ...p.limits, monthlyAiCalls: Number(e.target.value) } })} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />
-            </div>
+            </Field>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {([
@@ -617,10 +610,10 @@ function EditModal({ plan, onClose, onSave, busy }: { plan: Plan; onClose: () =>
           </div>
         </div>
         <div className="flex gap-2 mt-6 justify-end">
-          <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-300 px-4 py-2">Cancel</button>
-          <button onClick={() => onSave(p)} disabled={busy} className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-lg">
+          <button onClick={onClose} className={`text-xs text-gray-400 hover:text-gray-300 px-4 py-2 rounded ${focusRing}`}>Cancel</button>
+          <Button onClick={() => onSave(p)} loading={busy}>
             {busy ? "Saving…" : "Save changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

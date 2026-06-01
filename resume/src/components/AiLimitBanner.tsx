@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/components/TranslationProvider";
+import { focusRing } from "@/components/ui/Button";
 import type { AccountSummaryAiUsage, AccountSummaryPlan } from "@/lib/accountClient";
 
 interface AiUsageState {
@@ -69,14 +70,14 @@ export default function AiLimitBanner() {
           {state.plan.code !== "Premium" && (
             <Link
               href="/account"
-              className="rounded bg-white/10 px-2 py-0.5 text-xs font-medium hover:bg-white/20 transition-colors"
+              className={`rounded bg-white/10 px-2 py-0.5 text-xs font-medium hover:bg-white/20 transition-colors ${focusRing}`}
             >
               {t("aiLimit.upgrade")}
             </Link>
           )}
           <button
             onClick={() => setDismissed(true)}
-            className="opacity-60 hover:opacity-100 transition-opacity"
+            className={`opacity-60 hover:opacity-100 transition-opacity ${focusRing} rounded`}
             aria-label="Dismiss"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

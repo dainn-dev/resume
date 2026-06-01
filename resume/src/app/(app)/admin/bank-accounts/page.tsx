@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "@/components/TranslationProvider";
 import AdminNav from "@/components/AdminNav";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -150,9 +152,9 @@ export default function AdminBankAccountsPage() {
           <h1 className="text-2xl font-bold text-white">{t("adminBank.title")}</h1>
           <p className="text-gray-400 text-sm mt-1">{t("adminBank.subtitle")}</p>
         </div>
-        <button onClick={openCreate} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors w-full sm:w-auto shrink-0">
+        <Button onClick={openCreate} className="w-full sm:w-auto shrink-0">
           {t("adminBank.addAccount")}
-        </button>
+        </Button>
       </div>
 
       {error && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>}
@@ -178,8 +180,8 @@ export default function AdminBankAccountsPage() {
                 <p className="text-gray-500 text-xs mt-0.5">{t("adminBank.bin")}: {a.bankBin}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => openEdit(a)} className="text-xs text-blue-400 hover:text-blue-300">{t("adminBank.edit")}</button>
-                <button onClick={() => remove(a)} className="text-xs text-red-400 hover:text-red-300">{t("adminBank.delete")}</button>
+                <Button variant="link" onClick={() => openEdit(a)} className="text-xs">{t("adminBank.edit")}</Button>
+                <Button variant="link" onClick={() => remove(a)} className="text-xs text-red-400 hover:text-red-300">{t("adminBank.delete")}</Button>
               </div>
             </div>
           ))}
@@ -195,7 +197,7 @@ export default function AdminBankAccountsPage() {
               <p className="text-xs text-gray-400 mb-1.5">{t("adminBank.quickPresets")}</p>
               <div className="flex flex-wrap gap-1">
                 {BANK_PRESETS.map(p => (
-                  <button key={p.code} onClick={() => applyPreset(p)} className="text-xs border border-gray-700 hover:border-gray-600 hover:bg-gray-800 text-gray-300 px-2 py-1 rounded">
+                  <button key={p.code} onClick={() => applyPreset(p)} className={`text-xs border border-gray-700 hover:border-gray-600 hover:bg-gray-800 text-gray-300 px-2 py-1 rounded ${focusRing}`}>
                     {p.code}
                   </button>
                 ))}
@@ -203,26 +205,21 @@ export default function AdminBankAccountsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400">{t("adminBank.fieldBin")}</label>
+              <Field label={t("adminBank.fieldBin")} labelClassName="text-xs text-gray-400">
                 <input value={form.bankBin} onChange={e => setForm(f => ({ ...f, bankBin: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400">{t("adminBank.fieldCode")}</label>
+              </Field>
+              <Field label={t("adminBank.fieldCode")} labelClassName="text-xs text-gray-400">
                 <input value={form.bankCode} onChange={e => setForm(f => ({ ...f, bankCode: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-              </div>
-              <div className="col-span-2">
-                <label className="text-xs text-gray-400">{t("adminBank.fieldName")}</label>
+              </Field>
+              <Field label={t("adminBank.fieldName")} labelClassName="text-xs text-gray-400" className="col-span-2">
                 <input value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-              </div>
-              <div className="col-span-2">
-                <label className="text-xs text-gray-400">{t("adminBank.fieldAccountNumber")}</label>
+              </Field>
+              <Field label={t("adminBank.fieldAccountNumber")} labelClassName="text-xs text-gray-400" className="col-span-2">
                 <input value={form.accountNumber} onChange={e => setForm(f => ({ ...f, accountNumber: e.target.value }))} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-              </div>
-              <div className="col-span-2">
-                <label className="text-xs text-gray-400">{t("adminBank.fieldAccountHolder")}</label>
+              </Field>
+              <Field label={t("adminBank.fieldAccountHolder")} labelClassName="text-xs text-gray-400" className="col-span-2">
                 <input value={form.accountHolder} onChange={e => setForm(f => ({ ...f, accountHolder: e.target.value }))} placeholder={t("adminBank.accountHolderPlaceholder")} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-              </div>
+              </Field>
               <label className="flex items-center gap-2 text-sm text-gray-300">
                 <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />
                 {t("adminBank.active")}
@@ -234,12 +231,12 @@ export default function AdminBankAccountsPage() {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setShowCreate(false)} disabled={busy} className="flex-1 border border-gray-700 hover:bg-gray-800 text-gray-300 text-sm font-semibold py-2.5 rounded-lg">
+              <Button variant="secondary" onClick={() => setShowCreate(false)} disabled={busy} className="flex-1">
                 {t("adminBank.cancel")}
-              </button>
-              <button onClick={save} disabled={busy} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg">
+              </Button>
+              <Button onClick={save} loading={busy} className="flex-1">
                 {busy ? t("adminBank.saving") : t("adminBank.save")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { getCurrentResumeId } from "@/lib/pipeline";
@@ -24,10 +25,28 @@ export default function PipelineWorkflow() {
   const currentIdx = PATH_TO_STEP[pathname] ?? -1;
   const rid = getCurrentResumeId() || searchParams.get("resumeId");
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const currentRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  // On mobile the bar overflows; center the active step so it's never clipped off-screen.
+  useEffect(() => {
+    const container = scrollRef.current;
+    const active = currentRef.current;
+    if (!container || !active) return;
+    container.scrollLeft = active.offsetLeft - (container.clientWidth - active.clientWidth) / 2;
+    setScrolled(container.scrollLeft > 4);
+  }, [currentIdx]);
+
   if (currentIdx < 0) return null;
 
   return (
-    <div className="mb-6 overflow-x-auto scrollbar-hide pb-1">
+    <div className="relative mb-6">
+      <div
+        ref={scrollRef}
+        onScroll={e => setScrolled(e.currentTarget.scrollLeft > 4)}
+        className="overflow-x-auto scrollbar-hide pb-1"
+      >
       <div className="flex items-start justify-center min-w-max mx-auto">
         {STEPS.map((step, i) => {
           const isDone = i < currentIdx;
@@ -62,7 +81,7 @@ export default function PipelineWorkflow() {
           );
 
           return (
-            <div key={step.key} className="flex items-start">
+            <div key={step.key} ref={isCurrent ? currentRef : undefined} className="flex items-start">
               {href ? <Link href={href}>{node}</Link> : node}
               {i < STEPS.length - 1 && (
                 <div className={`h-px mt-3.5 sm:mt-4 mx-0 w-4 sm:w-8 lg:w-12 shrink-0 ${i < currentIdx ? "bg-blue-600" : "bg-gray-800"}`} />
@@ -71,6 +90,14 @@ export default function PipelineWorkflow() {
           );
         })}
       </div>
+      </div>
+      {/* Scroll affordances: right fade always (more steps ahead), left fade once scrolled. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-gray-950 to-transparent sm:hidden" />
+      <div
+        className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-gray-950 to-transparent sm:hidden transition-opacity ${
+          scrolled ? "opacity-100" : "opacity-0"
+        }`}
+      />
     </div>
   );
 }

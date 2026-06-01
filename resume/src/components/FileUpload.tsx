@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
+import { Button } from "@/components/ui/Button";
 
 interface FileUploadProps {
   onAnalyze: (file: File) => void;
@@ -73,15 +74,21 @@ export default function FileUpload({ onAnalyze, disabled }: FileUploadProps) {
         <p className="text-red-400 text-sm text-center">{error}</p>
       )}
 
-      <button
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
         onClick={handleSubmit}
         disabled={!selectedFile || disabled}
-        className="w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all
-          bg-blue-600 hover:bg-blue-500 text-white
-          disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+        aria-describedby={!selectedFile ? "analyze-hint" : undefined}
       >
         Analyze Resume
-      </button>
+      </Button>
+      {!selectedFile && !error && (
+        <p id="analyze-hint" className="text-gray-500 text-xs text-center -mt-1">
+          Choose a file above to start the analysis.
+        </p>
+      )}
     </div>
   );
 }

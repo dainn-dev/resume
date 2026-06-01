@@ -7,6 +7,8 @@ import { useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import {
   getInterviewCoachForm,
   getInterviewCoachResult,
@@ -259,15 +261,17 @@ export default function InterviewCoachPage() {
               <h2 className="text-sm font-semibold text-white">
                 {t("interviewCoach.prepareTitle")} <span className="text-blue-400">{form.company}</span>
               </h2>
-              <button
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs"
                 onClick={() => {
                   setResult(null);
                   setAnalysis("");
                 }}
-                className="text-xs text-blue-400 hover:text-blue-300"
               >
                 {t("interviewCoach.prepareAnother")}
-              </button>
+              </Button>
             </div>
 
             {/* Questions Accordion */}
@@ -279,7 +283,7 @@ export default function InterviewCoachPage() {
                   <div key={idx} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
                     <button
                       onClick={() => setExpandedIdx(isOpen ? null : idx)}
-                      className="w-full p-4 text-left hover:bg-gray-700/50 transition-colors"
+                      className={`w-full p-4 text-left hover:bg-gray-700/50 transition-colors ${focusRing}`}
                     >
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide shrink-0 ${categoryColor(q.category)}`}>
@@ -313,7 +317,7 @@ export default function InterviewCoachPage() {
               <button
                 onClick={handleAddMore}
                 disabled={loadingMore}
-                className="w-full mt-2 border border-dashed border-gray-600 hover:border-blue-500 text-gray-400 hover:text-blue-400 text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className={`w-full mt-2 border border-dashed border-gray-600 hover:border-blue-500 text-gray-400 hover:text-blue-400 text-sm font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${focusRing}`}
               >
                 {loadingMore ? (
                   <>
@@ -373,14 +377,14 @@ export default function InterviewCoachPage() {
               </div>
             )}
 
-            <button onClick={handleCopy} className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors">
+            <Button onClick={handleCopy} size="lg" fullWidth>
               {copied ? t("interviewCoach.copied") : t("interviewCoach.copyReport")}
-            </button>
+            </Button>
 
             <div className="border-t border-gray-800 pt-6 flex gap-3">
               <Link
                 href={`/career-coach${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+                className={`${buttonClasses({ variant: "success", size: "lg" })} flex-1 text-center`}
               >
                 {t("interviewCoach.nextStep")}
               </Link>
@@ -393,8 +397,7 @@ export default function InterviewCoachPage() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass()}>{t("interviewCoach.jobTitle")}</label>
+              <Field label={t("interviewCoach.jobTitle")} labelClassName={labelClass()}>
                 <input
                   className={inputClass()}
                   placeholder={t("interviewCoach.jobTitlePlaceholder")}
@@ -402,9 +405,8 @@ export default function InterviewCoachPage() {
                   onChange={e => updateField("jobTitle", e.target.value)}
                   required
                 />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("interviewCoach.company")}</label>
+              </Field>
+              <Field label={t("interviewCoach.company")} labelClassName={labelClass()}>
                 <input
                   className={inputClass()}
                   placeholder={t("interviewCoach.companyPlaceholder")}
@@ -412,11 +414,10 @@ export default function InterviewCoachPage() {
                   onChange={e => updateField("company", e.target.value)}
                   required
                 />
-              </div>
+              </Field>
             </div>
 
-            <div>
-              <label className={labelClass()}>{t("interviewCoach.jobDescription")}</label>
+            <Field label={t("interviewCoach.jobDescription")} labelClassName={labelClass()}>
               <textarea
                 className={inputClass("resize-none")}
                 rows={7}
@@ -425,13 +426,13 @@ export default function InterviewCoachPage() {
                 onChange={e => updateField("jobDescription", e.target.value)}
                 required
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className={labelClass()}>
-                {t("interviewCoach.resumeSummary")}
-                <span className="text-gray-500 text-xs ml-1">{t("interviewCoach.resumeSummaryHint")}</span>
-              </label>
+            <Field
+              label={t("interviewCoach.resumeSummary")}
+              hint={t("interviewCoach.resumeSummaryHint")}
+              labelClassName={labelClass()}
+            >
               <textarea
                 className={inputClass("resize-none")}
                 rows={5}
@@ -440,17 +441,17 @@ export default function InterviewCoachPage() {
                 onChange={e => updateField("resumeSummary", e.target.value)}
                 required
               />
-            </div>
+            </Field>
 
             <div>
-              <label className={labelClass()}>{t("interviewCoach.interviewType")}</label>
+              <p className={labelClass()}>{t("interviewCoach.interviewType")}</p>
               <div className="flex gap-2">
                 {INTERVIEW_TYPES.map(type => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => updateField("interviewType", type)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${focusRing} ${
                       form.interviewType === type
                         ? "bg-blue-600 text-white"
                         : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
@@ -462,9 +463,9 @@ export default function InterviewCoachPage() {
               </div>
             </div>
 
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-colors">
+            <Button type="submit" size="lg" fullWidth>
               {t("interviewCoach.submit")}
-            </button>
+            </Button>
           </form>
         )}
       </div>

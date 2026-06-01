@@ -5,6 +5,8 @@ import type ReCAPTCHA from "react-google-recaptcha";
 import { useTranslation } from "@/components/TranslationProvider";
 import { useAuth } from "@/components/AuthProvider";
 import Recaptcha, { RECAPTCHA_ENABLED } from "@/components/Recaptcha";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 const CATEGORIES = ["ui", "ai", "billing", "account", "performance", "other"] as const;
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;
@@ -102,7 +104,7 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
             <h2 className="text-lg font-bold text-white">{t("reportBug.title")}</h2>
             <p className="text-gray-400 text-sm mt-0.5">{t("reportBug.subtitle")}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 -mr-1.5 text-gray-400 hover:text-white transition-colors" aria-label="Close">
+          <button onClick={onClose} className={`p-1.5 -mr-1.5 text-gray-400 hover:text-white transition-colors ${focusRing} rounded`} aria-label="Close">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -119,24 +121,17 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
             <h3 className="text-lg font-bold text-white mb-2">{t("reportBug.successTitle")}</h3>
             <p className="text-gray-400 text-sm mb-6">{t("reportBug.successBody")}</p>
             <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={resetForm}
-                className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm"
-              >
+              <Button variant="secondary" onClick={resetForm}>
                 {t("reportBug.submitAnother")}
-              </button>
-              <button
-                onClick={onClose}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm"
-              >
+              </Button>
+              <Button variant="primary" onClick={onClose}>
                 {t("reportBug.done")}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t("reportBug.fieldTitle")}</label>
+            <Field label={t("reportBug.fieldTitle")} labelClassName="block text-sm font-medium text-gray-300 mb-1.5">
               <input
                 type="text"
                 required
@@ -147,11 +142,10 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
                 placeholder={t("reportBug.fieldTitlePlaceholder")}
                 className={inputClass}
               />
-            </div>
+            </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t("reportBug.fieldCategory")}</label>
+              <Field label={t("reportBug.fieldCategory")} labelClassName="block text-sm font-medium text-gray-300 mb-1.5">
                 <select value={category} onChange={(e) => setCategory(e.target.value as typeof category)} className={inputClass}>
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
@@ -159,9 +153,8 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t("reportBug.fieldSeverity")}</label>
+              </Field>
+              <Field label={t("reportBug.fieldSeverity")} labelClassName="block text-sm font-medium text-gray-300 mb-1.5">
                 <select value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)} className={inputClass}>
                   {SEVERITIES.map((s) => (
                     <option key={s} value={s}>
@@ -169,11 +162,10 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
                     </option>
                   ))}
                 </select>
-              </div>
+              </Field>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t("reportBug.fieldDescription")}</label>
+            <Field label={t("reportBug.fieldDescription")} labelClassName="block text-sm font-medium text-gray-300 mb-1.5">
               <textarea
                 required
                 minLength={10}
@@ -184,12 +176,12 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
                 placeholder={t("reportBug.fieldDescriptionPlaceholder")}
                 className={`${inputClass} resize-y`}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                {t("reportBug.fieldPageUrl")} <span className="text-gray-500 font-normal">{t("reportBug.optional")}</span>
-              </label>
+            <Field
+              label={<>{t("reportBug.fieldPageUrl")} <span className="text-gray-500 font-normal">{t("reportBug.optional")}</span></>}
+              labelClassName="block text-sm font-medium text-gray-300 mb-1.5"
+            >
               <input
                 type="text"
                 maxLength={2048}
@@ -198,17 +190,18 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
                 placeholder={t("reportBug.fieldPageUrlPlaceholder")}
                 className={inputClass}
               />
-            </div>
+            </Field>
 
             {isLoggedIn ? (
               <p className="text-xs text-gray-500">
                 {t("reportBug.signedInAs")} <span className="text-gray-300">{user?.email}</span>
               </p>
             ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                  {t("reportBug.fieldEmail")} <span className="text-gray-500 font-normal">{t("reportBug.optional")}</span>
-                </label>
+              <Field
+                label={<>{t("reportBug.fieldEmail")} <span className="text-gray-500 font-normal">{t("reportBug.optional")}</span></>}
+                labelClassName="block text-sm font-medium text-gray-300 mb-1.5"
+                hint={t("reportBug.emailHint")}
+              >
                 <input
                   type="email"
                   value={email}
@@ -216,8 +209,7 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
                   placeholder={t("reportBug.fieldEmailPlaceholder")}
                   className={inputClass}
                 />
-                <p className="mt-1.5 text-xs text-gray-500">{t("reportBug.emailHint")}</p>
-              </div>
+              </Field>
             )}
 
             {status === "error" && error && (
@@ -227,13 +219,15 @@ export default function ReportBugModalContent({ onClose }: { onClose: () => void
             )}
 
             <Recaptcha ref={captchaRef} onChange={setCaptchaToken} />
-            <button
+            <Button
               type="submit"
-              disabled={status === "submitting" || (RECAPTCHA_ENABLED && !captchaToken)}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
+              variant="primary"
+              fullWidth
+              loading={status === "submitting"}
+              disabled={RECAPTCHA_ENABLED && !captchaToken}
             >
               {status === "submitting" ? t("reportBug.submitting") : t("reportBug.submit")}
-            </button>
+            </Button>
           </form>
         )}
       </div>

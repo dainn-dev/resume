@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button } from "@/components/ui/Button";
 import { googleCallback } from "@/lib/auth";
 
 function GoogleCallback() {
@@ -44,12 +45,12 @@ function GoogleCallback() {
       {error ? (
         <div className="w-full max-w-sm text-center space-y-4">
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>
-          <button
+          <Button
+            variant="link"
             onClick={() => router.replace("/login")}
-            className="text-blue-400 hover:text-blue-300 text-sm"
           >
             {t("auth.backToLogin")}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex items-center gap-3 text-gray-400 text-sm">

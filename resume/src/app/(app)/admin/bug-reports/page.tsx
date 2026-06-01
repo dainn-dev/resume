@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@/components/TranslationProvider";
 import AdminNav from "@/components/AdminNav";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 function interpolate(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? ""));
@@ -163,8 +165,8 @@ export default function AdminBugReportsPage() {
         <div className="flex items-center justify-between mt-4 text-sm">
           <span className="text-gray-500">{interpolate(t("adminBugReports.pageInfo"), { page, total: totalPages, count: data.total })}</span>
           <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminBugReports.prev")}</button>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border border-gray-700 rounded-lg disabled:opacity-30 hover:bg-gray-800">{t("adminBugReports.next")}</button>
+            <Button variant="secondary" disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="text-sm px-3 py-1">{t("adminBugReports.prev")}</Button>
+            <Button variant="secondary" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="text-sm px-3 py-1">{t("adminBugReports.next")}</Button>
           </div>
         </div>
       )}
@@ -246,7 +248,7 @@ function ReportDetail({
             </div>
             <h2 className="text-lg font-bold text-white">{report.title}</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white" aria-label={t("adminBugReports.close")}>
+          <button onClick={onClose} className={`p-1.5 text-gray-400 hover:text-white ${focusRing}`} aria-label={t("adminBugReports.close")}>
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -273,8 +275,7 @@ function ReportDetail({
             </div>
           )}
 
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">{t("adminBugReports.statusLabel")}</label>
+          <Field label={t("adminBugReports.statusLabel")} labelClassName="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">
             <select
               value={status}
               onChange={(e) => setStatus(Number(e.target.value))}
@@ -282,10 +283,9 @@ function ReportDetail({
             >
               {STATUS_KEYS.map((key, i) => <option key={i} value={i}>{t(`adminBugReports.${key}`)}</option>)}
             </select>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">{t("adminBugReports.internalNotesLabel")}</label>
+          <Field label={t("adminBugReports.internalNotesLabel")} labelClassName="block text-xs uppercase tracking-wider text-gray-500 mb-1.5">
             <textarea
               rows={3}
               value={notes}
@@ -293,18 +293,18 @@ function ReportDetail({
               placeholder={t("adminBugReports.notesPlaceholder")}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-y"
             />
-          </div>
+          </Field>
 
           {err && <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{err}</div>}
         </div>
 
         <div className="flex items-center justify-between p-6 border-t border-gray-800">
-          <button onClick={remove} disabled={saving} className="text-red-400 hover:text-red-300 text-sm font-medium disabled:opacity-50">{t("adminBugReports.delete")}</button>
+          <Button variant="link" onClick={remove} disabled={saving} className="text-red-400 hover:text-red-300">{t("adminBugReports.delete")}</Button>
           <div className="flex gap-3">
-            <button onClick={onClose} disabled={saving} className="px-4 py-2 text-sm text-gray-300 hover:text-white">{t("adminBugReports.cancel")}</button>
-            <button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2 rounded-lg">
+            <Button variant="ghost" onClick={onClose} disabled={saving}>{t("adminBugReports.cancel")}</Button>
+            <Button onClick={save} loading={saving}>
               {saving ? t("adminBugReports.saving") : t("adminBugReports.save")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

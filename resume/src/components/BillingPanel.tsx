@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/components/TranslationProvider";
 import DiscountCountdown, { isPromoLive, isSoldOut, remainingRedemptions, effectiveDiscountPercent } from "@/components/DiscountCountdown";
+import { Button, focusRing } from "@/components/ui/Button";
 
 interface PlanLimits {
   maxResumes: number | null;
@@ -301,13 +302,15 @@ export default function BillingPanel() {
                 : interpolate(t("billing.willRenew"), { date: formatDate(me.currentPeriodEnd) })}
           </span>
           {!isBankPlan && me.cancelAtPeriodEnd && (
-            <button
+            <Button
+              loading={busyCode === "resume"}
+              variant="warning"
+              size="sm"
               onClick={resume}
-              disabled={busyCode === "resume"}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+              className="whitespace-nowrap"
             >
-              {busyCode === "resume" ? "…" : t("billing.resumeSubscription")}
-            </button>
+              {t("billing.resumeSubscription")}
+            </Button>
           )}
         </div>
       )}
@@ -382,45 +385,47 @@ export default function BillingPanel() {
 
               {isCurrent ? (
                 isFree ? (
-                  <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
+                  <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
                     {t("billing.currentPlan")}
                   </button>
                 ) : isBankPlan ? (
-                  <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
+                  <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
                     {t("billing.currentPlan")}
                   </button>
                 ) : me?.cancelAtPeriodEnd ? (
-                  <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
+                  <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
                     {t("billing.cancellationScheduled")}
                   </button>
                 ) : (
-                  <button
+                  <Button
+                    loading={busyCode === "cancel"}
+                    variant="dangerOutline"
                     onClick={cancel}
-                    disabled={busyCode === "cancel"}
-                    className="w-full border border-red-500/40 hover:bg-red-500/10 text-red-400 text-sm font-semibold py-2 rounded-lg transition-colors"
+                    fullWidth
                   >
-                    {busyCode === "cancel" ? "…" : t("billing.cancelSubscription")}
-                  </button>
+                    {t("billing.cancelSubscription")}
+                  </Button>
                 )
               ) : isFree ? (
-                <button disabled className="w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default">
+                <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
                   {t("billing.defaultBadge")}
                 </button>
               ) : (
                 <div className="space-y-2">
                   {methods.cardPaymentsEnabled && (
-                    <button
+                    <Button
+                      loading={busyCode === plan.code}
+                      variant="primary"
                       onClick={() => upgrade(plan.code)}
-                      disabled={busyCode === plan.code}
-                      className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+                      fullWidth
                     >
-                      {busyCode === plan.code ? "…" : interpolate(t("billing.payWithCard"), { price: formatPrice(plan.monthlyPriceCents, plan.currency) })}
-                    </button>
+                      {interpolate(t("billing.payWithCard"), { price: formatPrice(plan.monthlyPriceCents, plan.currency) })}
+                    </Button>
                   )}
                   {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && plan.bankTiers.length > 0 && (
                     <button
                       onClick={() => { setBankModalPlan(plan); setBankMonths(plan.bankTiers[0]?.months ?? 1); }}
-                      className="w-full border border-purple-500/40 hover:bg-purple-500/10 text-purple-300 text-sm font-semibold py-2 rounded-lg transition-colors"
+                      className={`w-full border border-purple-500/40 hover:bg-purple-500/10 text-purple-300 text-sm font-semibold py-2 rounded-lg transition-colors ${focusRing}`}
                     >
                       {interpolate(t("billing.payWithBankQr"), { price: formatVnd(plan.monthlyPriceVnd) })}
                     </button>
@@ -467,7 +472,7 @@ export default function BillingPanel() {
                   <button
                     key={opt.months}
                     onClick={() => setBankMonths(opt.months)}
-                    className={`relative rounded-xl border p-3 text-left transition-colors ${
+                    className={`relative rounded-xl border p-3 text-left transition-colors ${focusRing} ${
                       isSelected
                         ? "border-purple-500 bg-purple-500/10"
                         : "border-gray-700 hover:border-gray-600 bg-gray-800/40"
@@ -514,17 +519,18 @@ export default function BillingPanel() {
             )}
 
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setBankModalPlan(null)}
                 disabled={bankBusy}
-                className="flex-1 border border-gray-700 hover:bg-gray-800 text-gray-300 text-sm font-semibold py-2.5 rounded-lg transition-colors"
+                className="flex-1"
               >
                 {t("billing.cancel")}
-              </button>
+              </Button>
               <button
                 onClick={bankCheckout}
                 disabled={bankBusy}
-                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+                className={`flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors ${focusRing}`}
               >
                 {bankBusy ? t("billing.generatingQr") : t("billing.continue")}
               </button>
@@ -597,12 +603,13 @@ export default function BillingPanel() {
                       {bankStatusLabel(p.status)}
                     </span>
                     {isPending && (
-                      <button
+                      <Button
+                        variant="link"
                         onClick={() => router.push(`/billing/bank/${p.id}`)}
-                        className="text-xs text-blue-400 hover:text-blue-300"
+                        className="text-xs"
                       >
                         {t("billing.view")} →
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

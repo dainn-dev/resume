@@ -7,6 +7,8 @@ import type { CoverLetterFormData } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import {
   getCoverLetterForm,
   getCoverLetterResult,
@@ -206,17 +208,20 @@ export default function CoverLetterPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">{t("coverLetter.yourCoverLetter")}</h2>
-              <button
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs"
                 onClick={() => {
                   setResult(null);
                   setEdited("");
                 }}
-                className="text-xs text-blue-400 hover:text-blue-300"
               >
                 {t("coverLetter.regenerate")}
-              </button>
+              </Button>
             </div>
             <textarea
+              aria-label={t("coverLetter.yourCoverLetter")}
               className="bg-gray-950 border border-gray-800 rounded-xl p-5 text-gray-200 text-sm leading-relaxed font-mono w-full resize-none focus:outline-none focus:border-blue-500"
               rows={14}
               value={edited}
@@ -224,15 +229,15 @@ export default function CoverLetterPage() {
             />
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">{edited.length} {t("coverLetter.characters")}</span>
-              <button onClick={handleCopy} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
+              <Button onClick={handleCopy}>
                 {copied ? t("common.copied") : t("common.copy")}
-              </button>
+              </Button>
             </div>
 
             <div className="border-t border-gray-800 pt-6 flex gap-3">
               <Link
                 href={`/salary-estimator${getCurrentResumeId() ? `?resumeId=${encodeURIComponent(getCurrentResumeId()!)}` : ""}`}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+                className={`${buttonClasses({ variant: "success", size: "lg" })} flex-1 text-center`}
               >
                 {t("salary.nextStep")}
               </Link>
@@ -245,35 +250,31 @@ export default function CoverLetterPage() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass()}>{t("coverLetter.jobTitle")}</label>
+              <Field label={t("coverLetter.jobTitle")} labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("coverLetter.jobTitlePlaceholder")} value={form.jobTitle} onChange={e => updateField("jobTitle", e.target.value)} required />
-              </div>
-              <div>
-                <label className={labelClass()}>{t("coverLetter.company")}</label>
+              </Field>
+              <Field label={t("coverLetter.company")} labelClassName={labelClass()}>
                 <input className={inputClass()} placeholder={t("coverLetter.companyPlaceholder")} value={form.company} onChange={e => updateField("company", e.target.value)} required />
-              </div>
+              </Field>
             </div>
 
-            <div>
-              <label className={labelClass()}>{t("coverLetter.jobDescription")}</label>
+            <Field label={t("coverLetter.jobDescription")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={7} placeholder={t("coverLetter.jobDescriptionPlaceholder")} value={form.jobDescription} onChange={e => updateField("jobDescription", e.target.value)} required />
-            </div>
+            </Field>
 
-            <div>
-              <label className={labelClass()}>{t("coverLetter.aboutYourself")}</label>
+            <Field label={t("coverLetter.aboutYourself")} labelClassName={labelClass()}>
               <textarea className={inputClass("resize-none")} rows={4} placeholder={t("coverLetter.aboutYourselfPlaceholder")} value={form.aboutYourself} onChange={e => updateField("aboutYourself", e.target.value)} required />
-            </div>
+            </Field>
 
             <div>
-              <label className={labelClass()}>{t("coverLetter.tone")}</label>
+              <p className={labelClass()}>{t("coverLetter.tone")}</p>
               <div className="flex gap-2">
                 {TONES.map(tone => (
                   <button
                     key={tone}
                     type="button"
                     onClick={() => updateField("tone", tone)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${focusRing} ${
                       form.tone === tone
                         ? "bg-blue-600 text-white"
                         : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
@@ -285,9 +286,9 @@ export default function CoverLetterPage() {
               </div>
             </div>
 
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-colors">
+            <Button type="submit" size="lg" fullWidth>
               {t("coverLetter.generateCoverLetter")}
-            </button>
+            </Button>
           </form>
         )}
       </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "@/components/TranslationProvider";
+import { focusRing } from "@/components/ui/Button";
 import type { SectionAnalysis } from "@/types/resume";
 
 interface RecommendationListProps {
@@ -16,7 +17,7 @@ function scoreColor(score: number): string {
 
 function ScoreBadge({ score }: { score: number }) {
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${scoreColor(score)}`}>
+    <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${scoreColor(score)}`}>
       {score}/100
     </span>
   );
@@ -29,15 +30,15 @@ function SectionAccordion({ section, tipsLabel, suggestedLabel }: { section: Sec
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-800/50 transition-colors"
+        className={`w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-4 text-left hover:bg-gray-800/50 transition-colors ${focusRing}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <ScoreBadge score={section.score} />
-          <span className="font-medium text-white">{section.label}</span>
-          <span className="text-xs text-gray-500">{section.tips.length} {tipsLabel}</span>
+          <span className="text-sm sm:text-base font-medium text-white">{section.label}</span>
+          <span className="text-xs text-gray-500 shrink-0">{section.tips.length} {tipsLabel}</span>
         </div>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`w-4 h-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -73,7 +74,7 @@ export default function RecommendationList({ sections }: RecommendationListProps
   const { t } = useTranslation();
   return (
     <div>
-      <h3 className="text-lg font-semibold text-white mb-4">{t("results.improvementTips")}</h3>
+      <h2 className="text-lg font-semibold text-white mb-4">{t("results.improvementTips")}</h2>
       <div className="space-y-3">
         {Object.values(sections).map((section) => (
           <SectionAccordion key={section.label} section={section} tipsLabel={t("results.tipsCount")} suggestedLabel={t("results.suggestedUpdate")} />

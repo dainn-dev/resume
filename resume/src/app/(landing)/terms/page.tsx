@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen flex flex-col bg-gray-950">
       <nav className="flex items-center justify-between h-14 px-4 max-w-3xl mx-auto w-full">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <Image src="/logo.png" alt="DResume" width={120} height={32} className="h-8 w-auto" priority />
+          <Image src="/logo.png" alt="DResume" width={68} height={32} className="h-8 w-auto" priority />
         </Link>
         <LanguageSwitcher />
       </nav>

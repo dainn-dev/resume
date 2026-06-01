@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/components/TranslationProvider";
+import { Button, buttonClasses, focusRing } from "@/components/ui/Button";
 import type { JobMatchAnalysis } from "@/types/jobMatch";
 import {
   fetchAccountSummary,
@@ -139,9 +140,9 @@ export default function ResumesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">{t("account.myResumes")}</h1>
-          <p className="text-gray-400 text-sm mt-1">{summary?.resumes.length ?? 0} {t("account.resumeCount") ?? "resumes"}</p>
+          <p className="text-gray-400 text-sm mt-1">{summary?.resumes.length ?? 0} {(summary?.resumes.length ?? 0) === 1 ? (t("account.resumeCountOne") ?? "resume") : (t("account.resumeCount") ?? "resumes")}</p>
         </div>
-        <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+        <Link href="/dashboard" className={buttonClasses({ variant: "primary", size: "md" })}>
           {t("account.goToScore")}
         </Link>
       </div>
@@ -149,14 +150,14 @@ export default function ResumesPage() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
           {error}{" "}
-          <button onClick={() => void load()} className="underline">{t("account.retry")}</button>
+          <button onClick={() => void load()} className={`underline ${focusRing}`}>{t("account.retry")}</button>
         </div>
       )}
 
       {!summary || summary.resumes.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center">
           <p className="text-gray-400 text-sm">{t("account.noResumes")}</p>
-          <Link href="/dashboard" className="inline-block mt-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+          <Link href="/dashboard" className={`mt-4 ${buttonClasses({ variant: "primary", size: "md" })}`}>
             {t("account.goToScore")}
           </Link>
         </div>
@@ -188,12 +189,13 @@ export default function ResumesPage() {
                       />
                     ))}
                   </div>
-                  <button
+                  <Button
+                    variant="link"
                     onClick={() => setExpandedId(isExpanded ? null : resume.id)}
-                    className="text-xs text-blue-400 hover:text-blue-300 shrink-0"
+                    className="text-xs shrink-0"
                   >
                     {isExpanded ? t("account.collapse") : t("account.viewDetails")}
-                  </button>
+                  </Button>
                 </div>
 
                 {isExpanded && (
@@ -268,20 +270,21 @@ export default function ResumesPage() {
                     <FileSection resume={resume} busy={busyId === resume.id} onDeleteFile={() => void handleDeleteFile(resume)} />
 
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="primary"
                         onClick={() => void handleContinue(resume)}
-                        disabled={busyId === resume.id}
-                        className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:text-blue-300 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+                        loading={busyId === resume.id}
+                        className="flex-1"
                       >
-                        {busyId === resume.id ? "…" : t("account.continueWorking")}
-                      </button>
-                      <button
+                        {t("account.continueWorking")}
+                      </Button>
+                      <Button
+                        variant="dangerOutline"
                         onClick={() => void handleDelete(resume)}
                         disabled={busyId === resume.id}
-                        className="border border-red-500/40 hover:bg-red-500/10 text-red-400 text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors"
                       >
                         {t("account.delete")}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -332,24 +335,25 @@ function FileSection({
             href={resumeFileUrl(resume.id, true)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-600 hover:bg-gray-700/60 text-gray-200 transition-colors"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             {t("account.previewFile")}
           </a>
         )}
         <a
           href={resumeFileUrl(resume.id)}
-          className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-600 hover:bg-gray-700/60 text-gray-200 transition-colors"
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
         >
           {t("account.downloadFile")}
         </a>
-        <button
+        <Button
+          variant="dangerOutline"
+          size="sm"
           onClick={onDeleteFile}
           disabled={busy}
-          className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-red-500/40 hover:bg-red-500/10 text-red-400 disabled:opacity-50 transition-colors"
         >
           {t("account.deleteFile")}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -433,14 +437,15 @@ function JobMatchList({ matches }: { matches: AccountSummaryResume["jobMatches"]
         ))}
       </div>
       {matches.length > 2 && (
-        <button
+        <Button
+          variant="link"
           onClick={() => setExpanded(prev => !prev)}
-          className="text-[11px] text-blue-400 hover:text-blue-300 pl-6"
+          className="text-[11px] pl-6"
         >
           {expanded
             ? t("account.collapse")
             : interpolate(t("account.showAllMatches"), { count: matches.length })}
-        </button>
+        </Button>
       )}
     </div>
   );

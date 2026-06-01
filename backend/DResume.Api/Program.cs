@@ -113,6 +113,10 @@ if (stripeEnabled)
     builder.Services.AddDainnStripe(builder.Configuration);
     builder.Services.AddScoped<IStripeCatalogSeeder, StripeCatalogSeeder>();
     builder.Services.AddScoped<IStripeWebhookHandler, PlanWebhookHandler>();
+    // BillingController calls Stripe.net directly (e.g. new SubscriptionService()), which reads
+    // the global static key. Set it explicitly so those calls work — AddDainnStripe wires its own
+    // DI client but does not set this static.
+    Stripe.StripeConfiguration.ApiKey = stripeSecretKey;
 }
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection("Billing"));
 builder.Services.AddMemoryCache();

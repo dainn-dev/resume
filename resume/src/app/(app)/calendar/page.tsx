@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { CalendarGoal, CalendarMilestone, CalendarTask, CalendarData } from "@/types/builder";
 import { useTranslation } from "@/components/TranslationProvider";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import {
   getCalendarData,
   setCalendarData,
@@ -330,24 +332,21 @@ export default function CalendarPage() {
             <div className="flex gap-1 bg-gray-800 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("tree")}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "tree" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${focusRing} ${viewMode === "tree" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
               >
                 {t("calendar.treeView")}
               </button>
               <button
                 onClick={() => setViewMode("calendar")}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === "calendar" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${focusRing} ${viewMode === "calendar" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
               >
                 {t("calendar.calendarView")}
               </button>
             </div>
             {viewMode === "tree" && (
-              <button
-                onClick={() => setShowGoalForm(!showGoalForm)}
-                className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition-colors"
-              >
+              <Button variant="primary" size="sm" onClick={() => setShowGoalForm(!showGoalForm)}>
                 + {t("calendar.addGoal")}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -382,13 +381,13 @@ export default function CalendarPage() {
                     <div key={goal.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
                       <button
                         onClick={() => setExpandedGoal(isExpanded ? null : goal.id)}
-                        className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-800/50 transition-colors"
+                        className={`w-full flex items-center gap-3 p-4 text-left hover:bg-gray-800/50 transition-colors ${focusRing}`}
                       >
                         <span className="text-gray-500 text-lg shrink-0">{isExpanded ? "▾" : "▸"}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-medium text-white truncate">{goal.title}</h3>
-                            {goal.timeline && <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 shrink-0">{goal.timeline}</span>}
+                          <div className="flex items-start gap-2">
+                            <h3 className="text-sm font-medium text-white line-clamp-2">{goal.title}</h3>
+                            {goal.timeline && <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 shrink-0 mt-0.5">{goal.timeline}</span>}
                           </div>
                           <div className="flex items-center gap-2 mt-1.5">
                             <div className="flex-1 bg-gray-800 rounded-full h-1.5 max-w-48">
@@ -398,7 +397,7 @@ export default function CalendarPage() {
                             <span className="text-xs text-gray-600">{goalMilestones.length} {t("calendar.milestonesSection").toLowerCase()}</span>
                           </div>
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id); }} className="text-gray-600 hover:text-red-400 text-sm transition-colors shrink-0 px-1">×</button>
+                        <button onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id); }} className={`text-gray-600 hover:text-red-400 text-sm transition-colors shrink-0 px-1 ${focusRing}`}>×</button>
                       </button>
 
                       {isExpanded && (
@@ -415,7 +414,7 @@ export default function CalendarPage() {
                               <div key={ms.id} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
                                 <button
                                   onClick={() => setExpandedMilestone(msExpanded ? null : ms.id)}
-                                  className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-750 transition-colors"
+                                  className={`w-full flex items-center gap-3 p-3 text-left hover:bg-gray-750 transition-colors ${focusRing}`}
                                 >
                                   <span className="text-gray-500 text-sm shrink-0">{msExpanded ? "▾" : "▸"}</span>
                                   <div className="flex-1 min-w-0">
@@ -432,7 +431,7 @@ export default function CalendarPage() {
                                       </div>
                                     )}
                                   </div>
-                                  <button onClick={(e) => { e.stopPropagation(); deleteMilestone(ms.id); }} className="text-gray-600 hover:text-red-400 text-xs transition-colors shrink-0 px-1">×</button>
+                                  <button onClick={(e) => { e.stopPropagation(); deleteMilestone(ms.id); }} className={`text-gray-600 hover:text-red-400 text-xs transition-colors shrink-0 px-1 ${focusRing}`}>×</button>
                                 </button>
 
                                 {msExpanded && (
@@ -458,7 +457,7 @@ export default function CalendarPage() {
                                       <div key={task.id} className={`flex gap-2 py-1.5 ${task.date && task.date < today && !task.completed ? "bg-red-500/5 -mx-1 px-1 rounded" : ""}`}>
                                         <button
                                           onClick={() => toggleTask(task.id)}
-                                          className={`w-4 h-4 sm:w-4 sm:h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${task.completed ? "bg-green-500 border-green-500" : "border-gray-600 hover:border-blue-500"}`}
+                                          className={`w-4 h-4 sm:w-4 sm:h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${focusRing} ${task.completed ? "bg-green-500 border-green-500" : "border-gray-600 hover:border-blue-500"}`}
                                         >
                                           {task.completed && (
                                             <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5" /></svg>
@@ -470,12 +469,12 @@ export default function CalendarPage() {
                                           </p>
                                           <div className="flex items-center gap-2 mt-0.5 sm:hidden">
                                             {task.date && <span className={`text-[10px] ${task.date < today && !task.completed ? "text-red-400" : "text-gray-600"}`}>{task.date}</span>}
-                                            <button onClick={() => deleteTask(task.id)} className="text-red-400/60 hover:text-red-400 text-[10px] transition-colors">remove</button>
+                                            <Button variant="link" onClick={() => deleteTask(task.id)} className="text-red-400/60 hover:text-red-400 text-[10px]">remove</Button>
                                           </div>
                                         </div>
                                         <div className="hidden sm:flex items-center gap-2 shrink-0">
                                           {task.date && <span className={`text-xs ${task.date < today && !task.completed ? "text-red-400" : "text-gray-600"}`}>{task.date}</span>}
-                                          <button onClick={() => deleteTask(task.id)} className="text-gray-600 hover:text-red-400 text-xs transition-colors">×</button>
+                                          <button onClick={() => deleteTask(task.id)} className={`text-gray-600 hover:text-red-400 text-xs transition-colors ${focusRing}`}>×</button>
                                         </div>
                                       </div>
                                     ))}
@@ -494,12 +493,12 @@ export default function CalendarPage() {
                                           />
                                         ) : (
                                           <>
-                                            <button onClick={() => setAddTaskMilestoneId(ms.id)} className="text-xs text-blue-400 hover:text-blue-300">
+                                            <Button variant="link" onClick={() => setAddTaskMilestoneId(ms.id)}>
                                               + {t("calendar.addTask")}
-                                            </button>
+                                            </Button>
                                             <button
                                               onClick={() => setDueDatePromptMs(ms.id)}
-                                              className="text-xs bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 px-2 py-1 rounded-md transition-colors"
+                                              className={`text-xs bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 px-2 py-1 rounded-md transition-colors ${focusRing}`}
                                             >
                                               {t("calendar.generateTasks")}
                                             </button>
@@ -516,7 +515,7 @@ export default function CalendarPage() {
                           {addMilestoneGoalId === goal.id ? (
                             <InlineForm label="" placeholder={t("calendar.milestoneTitlePlaceholder")} onSubmit={(title) => addMilestone(goal.id, title, "")} onCancel={() => setAddMilestoneGoalId(null)} submitText={t("calendar.addMilestone")} />
                           ) : (
-                            <button onClick={() => setAddMilestoneGoalId(goal.id)} className="text-xs text-blue-400 hover:text-blue-300 mt-1">+ {t("calendar.addMilestone")}</button>
+                            <Button variant="link" onClick={() => setAddMilestoneGoalId(goal.id)} className="mt-1">+ {t("calendar.addMilestone")}</Button>
                           )}
                         </div>
                       )}
@@ -534,7 +533,7 @@ export default function CalendarPage() {
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear((y) => y - 1); } else setCalMonth((m) => m - 1); setSelectedDate(null); }}
-                  className="text-gray-400 hover:text-white text-sm px-2 py-1 transition-colors"
+                  className={`text-gray-400 hover:text-white text-sm px-2 py-1 transition-colors ${focusRing}`}
                 >
                   {t("calendar.prevMonth")}
                 </button>
@@ -543,7 +542,7 @@ export default function CalendarPage() {
                 </h3>
                 <button
                   onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear((y) => y + 1); } else setCalMonth((m) => m + 1); setSelectedDate(null); }}
-                  className="text-gray-400 hover:text-white text-sm px-2 py-1 transition-colors"
+                  className={`text-gray-400 hover:text-white text-sm px-2 py-1 transition-colors ${focusRing}`}
                 >
                   {t("calendar.nextMonth")}
                 </button>
@@ -573,7 +572,7 @@ export default function CalendarPage() {
                     <button
                       key={dateStr}
                       onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                      className={`h-12 rounded-lg text-xs flex flex-col items-center justify-center gap-0.5 transition-colors relative ${
+                      className={`h-12 rounded-lg text-xs flex flex-col items-center justify-center gap-0.5 transition-colors relative ${focusRing} ${
                         isSelected
                           ? "bg-blue-600/20 border border-blue-500/50"
                           : isToday
@@ -612,7 +611,7 @@ export default function CalendarPage() {
                             <div key={task.id} className="flex items-center gap-2 py-1">
                               <button
                                 onClick={() => toggleTask(task.id)}
-                                className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${task.completed ? "bg-green-500 border-green-500" : "border-gray-600 hover:border-blue-500"}`}
+                                className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${focusRing} ${task.completed ? "bg-green-500 border-green-500" : "border-gray-600 hover:border-blue-500"}`}
                               >
                                 {task.completed && (
                                   <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5" /></svg>
@@ -646,20 +645,18 @@ function DateRangePrompt({ defaultStart, defaultEnd, onConfirm, onCancel, t }: {
     <div className="bg-gray-800 border border-purple-500/30 rounded-lg p-3 space-y-2">
       <p className="text-xs text-purple-300">{t("calendar.setDateRangeFirst")}</p>
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className={labelClass()}>{t("calendar.startDate")}</label>
+        <Field label={t("calendar.startDate")} labelClassName={labelClass()}>
           <input type="date" max={end || undefined} className={inputClass("text-sm")} value={start} onChange={(e) => setStart(e.target.value)} />
-        </div>
-        <div>
-          <label className={labelClass()}>{t("calendar.endDate")}</label>
+        </Field>
+        <Field label={t("calendar.endDate")} labelClassName={labelClass()}>
           <input type="date" min={start || undefined} className={inputClass("text-sm")} value={end} onChange={(e) => setEnd(e.target.value)} />
-        </div>
+        </Field>
       </div>
       <div className="flex gap-2">
-        <button onClick={() => !invalid && onConfirm(start, end)} disabled={invalid} className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+        <button onClick={() => !invalid && onConfirm(start, end)} disabled={invalid} className={`bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${focusRing}`}>
           {t("calendar.generateTasks")}
         </button>
-        <button onClick={onCancel} className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">Cancel</button>
+        <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
       </div>
     </div>
   );
@@ -675,12 +672,17 @@ function InlineForm({ label, placeholder, onSubmit, onCancel, submitText, compac
   }
   return (
     <div className={compact ? "flex items-center gap-2" : "bg-gray-800 border border-gray-700 rounded-xl p-3 space-y-2"}>
-      {label && <label className={labelClass()}>{label}</label>}
-      <input ref={inputRef} className={compact ? inputClass("text-xs py-1") : inputClass()} placeholder={placeholder} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown} />
+      {label ? (
+        <Field label={label} labelClassName={labelClass()}>
+          <input ref={inputRef} className={compact ? inputClass("text-xs py-1") : inputClass()} placeholder={placeholder} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown} />
+        </Field>
+      ) : (
+        <input ref={inputRef} className={compact ? inputClass("text-xs py-1") : inputClass()} placeholder={placeholder} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKeyDown} />
+      )}
       {!compact && (
         <div className="flex gap-2">
-          <button onClick={() => value.trim() && onSubmit(value.trim())} disabled={!value.trim()} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">{submitText}</button>
-          <button onClick={onCancel} className="bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">Cancel</button>
+          <Button variant="primary" size="sm" onClick={() => value.trim() && onSubmit(value.trim())} disabled={!value.trim()}>{submitText}</Button>
+          <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
         </div>
       )}
     </div>

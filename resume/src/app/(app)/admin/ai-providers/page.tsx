@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "@/components/TranslationProvider";
 import AdminNav from "@/components/AdminNav";
+import { Button, focusRing } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 
 interface AiProvider {
   id: string;
@@ -147,9 +149,9 @@ export default function AdminAiProvidersPage() {
           <h1 className="text-2xl font-bold text-white">{t("adminAi.title")}</h1>
           <p className="text-gray-400 text-sm mt-1">{t("adminAi.subtitle")}</p>
         </div>
-        <button onClick={openCreate} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+        <Button onClick={openCreate}>
           {t("adminAi.add")}
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -164,32 +166,25 @@ export default function AdminAiProvidersPage() {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">{t("adminAi.fieldName")}</label>
+            <Field label={t("adminAi.fieldName")} labelClassName="block text-xs font-medium text-gray-400 mb-1">
               <input className={inputClass()} placeholder="OpenAI, Anthropic, ..." value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">{t("adminAi.fieldPriority")}</label>
+            </Field>
+            <Field label={t("adminAi.fieldPriority")} labelClassName="block text-xs font-medium text-gray-400 mb-1">
               <input className={inputClass()} type="number" value={form.priority} onChange={e => setForm(f => ({ ...f, priority: Number(e.target.value) }))} />
-            </div>
+            </Field>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">{t("adminAi.fieldBaseUrl")}</label>
+          <Field label={t("adminAi.fieldBaseUrl")} labelClassName="block text-xs font-medium text-gray-400 mb-1">
             <input className={inputClass()} placeholder="https://api.openai.com/v1" value={form.baseUrl} onChange={e => setForm(f => ({ ...f, baseUrl: e.target.value }))} />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">{t("adminAi.fieldApiKey")}</label>
+          <Field label={t("adminAi.fieldApiKey")} labelClassName="block text-xs font-medium text-gray-400 mb-1" hint={editing ? t("adminAi.apiKeyHint") : undefined}>
             <input className={inputClass()} placeholder="sk-..." value={form.apiKey} onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} />
-            {editing && <p className="text-[11px] text-gray-600 mt-1">{t("adminAi.apiKeyHint")}</p>}
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">{t("adminAi.fieldModels")}</label>
+          <Field label={t("adminAi.fieldModels")} labelClassName="block text-xs font-medium text-gray-400 mb-1" hint={t("adminAi.modelsHint")}>
             <input className={inputClass()} placeholder="gpt-4o, gpt-4o-mini, claude-sonnet-4-6" value={form.models} onChange={e => setForm(f => ({ ...f, models: e.target.value }))} />
-            <p className="text-[11px] text-gray-600 mt-1">{t("adminAi.modelsHint")}</p>
-          </div>
+          </Field>
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
@@ -203,12 +198,12 @@ export default function AdminAiProvidersPage() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={busy || !form.name || !form.baseUrl} className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
+            <Button onClick={handleSave} disabled={!form.name || !form.baseUrl} loading={busy}>
               {busy ? t("adminAi.saving") : t("adminAi.save")}
-            </button>
-            <button onClick={closeForm} className="text-gray-400 hover:text-white text-sm px-4 py-2 transition-colors">
+            </Button>
+            <Button variant="ghost" onClick={closeForm}>
               {t("adminAi.cancel")}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -243,12 +238,12 @@ export default function AdminAiProvidersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => openEdit(p)} className="p-1.5 text-gray-500 hover:text-blue-400 transition-colors" title={t("adminAi.edit")}>
+                  <button onClick={() => openEdit(p)} className={`p-1.5 text-gray-500 hover:text-blue-400 transition-colors ${focusRing}`} title={t("adminAi.edit")}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
                     </svg>
                   </button>
-                  <button onClick={() => void handleDelete(p)} className="p-1.5 text-gray-500 hover:text-red-400 transition-colors" title={t("adminAi.delete")}>
+                  <button onClick={() => void handleDelete(p)} className={`p-1.5 text-gray-500 hover:text-red-400 transition-colors ${focusRing}`} title={t("adminAi.delete")}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>

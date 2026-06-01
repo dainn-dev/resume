@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { focusRing } from "@/components/ui/Button";
 
 const TABS = [
   { href: "/admin/analytics", label: "Analytics" },
@@ -25,7 +26,7 @@ export default function AdminNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+              className={`text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${focusRing} ${
                 isActive
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:text-white hover:bg-gray-800"

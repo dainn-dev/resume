@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { CareerCoachFormData, CareerCoachResult } from "@/types/builder";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PipelineWorkflow from "@/components/PipelineWorkflow";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
 import { useTranslation } from "@/components/TranslationProvider";
 import {
   getCareerCoachForm,
@@ -342,7 +344,7 @@ export default function CareerCoachPage() {
               </button>
               <Link
                 href="/calendar"
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-3 rounded-lg transition-colors text-center"
+                className={`${buttonClasses({ variant: "success", size: "lg" })} flex-1 text-center`}
               >
                 {t("careerCoach.buildGoals")}
               </Link>
@@ -354,8 +356,7 @@ export default function CareerCoachPage() {
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">{error}</div>
             )}
 
-            <div>
-              <label className={labelClass()}>{t("careerCoach.careerGoal")}</label>
+            <Field label={t("careerCoach.careerGoal")} labelClassName={labelClass()}>
               <input
                 className={inputClass()}
                 placeholder={t("careerCoach.careerGoalPlaceholder")}
@@ -363,17 +364,17 @@ export default function CareerCoachPage() {
                 onChange={e => updateField("careerGoal", e.target.value)}
                 required
               />
-            </div>
+            </Field>
 
             <div>
-              <label className={labelClass()}>{t("careerCoach.timeline")}</label>
+              <p className={labelClass()}>{t("careerCoach.timeline")}</p>
               <div className="flex gap-2">
                 {TIMELINES.map(tl => (
                   <button
                     key={tl}
                     type="button"
                     onClick={() => updateField("timeline", tl)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 ${
                       form.timeline === tl
                         ? "bg-blue-600 text-white"
                         : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
@@ -386,14 +387,14 @@ export default function CareerCoachPage() {
             </div>
 
             <div>
-              <label className={labelClass()}>{t("careerCoach.focusAreas")}</label>
+              <p className={labelClass()}>{t("careerCoach.focusAreas")}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {FOCUS_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => toggleFocus(opt.value)}
-                    className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-colors border ${
+                    className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 ${
                       form.focusAreas.includes(opt.value)
                         ? "bg-blue-600/20 border-blue-500/50 text-blue-400"
                         : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-600"
@@ -405,11 +406,11 @@ export default function CareerCoachPage() {
               </div>
             </div>
 
-            <div>
-              <label className={labelClass()}>
-                {t("careerCoach.additionalContext")}
-                <span className="text-gray-500 text-xs ml-1">{t("careerCoach.additionalContextHint")}</span>
-              </label>
+            <Field
+              label={t("careerCoach.additionalContext")}
+              hint={t("careerCoach.additionalContextHint")}
+              labelClassName={labelClass()}
+            >
               <textarea
                 className={inputClass("resize-none")}
                 rows={4}
@@ -417,23 +418,19 @@ export default function CareerCoachPage() {
                 value={form.additionalContext}
                 onChange={e => updateField("additionalContext", e.target.value)}
               />
-            </div>
+            </Field>
 
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="px-5 py-3 border border-gray-700 text-gray-300 hover:bg-gray-800 font-semibold rounded-xl transition-colors"
-              >
+              <Button variant="secondary" onClick={() => window.history.back()}>
                 ← {t("common.back")}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                className="flex-1 leading-tight"
                 disabled={!form.careerGoal.trim() || form.focusAreas.length === 0}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
               >
                 {t("careerCoach.submit")}
-              </button>
+              </Button>
             </div>
           </form>
         )}
