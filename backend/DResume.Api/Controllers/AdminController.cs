@@ -378,6 +378,14 @@ public sealed class AdminController : ControllerBase
         return Ok(ApiResult.Ok(rows));
     }
 
+    [HttpGet("portfolios/{id:guid}/preview")]
+    public async Task<IActionResult> PreviewPortfolio(Guid id, [FromServices] IPortfolioService portfolios, CancellationToken ct)
+    {
+        var dto = await portfolios.GetPreviewAsync(id, ct);
+        if (dto is null) throw new KeyNotFoundException("Portfolio not found.");
+        return Ok(ApiResult.Ok(dto));
+    }
+
     [HttpPost("portfolios/{id:guid}/approve")]
     public async Task<IActionResult> ApprovePortfolio(Guid id, [FromServices] IPortfolioService portfolios, CancellationToken ct)
     {
