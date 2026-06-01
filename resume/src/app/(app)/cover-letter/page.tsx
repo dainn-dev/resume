@@ -235,7 +235,7 @@ export default function CoverLetterPage() {
       </div>
 
       {mode !== "cover-letter" ? (
-        <RejectionEmailForm type={mode} />
+        <RejectionEmailForm key={mode} type={mode} />
       ) : (
       <>
       {/* Auto-synced job context */}
@@ -359,6 +359,22 @@ function RejectionEmailForm({ type }: { type: "decline-offer" | "reject-candidat
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [synced, setSynced] = useState(false);
+
+  // Declining an offer naturally follows a job match — pre-fill company + role from that context.
+  // (Reject-candidate is the employer's side, so the user's own job search doesn't apply there.)
+  useEffect(() => {
+    if (type !== "decline-offer") return;
+    const ctx = getJobMatchContext();
+    if (ctx && (ctx.company || ctx.jobTitle)) {
+      setForm(prev => ({
+        ...prev,
+        company: prev.company || ctx.company || "",
+        role: prev.role || ctx.jobTitle || "",
+      }));
+      setSynced(true);
+    }
+  }, [type]);
 
   function update<K extends keyof RejectionForm>(field: K, value: RejectionForm[K]) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -404,6 +420,12 @@ function RejectionEmailForm({ type }: { type: "decline-offer" | "reject-candidat
   const opt = ` ${t("coverLetter.email.optional")}`;
 
   return (
+    <>
+      {synced && !result && (
+        <div className="mb-6 flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3">
+          <span className="text-green-400 text-sm">{t("coverLetter.email.synced")}</span>
+        </div>
+      )}
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
       {loading ? (
         <LoadingSpinner message={t("coverLetter.email.generating")} subMessage={t("coverLetter.email.generatingSubtext")} />
@@ -485,5 +507,6 @@ function RejectionEmailForm({ type }: { type: "decline-offer" | "reject-candidat
         </form>
       )}
     </div>
+    </>
   );
 }

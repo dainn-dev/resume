@@ -267,6 +267,7 @@
       "rejectCandidate": "Từ Chối Ứng Viên"
     },
     "email": {
+      "synced": "✓ Đã điền Công ty và Vị trí từ job match — bổ sung chi tiết bên dưới.",
       "declineSubtitle": "Lịch sự từ chối một lời mời làm việc bạn nhận được.",
       "rejectSubtitle": "Gửi email từ chối ứng viên một cách tôn trọng.",
       "company": "Công ty *",
