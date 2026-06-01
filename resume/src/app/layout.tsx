@@ -32,8 +32,8 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
   icons: {
-    icon: "/DAINN-02.png",
-    shortcut: "/DAINN-02.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
     apple: "/DAINN-02.png",
   },
   manifest: "/manifest.webmanifest",
