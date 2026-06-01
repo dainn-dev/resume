@@ -18,6 +18,10 @@ services:
       # Google OAuth client ID — used server-side to build the consent-screen URL ("Login with Google").
       # Non-secret; the client secret lives only in the backend. Provide via .env.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      # Portfolio wildcard base domain. Read at runtime by middleware.ts (server-side) to map
+      # <sub>.dainn.online -> /portfolio/<sub>. Client components fall back to "dainn.online";
+      # to change the client default you must rebuild with NEXT_PUBLIC_PORTFOLIO_BASE_DOMAIN set.
+      PORTFOLIO_BASE_DOMAIN: ${PORTFOLIO_BASE_DOMAIN:-dainn.online}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
