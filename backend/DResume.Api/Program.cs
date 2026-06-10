@@ -214,10 +214,19 @@ await using (var scope = app.Services.CreateAsyncScope())
 
     // Seed admin accounts
     var adminEmails = builder.Configuration.GetSection("Admin:Emails").Get<string[]>() ?? [];
-    if (adminEmails.Length > 0 && dainnDb is not null)
+    var adminPassword = builder.Configuration["Admin:DefaultPassword"];
+    if (adminEmails.Length > 0 && dainnDb is not null && string.IsNullOrWhiteSpace(adminPassword))
+    {
+        // Never seed admins with a hardcoded/default password. Require Admin:DefaultPassword
+        // (e.g. via the ADMIN__DEFAULTPASSWORD env var). Skip seeding when it is not provided.
+        app.Logger.LogWarning(
+            "Admin seeding skipped: {Count} admin email(s) configured but Admin:DefaultPassword is not set. " +
+            "Set the Admin:DefaultPassword configuration value to enable admin account seeding.",
+            adminEmails.Length);
+    }
+    else if (adminEmails.Length > 0 && dainnDb is not null)
     {
         var auth = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
-        var adminPassword = builder.Configuration["Admin:DefaultPassword"] ?? "123098@";
         foreach (var email in adminEmails)
         {
             try
