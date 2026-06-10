@@ -10,6 +10,7 @@ using DResume.Api.Data.Entities;
 using DResume.Api.Features.Build;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -17,6 +18,7 @@ namespace DResume.Api.Controllers;
 [ApiController]
 [Route("api/build")]
 [Authorize]
+[EnableRateLimiting("ai")]
 public sealed class BuildController : ControllerBase
 {
     private readonly IResumeBuildService _service;

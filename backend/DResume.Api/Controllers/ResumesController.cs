@@ -9,6 +9,7 @@ using DResume.Api.DocumentParsing;
 using DResume.Api.Features.Resumes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -98,6 +99,7 @@ public sealed class ResumesController : ControllerBase
     [HttpPost]
     [RequestSizeLimit(15 * 1024 * 1024)]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Upload(IFormFile file, [FromForm] string? title, CancellationToken ct)
     {
         if (file is null || file.Length == 0) throw new ArgumentException("File is required.");
@@ -154,6 +156,7 @@ public sealed class ResumesController : ControllerBase
 
     [HttpPost("parse")]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> ParseText([FromBody] ParseResumeRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.ResumeText)) throw new ArgumentException("resumeText is required.");
@@ -178,6 +181,7 @@ public sealed class ResumesController : ControllerBase
 
     [HttpPost("{id:guid}/analyze")]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> AnalyzeExisting(Guid id, CancellationToken ct)
     {
         var userId = _current.RequireUserId();
@@ -283,6 +287,7 @@ public sealed class ResumesController : ControllerBase
 [ApiController]
 [Route("api/analyze")]
 [Authorize]
+[EnableRateLimiting("ai")]
 public sealed class LegacyAnalyzeController : ControllerBase
 {
     private readonly ResumeDbContext _db;
@@ -409,6 +414,7 @@ public sealed class LegacyAnalyzeController : ControllerBase
 [ApiController]
 [Route("api/parse-resume")]
 [Authorize]
+[EnableRateLimiting("ai")]
 public sealed class LegacyParseController : ControllerBase
 {
     private readonly IResumeAnalysisService _analysis;

@@ -7,6 +7,7 @@ using DResume.Api.Data.Entities;
 using DResume.Api.Features.JobMatch;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -31,6 +32,7 @@ public sealed class JobMatchController : ControllerBase
 
     [HttpPost]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Match([FromBody] JobMatchRequest req, CancellationToken ct)
     {
         var (analysis, jd) = await _service.AnalyzeAsync(req.ResumeText, req.JobDescription, req.LinkedinUrl, ct);

@@ -7,6 +7,7 @@ using DResume.Api.Data.Entities;
 using DResume.Api.Features.Coach;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -31,6 +32,7 @@ public sealed class CareerCoachController : ControllerBase
 
     [HttpPost]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Coach([FromBody] CareerCoachFormDataDto req, CancellationToken ct)
     {
         var (result, analysis) = await _service.CoachAsync(req, ct);

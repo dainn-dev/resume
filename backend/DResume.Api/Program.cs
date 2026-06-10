@@ -101,6 +101,10 @@ builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
+// P0-4: per-second/minute throttles on AI + auth endpoints (returns 429). Independent of the
+// monthly AI quota — see RateLimitingExtensions for the policy definitions and cluster-safe note.
+builder.Services.AddDResumeRateLimiting(builder.Configuration);
+
 var stripeSecretKey = builder.Configuration["DainnStripe:SecretKey"];
 // Stripe is wired up only when explicitly enabled AND a secret key is present.
 // The `DainnStripe:Enabled` flag (env: DainnStripe__Enabled / STRIPE_ENABLED) is the
@@ -187,6 +191,8 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("Frontend");
 app.UseDainnUser();
+// After auth so the AI policy can partition by authenticated user id; before endpoints execute.
+app.UseRateLimiter();
 if (stripeEnabled)
 {
     app.UseDainnStripe();
