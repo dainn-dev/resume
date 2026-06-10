@@ -101,6 +101,9 @@ builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
+// P0-5: security response headers (HSTS / X-Frame-Options / nosniff / CSP). See SecurityHeadersExtensions.
+builder.Services.AddDResumeSecurityHeaders(builder.Configuration);
+
 var stripeSecretKey = builder.Configuration["DainnStripe:SecretKey"];
 // Stripe is wired up only when explicitly enabled AND a secret key is present.
 // The `DainnStripe:Enabled` flag (env: DainnStripe__Enabled / STRIPE_ENABLED) is the
@@ -184,6 +187,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Add security headers first so they're present on every response, including error responses.
+app.UseDResumeSecurityHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("Frontend");
 app.UseDainnUser();
