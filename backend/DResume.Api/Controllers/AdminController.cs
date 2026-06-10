@@ -279,21 +279,6 @@ public sealed class AdminController : ControllerBase
             salaryEstimates = await _resumeDb.SalaryEstimates.CountAsync(s => s.UserId == id, ct),
         };
 
-        object? stripeInvoices = null;
-        if (!string.IsNullOrEmpty(sub?.StripeCustomerId))
-        {
-            try
-            {
-                var list = await new Stripe.InvoiceService().ListAsync(
-                    new Stripe.InvoiceListOptions { Customer = sub.StripeCustomerId, Limit = 10 }, cancellationToken: ct);
-                stripeInvoices = list.Data.Select(i => new
-                {
-                    i.Id, i.Number, i.Status, i.AmountPaid, i.AmountDue, i.Currency, i.Created, i.HostedInvoiceUrl,
-                });
-            }
-            catch { /* best effort */ }
-        }
-
         return Ok(ApiResult.Ok(new
         {
             user = new
@@ -328,7 +313,7 @@ public sealed class AdminController : ControllerBase
             },
             totals,
             resumes,
-            invoices = stripeInvoices,
+            invoices = (object?)null,
         }));
     }
 
@@ -569,7 +554,6 @@ public sealed class AdminController : ControllerBase
                     p.Limits.CompanyReviewEnabled,
                     p.Limits.PriorityQueue,
                 },
-                activeStripePriceId = r?.ActiveStripePriceId,
                 updatedAt = r?.UpdatedAt,
             });
         }
@@ -584,79 +568,6 @@ public sealed class AdminController : ControllerBase
             return BadRequest(ApiResult.Fail("Invalid plan code."));
         var updated = await catalog.UpdatePlanAsync(planCode, req, ct);
         return Ok(ApiResult.Ok(new { updated = true, plan = updated.Name }));
-    }
-
-    public sealed record SetPriceRequest(long MonthlyPriceCents);
-
-    [HttpPost("plans/{code}/price")]
-    public async Task<IActionResult> ChangePrice(string code, [FromBody] SetPriceRequest req,
-        [FromServices] IStripePriceManager priceManager, CancellationToken ct)
-    {
-        if (!Enum.TryParse<PlanCode>(code, true, out var planCode) || planCode == PlanCode.Free)
-            return BadRequest(ApiResult.Fail("Only paid plans (Pro, Premium) can have prices."));
-        if (req.MonthlyPriceCents <= 0)
-            return BadRequest(ApiResult.Fail("Price must be > 0 cents."));
-        var newPrice = await priceManager.CreateNewPriceAsync(planCode, req.MonthlyPriceCents, ct);
-        return Ok(ApiResult.Ok(new
-        {
-            created = true,
-            stripePriceId = newPrice.StripePriceId,
-            unitAmountCents = newPrice.UnitAmountCents,
-            isDefault = newPrice.IsDefault,
-        }));
-    }
-
-    [HttpGet("plans/{code}/prices")]
-    public async Task<IActionResult> ListStripePrices(string code,
-        [FromServices] IStripePriceManager priceManager, CancellationToken ct)
-    {
-        if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
-            return BadRequest(ApiResult.Fail("Invalid plan code."));
-        var prices = await priceManager.ListPricesAsync(planCode, ct);
-        return Ok(ApiResult.Ok(prices));
-    }
-
-    [HttpPost("plans/{code}/prices/{stripePriceId}/archive")]
-    public async Task<IActionResult> ArchiveStripePrice(string code, string stripePriceId,
-        [FromServices] IStripePriceManager priceManager, CancellationToken ct)
-    {
-        await priceManager.ArchivePriceAsync(stripePriceId, ct);
-        return Ok(ApiResult.Ok(new { archived = true, stripePriceId }));
-    }
-
-    [HttpPost("plans/{code}/prices/{stripePriceId}/set-default")]
-    public async Task<IActionResult> SetDefaultStripePrice(string code, string stripePriceId,
-        [FromServices] IStripePriceManager priceManager, CancellationToken ct)
-    {
-        if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
-            return BadRequest(ApiResult.Fail("Invalid plan code."));
-        await priceManager.SetDefaultPriceAsync(planCode, stripePriceId, ct);
-        return Ok(ApiResult.Ok(new { defaultSet = true, stripePriceId }));
-    }
-
-    [HttpGet("plans/{code}/migration-preview")]
-    public async Task<IActionResult> MigrationPreview(string code,
-        [FromServices] IStripePriceManager priceManager, CancellationToken ct)
-    {
-        if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
-            return BadRequest(ApiResult.Fail("Invalid plan code."));
-        var count = await priceManager.CountSubscriptionsOnOldPricesAsync(planCode, ct);
-        return Ok(ApiResult.Ok(new { subscribersOnOldPrices = count }));
-    }
-
-    [HttpPost("plans/{code}/migrate-to-default")]
-    public async Task<IActionResult> MigrateToDefaultPrice(string code,
-        [FromServices] IStripePriceManager priceManager, CancellationToken ct)
-    {
-        if (!Enum.TryParse<PlanCode>(code, true, out var planCode))
-            return BadRequest(ApiResult.Fail("Invalid plan code."));
-        var result = await priceManager.MigrateSubscriptionsToDefaultAsync(planCode, ct);
-        return Ok(ApiResult.Ok(new
-        {
-            migrated = result.MigratedCount,
-            failed = result.FailedCount,
-            failedSubscriptionIds = result.FailedSubscriptionIds,
-        }));
     }
 
     // ───────── Bank-transfer pricing tiers (per plan) ─────────

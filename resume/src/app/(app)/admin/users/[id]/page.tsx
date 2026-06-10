@@ -14,21 +14,15 @@ interface UserDetail {
     createdAt: string; updatedAt: string; lastLoginAt: string | null;
   };
   profile: { firstName: string; lastName: string; displayName: string; avatarUrl: string; language: string; timezone: string; bio: string; website: string } | null;
-  subscription: { plan: string; status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null; stripeCustomerId: string | null; stripeSubscriptionId: string | null; updatedAt: string; isAdminGranted: boolean; grantedByEmail: string | null; grantedAt: string | null; grantNote: string | null } | null;
+  subscription: { plan: string; status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null; updatedAt: string; isAdminGranted: boolean; grantedByEmail: string | null; grantedAt: string | null; grantNote: string | null } | null;
   totals: { resumes: number; jobMatches: number; coverLetters: number; careerCoach: number; interviewCoach: number; salaryEstimates: number };
   resumes: Array<{ id: string; title: string | null; sourceFileName: string | null; createdAt: string; updatedAt: string; hasParsedData: boolean; hasFile: boolean; latestAnalysis: { id: string; score: number; createdAt: string } | null }>;
-  invoices: Array<{ id: string; number: string | null; status: string; amountPaid: number; amountDue: number; currency: string; created: number; hostedInvoiceUrl: string | null }> | null;
 }
 
 function planColor(plan: string): string {
   if (plan === "Premium") return "text-amber-300 bg-amber-500/10 border-amber-500/30";
   if (plan === "Pro") return "text-blue-400 bg-blue-500/10 border-blue-500/30";
   return "text-gray-400 bg-gray-800 border-gray-700";
-}
-
-function formatAmount(cents: number, currency: string): string {
-  const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
-  return `${symbol}${(cents / 100).toFixed(2)}`;
 }
 
 export default function AdminUserDetailPage() {
@@ -209,7 +203,7 @@ export default function AdminUserDetailPage() {
       {/* Plan management */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
         <h2 className="text-sm font-semibold text-white mb-3">Plan management (Admin grant)</h2>
-        <p className="text-xs text-gray-500 mb-4">Grant complimentary access (bypasses Stripe). User gets email notification.</p>
+        <p className="text-xs text-gray-500 mb-4">Grant complimentary access (bypasses payment). User gets email notification.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <Field label="Duration" labelClassName="block text-xs text-gray-400 mb-1">
@@ -271,18 +265,13 @@ export default function AdminUserDetailPage() {
             <div><p className="text-xs text-gray-500 mb-1">Status</p><p className="text-gray-200">{data.subscription.status}</p></div>
             <div><p className="text-xs text-gray-500 mb-1">Cancel at period end</p><p className="text-gray-200">{data.subscription.cancelAtPeriodEnd ? "Yes" : "No"}</p></div>
             <div><p className="text-xs text-gray-500 mb-1">{data.subscription.isAdminGranted ? "Expires" : "Period end"}</p><p className="text-gray-200">{data.subscription.currentPeriodEnd ? new Date(data.subscription.currentPeriodEnd).toLocaleDateString() : "—"}</p></div>
-            {data.subscription.isAdminGranted ? (
+            {data.subscription.isAdminGranted && (
               <>
                 <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Granted by</p><p className="text-gray-200 text-xs">{data.subscription.grantedByEmail ?? "—"}</p></div>
                 <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Granted at</p><p className="text-gray-200 text-xs">{data.subscription.grantedAt ? new Date(data.subscription.grantedAt).toLocaleString() : "—"}</p></div>
                 {data.subscription.grantNote && (
                   <div className="col-span-4"><p className="text-xs text-gray-500 mb-1">Note</p><p className="text-gray-200 text-xs italic">"{data.subscription.grantNote}"</p></div>
                 )}
-              </>
-            ) : (
-              <>
-                <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Stripe Customer</p><p className="text-gray-200 font-mono text-xs">{data.subscription.stripeCustomerId ?? "—"}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Stripe Subscription</p><p className="text-gray-200 font-mono text-xs">{data.subscription.stripeSubscriptionId ?? "—"}</p></div>
               </>
             )}
           </div>
@@ -336,26 +325,6 @@ export default function AdminUserDetailPage() {
         )}
       </div>
 
-      {/* Invoices */}
-      {data.invoices && data.invoices.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-          <h2 className="text-sm font-semibold text-white mb-3">Stripe invoices (latest {data.invoices.length})</h2>
-          <div className="space-y-1.5">
-            {data.invoices.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between border-b border-gray-800 last:border-b-0 py-2 text-sm">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs text-gray-500 w-24 shrink-0">{new Date(inv.created * 1000).toLocaleDateString()}</span>
-                  <span className="text-white">{formatAmount(inv.amountPaid > 0 ? inv.amountPaid : inv.amountDue, inv.currency)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border uppercase border-gray-700 text-gray-300">{inv.status}</span>
-                  {inv.hostedInvoiceUrl && <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400">View →</a>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   );
 }

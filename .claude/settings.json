@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(pytest:*)",
+      "Bash(go:*)",
+      "Bash(dotnet run *)",
+      "PowerShell(docker exec dresume-postgres psql -U dresume -d dresume -c \"CREATE SCHEMA IF NOT EXISTS stripe;\")",
+      "Bash(dotnet build *)",
+      "Bash(Get-ChildItem -Path 'c:\\\\Users\\\\hoang\\\\Projects\\\\resume\\\\resume\\\\src\\\\app\\\\\\(app\\\\\\)' -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\hoang\\\\Projects\\\\resume\\\\resume\\\\src\\\\app\\\\\\(app\\)\\\\calendar\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\hoang\\\\Projects\\\\resume\\\\resume\\\\src\\\\app\\\\api\\\\calendar\")",
+      "Bash(dotnet ef *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\hoang\\\\Projects\\\\resume\\\\backend\\\\DResume.Api\\\\Features\\\\Calendar\")",
+      "Bash(powershell -c \"Get-NetTCPConnection -LocalPort 5000 -ErrorAction SilentlyContinue | Select-Object OwningProcess\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5000 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Name \"dotnet\" -ErrorAction SilentlyContinue)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5267/api/calendar/generate-tasks -X POST -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(curl -s -w \"\\\\n%{http_code}\" http://localhost:5267/api/calendar/generate-tasks -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IkRhaW5uVXNlclNpZ25pbmdLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJiOGI0YzM1NS04NWY4LTRhYWYtYmJjZi1mMzI1MDljYzIyOWYiLCJlbWFpbCI6ImFkbWluQGRhaW5uLm9ubGluZSIsInVuaXF1ZV9uYW1lIjoiYWRtaW4iLCJqdGkiOiI3ODJkNzZjYi00ZDUzLTQyOWQtOWQwZi05ZjM0YWI5OTJmMGEiLCJzaWQiOiIzZjQyMzRiOC1jN2ZkLTRlOTUtYjg0My02ZmQ4ZjJiNjYzNmQiLCJlbWFpbF92ZXJpZmllZCI6InRydWUiLCJuYmYiOjE3Nzk5MDQ4NTgsImV4cCI6MTc3OTkwODQ1OCwiaXNzIjoiRFJlc3VtZSIsImF1ZCI6IkRSZXN1bWVBcHAifQ.FoFyBTftHBJiRJPQMFFTUh6IoA-OyL5pX8ECESxBgeU\" -d '{\"milestoneId\":\"02d59d57-8c10-4d3c-8778-80d3ffb5b897\",\"goalTitle\":\"Test\",\"milestoneTitle\":\"Test milestone\",\"startDate\":\"2026-05-27\",\"endDate\":\"2026-06-10\",\"context\":null}')",
+      "Bash(curl -s http://localhost:5267/api/calendar -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IkRhaW5uVXNlclNpZ25pbmdLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJiOGI0YzM1NS04NWY4LTRhYWYtYmJjZi1mMzI1MDljYzIyOWYiLCJlbWFpbCI6ImFkbWluQGRhaW5uLm9ubGluZSIsInVuaXF1ZV9uYW1lIjoiYWRtaW4iLCJqdGkiOiI3ODJkNzZjYi00ZDUzLTQyOWQtOWQwZi05ZjM0YWI5OTJmMGEiLCJzaWQiOiIzZjQyMzRiOC1jN2ZkLTRlOTUtYjg0My02ZmQ4ZjJiNjYzNmQiLCJlbWFpbF92ZXJpZmllZCI6InRydWUiLCJuYmYiOjE3Nzk5MDQ4NTgsImV4cCI6MTc3OTkwODQ1OCwiaXNzIjoiRFJlc3VtZSIsImF1ZCI6IkRSZXN1bWVBcHAifQ.FoFyBTftHBJiRJPQMFFTUh6IoA-OyL5pX8ECESxBgeU\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); ms=d['data']['milestones']; print\\(f'Milestones: {len\\(ms\\)}'\\); [print\\(f'  {m[\\\\\"id\\\\\"]} - {m[\\\\\"title\\\\\"][:50]}'\\) for m in ms[:5]]\")",
+      "Bash(curl -s http://localhost:5267/api/users/me/summary -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IkRhaW5uVXNlclNpZ25pbmdLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJiOGI0YzM1NS04NWY4LTRhYWYtYmJjZi1mMzI1MDljYzIyOWYiLCJlbWFpbCI6ImFkbWluQGRhaW5uLm9ubGluZSIsInVuaXF1ZV9uYW1lIjoiYWRtaW4iLCJqdGkiOiI3ODJkNzZjYi00ZDUzLTQyOWQtOWQwZi05ZjM0YWI5OTJmMGEiLCJzaWQiOiIzZjQyMzRiOC1jN2ZkLTRlOTUtYjg0My02ZmQ4ZjJiNjYzNmQiLCJlbWFpbF92ZXJpZmllZCI6InRydWUiLCJuYmYiOjE3Nzk5MDQ4NTgsImV4cCI6MTc3OTkwODQ1OCwiaXNzIjoiRFJlc3VtZSIsImF1ZCI6IkRSZXN1bWVBcHAifQ.FoFyBTftHBJiRJPQMFFTUh6IoA-OyL5pX8ECESxBgeU\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['data']['plan']\\)\")"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-task.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

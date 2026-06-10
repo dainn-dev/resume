@@ -12,10 +12,6 @@ name: dresume-backend
 #   ENCRYPTION_KEY         base64-encoded 32-byte key for PII field encryption at rest (REQUIRED)
 #                          generate with:  openssl rand -base64 32
 #                          ⚠ back this up — losing it makes all encrypted PII unrecoverable
-#   STRIPE_ENABLED         true / false
-#   STRIPE_SECRET_KEY      sk_live_... (required if STRIPE_ENABLED=true)
-#   STRIPE_PUBLISHABLE_KEY pk_live_...
-#   STRIPE_WEBHOOK_SECRET  whsec_...
 #   BANK_WEBHOOK_SECRET    secret used to verify bank-QR payment webhooks
 #   SMTP_HOST              SMTP server (e.g. smtp.sendgrid.net, email-smtp.us-east-1.amazonaws.com)
 #   SMTP_PORT              587 (STARTTLS) or 465 (SSL)
@@ -60,8 +56,6 @@ services:
       ASPNETCORE_URLS: http://+:5267
       DainnUser__Database__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Resume__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-      DainnStripe__Database__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-      ConnectionStrings__DainnStripe: "Host=postgres;Port=5432;Database=${POSTGRES_DB}_stripe;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       # Auth — JWT signing secret (REQUIRED, else token signing fails)
       DainnUser__Jwt__Secret: ${JWT_SECRET}
       # PII field encryption at rest (REQUIRED — back up this key, loss = unrecoverable data)
@@ -71,11 +65,6 @@ services:
       # Auth — Google OAuth (for "Login with Google"). Secret stays backend-only.
       DainnUser__GoogleClientId: ${GOOGLE_CLIENT_ID}
       DainnUser__GoogleClientSecret: ${GOOGLE_CLIENT_SECRET}
-      # Billing — Stripe (card payments). Set DainnStripe__Enabled=false to disable.
-      DainnStripe__Enabled: ${STRIPE_ENABLED}
-      DainnStripe__SecretKey: ${STRIPE_SECRET_KEY}
-      DainnStripe__PublishableKey: ${STRIPE_PUBLISHABLE_KEY}
-      DainnStripe__WebhookSigningSecret: ${STRIPE_WEBHOOK_SECRET}
       # Billing — disable the 2,000₫ test plan in production
       Billing__TestPlanEnabled: "false"
       # Billing — bank QR webhook verification secret
@@ -92,9 +81,6 @@ services:
       # Portfolio wildcard subdomains — allows CORS from any <sub>.${PORTFOLIO_BASE_DOMAIN}
       # and is used to build absolute portfolio links. e.g. dainn.online
       Portfolio__BaseDomain: ${PORTFOLIO_BASE_DOMAIN}
-      # Billing redirect URLs (replace localhost with public frontend URL)
-      Billing__SuccessUrl: "${FRONTEND_ORIGIN}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}"
-      Billing__CancelUrl: "${FRONTEND_ORIGIN}/account?checkout=cancel"
       # Uploaded resume files — persisted to a named volume so they survive redeploys
       Storage__UploadsPath: /app/uploads
     volumes:

@@ -7,6 +7,7 @@ using DResume.Api.Data.Entities;
 using DResume.Api.Features.Salary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -31,6 +32,7 @@ public sealed class SalaryEstimatorController : ControllerBase
 
     [HttpPost]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Estimate([FromBody] SalaryEstimatorFormDataDto req, CancellationToken ct)
     {
         var (estimate, analysis) = await _service.EstimateAsync(req, ct);

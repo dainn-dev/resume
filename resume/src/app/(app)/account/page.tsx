@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/components/TranslationProvider";
 import BillingPanel from "@/components/BillingPanel";
@@ -11,8 +10,6 @@ import { fetchAccountSummary, type AccountSummary } from "@/lib/accountClient";
 export default function AccountPage() {
   const { t, mounted } = useTranslation();
   const { user } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,24 +29,13 @@ export default function AccountPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const checkout = searchParams.get("checkout");
-      const sessionId = searchParams.get("session_id");
       try {
-        if (checkout === "success" && sessionId) {
-          await fetch("/api/billing/sync-session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId }),
-          });
-          if (!cancelled) router.replace("/account");
-        } else {
-          await fetch("/api/billing/sync-current", { method: "POST" });
-        }
+        await fetch("/api/billing/sync-current", { method: "POST" });
       } catch { /* fall through to DB state */ }
       if (!cancelled) await load();
     })();
     return () => { cancelled = true; };
-  }, [searchParams, load, router]);
+  }, [load]);
 
   // Auto-refresh usage every 60s
   useEffect(() => {

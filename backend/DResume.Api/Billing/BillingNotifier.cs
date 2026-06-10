@@ -99,7 +99,7 @@ public sealed class BillingNotifier : IBillingNotifier
 
         var html = Wrap("#16a34a", $"Upgraded to {toPlan.Name}", $"""
             <p style="margin: 0 0 16px; font-size: 15px;">Hello {Escape(name)},</p>
-            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">You moved up from <strong>{fromPlan.Name}</strong> to <strong style="color:#fff">{toPlan.Name}</strong>. Stripe charged the prorated difference to the card on file — you have access to the new tier immediately.</p>
+            <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5;">You moved up from <strong>{fromPlan.Name}</strong> to <strong style="color:#fff">{toPlan.Name}</strong> — you have access to the new tier immediately.</p>
 
             <div style="background: #1f2937; border-radius: 10px; padding: 18px; margin: 0 0 24px;">
               <h3 style="margin: 0 0 12px; font-size: 13px; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.5px;">Plan change</h3>

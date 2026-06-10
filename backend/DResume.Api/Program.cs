@@ -1,6 +1,3 @@
-using DainnStripe;
-using DainnStripe.Data;
-using DainnStripe.Interfaces;
 using DainnUser.Core.Interfaces.Services;
 using DainnUser.Infrastructure;
 using DainnUser.Infrastructure.Data;
@@ -36,6 +33,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Local-only secret overrides (git-ignored). Keeps real keys/connection strings out of the
 // committed appsettings.json. Optional so deployments relying on env vars are unaffected.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
+// P0-3: PII field encryption is mandatory. Refuse to start when Encryption:Key is missing or
+// invalid so resume rawtext and bank account numbers are never silently persisted as plaintext.
+AesFieldEncryptor.EnsureKeyConfigured(builder.Configuration);
 
 builder.Services.Configure<KestrelServerOptions>(o => o.Limits.MaxRequestBodySize = 15 * 1024 * 1024);
 builder.Services.Configure<FormOptions>(o =>
@@ -101,29 +102,13 @@ builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
-var stripeSecretKey = builder.Configuration["DainnStripe:SecretKey"];
-// Stripe is wired up only when explicitly enabled AND a secret key is present.
-// The `DainnStripe:Enabled` flag (env: DainnStripe__Enabled / STRIPE_ENABLED) is the
-// master switch — setting it false disables Stripe even if a leftover key exists.
-// When disabled, IStripePriceManager / DainnStripeDbContext are not registered; the
-// services that consume them resolve those deps lazily and degrade gracefully so that
-// bank-QR billing and anonymous endpoints (plans/config) keep working.
-var stripeEnabled = builder.Configuration.GetValue("DainnStripe:Enabled", false)
-    && !string.IsNullOrWhiteSpace(stripeSecretKey);
-if (stripeEnabled)
-{
-    builder.Services.AddDainnStripe(builder.Configuration);
-    builder.Services.AddScoped<IStripeCatalogSeeder, StripeCatalogSeeder>();
-    builder.Services.AddScoped<IStripeWebhookHandler, PlanWebhookHandler>();
-    // BillingController calls Stripe.net directly (e.g. new SubscriptionService()), which reads
-    // the global static key. Set it explicitly so those calls work — AddDainnStripe wires its own
-    // DI client but does not set this static.
-    Stripe.StripeConfiguration.ApiKey = stripeSecretKey;
-}
+// P0-4: per-second/minute throttles on AI + auth endpoints (returns 429). Independent of the
+// monthly AI quota — see RateLimitingExtensions for the policy definitions and cluster-safe note.
+builder.Services.AddDResumeRateLimiting(builder.Configuration);
+
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection("Billing"));
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPlanCatalogService, PlanCatalogService>();
-builder.Services.AddScoped<IStripePriceManager, StripePriceManager>();
 builder.Services.AddScoped<IPlanService, PlanService>();
 builder.Services.AddScoped<IUsageService, UsageService>();
 builder.Services.AddScoped<IBankPricingService, BankPricingService>();
@@ -187,15 +172,8 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("Frontend");
 app.UseDainnUser();
-if (stripeEnabled)
-{
-    app.UseDainnStripe();
-    app.MapDainnStripeWebhooks(builder.Configuration["DainnStripe:WebhookPath"] ?? "/api/billing/webhook");
-}
-else
-{
-    app.Logger.LogWarning("DainnStripe disabled: 'DainnStripe:SecretKey' is not configured. Billing endpoints will return 500 if called.");
-}
+// After auth so the AI policy can partition by authenticated user id; before endpoints execute.
+app.UseRateLimiter();
 app.MapControllers();
 
 await using (var scope = app.Services.CreateAsyncScope())
@@ -229,30 +207,6 @@ await using (var scope = app.Services.CreateAsyncScope())
         await EnsureDainnUserSchemaAsync(dainnDb, app.Logger);
     }
 
-    try
-    {
-        var stripeDb = scope.ServiceProvider.GetService<DainnStripeDbContext>();
-        if (stripeDb is not null)
-            await stripeDb.Database.EnsureCreatedAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogWarning(ex, "DainnStripeDbContext migration skipped: {Message}", ex.Message);
-    }
-
-    var billingOptions = scope.ServiceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
-    if (billingOptions.SeedCatalogOnStartup && stripeEnabled)
-    {
-        try
-        {
-            var seeder = scope.ServiceProvider.GetRequiredService<IStripeCatalogSeeder>();
-            await seeder.SeedAsync();
-        }
-        catch (Exception ex)
-        {
-            app.Logger.LogWarning(ex, "Stripe catalog seeding skipped: {Message}", ex.Message);
-        }
-    }
     // Seed admin accounts
     var adminEmails = builder.Configuration.GetSection("Admin:Emails").Get<string[]>() ?? [];
     if (adminEmails.Length > 0 && dainnDb is not null)

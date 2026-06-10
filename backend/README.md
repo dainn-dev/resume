@@ -1,18 +1,17 @@
 # DResume Backend API
 
-ASP.NET Core 8 Web API providing authentication (via **DainnUser**), Stripe
-billing with three tiers (via **DainnStripe**), and AI-powered resume features
-for the Next.js frontend in `../resume`.
+ASP.NET Core 8 Web API providing authentication (via **DainnUser**), VN
+bank-transfer (VietQR + SePay) billing with three tiers, and AI-powered resume
+features for the Next.js frontend in `../resume`.
 
 ## Stack
 
 - .NET 8 Web API
-- PostgreSQL 16 (three EF Core DbContexts on the same database)
+- PostgreSQL 16 (two EF Core DbContexts on the same database)
   - `DainnUserDbContext` — owned by `DainnUser.Infrastructure` (Users, Roles, Sessions)
-  - `DainnStripeDbContext` — owned by `DainnStripe` (Customers, Products, Prices, Subscriptions, Webhooks) in the `stripe` schema
-  - `ResumeDbContext` — resume domain + per-user plan state in the `resume` schema
+  - `ResumeDbContext` — resume domain + per-user plan state + bank payments in the `resume` schema
 - JWT bearer auth (configured by DainnUser)
-- Stripe Checkout + webhook-driven plan management (Free / Pro / Enterprise)
+- Bank-transfer (VietQR) billing with webhook-driven plan activation (Free / Pro / Enterprise)
 - Anthropic Claude (`claude-sonnet-4-6`) for all AI features
 
 ## Layout
@@ -45,11 +44,7 @@ Required overrides for any non-dev environment:
 | `DainnUser:Jwt:Secret` | **Must** be ≥ 32 chars in production |
 | `Anthropic:ApiKey` | Required to run any AI endpoint |
 | `Cors:AllowedOrigins:0` | Frontend origin, e.g. `https://app.example.com` |
-| `DainnStripe:SecretKey` | Stripe secret key (`sk_test_…` / `sk_live_…`) |
-| `DainnStripe:PublishableKey` | Stripe publishable key (`pk_test_…`) |
-| `DainnStripe:WebhookSigningSecret` | Endpoint signing secret (`whsec_…`) — use Stripe CLI output for local dev |
-| `ConnectionStrings:DainnStripe` | Postgres connection for the `stripe` schema |
-| `Billing:SuccessUrl` / `CancelUrl` | Where Stripe Checkout redirects after payment |
+| `Billing:BankWebhookSecret` | Secret used to verify incoming bank-transfer webhooks (`X-Webhook-Secret` / SePay `Apikey`) |
 
 ## Local development
 
@@ -98,12 +93,12 @@ Coach, Interview Coach, and Salary Estimator require **Pro** or **Enterprise**
 upgrade hint).
 
 **Billing** — `GET /api/billing/plans` (anonymous: shows Free/Pro/Enterprise
-pricing and feature matrix), `GET /api/billing/me`, `POST /api/billing/checkout`
-(body: `{ "planCode": "Pro" }` — returns a Stripe Checkout `url` to redirect
-the user to), `POST /api/billing/cancel`, `POST /api/billing/seed` (re-runs
-the Stripe catalog seeder). The Stripe webhook is mounted at
-`/api/billing/webhook` and updates `user_subscriptions` on
-`checkout.session.completed` and `customer.subscription.{created,updated,deleted}`.
+pricing and feature matrix), `GET /api/billing/me`, `GET /api/billing/config`.
+Upgrades go through the **bank-transfer** flow: `POST /api/billing/bank/checkout`
+(body: `{ "planCode": "Pro", "durationMonths": 1 }`) returns a VietQR image URL +
+transaction code; the user transfers the amount and the bank webhook
+(`POST /api/billing/bank/webhook`, plus SePay's `POST /api/billing/bank/webhook/sepay`)
+matches the `DR-XXXX` code and activates the plan in `user_subscriptions`.
 
 All responses use the envelope `{ success: bool, data?: T, error?: string }`.
 

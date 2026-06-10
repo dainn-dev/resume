@@ -6,6 +6,7 @@ using DResume.Api.Data.Entities;
 using DResume.Api.Features.Calendar;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -139,6 +140,7 @@ public sealed class CalendarController : ControllerBase
     [HttpPost("generate-tasks")]
     [RequiresFeature(Feature.Calendar)]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> GenerateTasks([FromBody] GenerateTasksRequest req, CancellationToken ct)
     {
         var userId = _current.RequireUserId();

@@ -55,33 +55,11 @@ function computeBankAmount(monthlyVnd: number, months: number, discountPct: numb
   return Math.round(net / 1000) * 1000;
 }
 
-interface PaymentMethodInfo {
-  brand: string;
-  last4: string;
-  expMonth: number;
-  expYear: number;
-}
-
-interface InvoiceInfo {
-  id: string;
-  number: string | null;
-  status: string;
-  amountPaid: number;
-  amountDue: number;
-  currency: string;
-  created: number;
-  hostedInvoiceUrl: string | null;
-  description: string | null;
-}
-
 interface MyPlan {
   plan: { code: string; name: string; lookupKey: string };
   status: string;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
-  stripeSubscriptionId: string | null;
-  paymentMethod: PaymentMethodInfo | null;
-  invoices: InvoiceInfo[];
 }
 
 interface BankPaymentItem {
@@ -103,27 +81,6 @@ function formatDate(iso: string | null): string {
   } catch { return iso; }
 }
 
-function formatUnixDate(unix: number): string {
-  try {
-    return new Date(unix * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  } catch { return String(unix); }
-}
-
-function formatAmount(cents: number, currency: string): string {
-  const amount = (cents / 100).toFixed(2);
-  const symbol = currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
-  return `${symbol}${amount}`;
-}
-
-function cardBrandIcon(brand: string): string {
-  const b = brand.toLowerCase();
-  if (b === "visa") return "VISA";
-  if (b === "mastercard") return "MC";
-  if (b === "amex") return "AMEX";
-  if (b === "discover") return "DISC";
-  return brand.toUpperCase();
-}
-
 export default function BillingPanel() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -131,7 +88,6 @@ export default function BillingPanel() {
   const [me, setMe] = useState<MyPlan | null>(null);
   const [bankPayments, setBankPayments] = useState<BankPaymentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyCode, setBusyCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bankModalPlan, setBankModalPlan] = useState<Plan | null>(null);
   const [bankMonths, setBankMonths] = useState<number>(1);
@@ -183,33 +139,6 @@ export default function BillingPanel() {
     }
   }
 
-  async function upgrade(planCode: string) {
-    setError(null);
-    setBusyCode(planCode);
-    try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planCode }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        setError(data?.error ?? t("billing.errCheckout"));
-        return;
-      }
-      if (data.data?.updated) {
-        // In-place subscription swap — no Stripe redirect needed
-        await load();
-      } else if (data.data?.url) {
-        window.location.href = data.data.url;
-      } else {
-        setError(t("billing.errUnexpected"));
-      }
-    } finally {
-      setBusyCode(null);
-    }
-  }
-
   async function bankCheckout() {
     if (!bankModalPlan) return;
     setBankBusy(true);
@@ -235,46 +164,14 @@ export default function BillingPanel() {
     }
   }
 
-  async function cancel() {
-    if (!confirm(t("billing.cancelConfirm"))) return;
-    setError(null);
-    setBusyCode("cancel");
-    try {
-      const res = await fetch("/api/billing/cancel", { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        setError(data?.error ?? t("billing.errCancel"));
-        return;
-      }
-      await load();
-    } finally {
-      setBusyCode(null);
-    }
-  }
-
-  async function resume() {
-    setError(null);
-    setBusyCode("resume");
-    try {
-      const res = await fetch("/api/billing/resume", { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        setError(data?.error ?? t("billing.errResume"));
-        return;
-      }
-      await load();
-    } finally {
-      setBusyCode(null);
-    }
-  }
-
   if (loading) {
     return <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 animate-pulse h-64" />;
   }
 
   const currentCode = me?.plan.code ?? "Free";
-  // Bank QR / non-Stripe paid plan: no auto-renew, no subscription to cancel — it simply ends.
-  const isBankPlan = !!me && me.plan.code !== "Free" && !me.stripeSubscriptionId;
+  // All paid plans are bank-QR: no auto-renew, no subscription to cancel — access simply ends
+  // when the paid period lapses.
+  const isBankPlan = !!me && me.plan.code !== "Free";
 
   return (
     <div className="space-y-4">
@@ -295,43 +192,8 @@ export default function BillingPanel() {
             : "bg-blue-500/10 border-blue-500/30 text-blue-200"
         }`}>
           <span>
-            {isBankPlan
-              ? interpolate(t("billing.willEnd"), { date: formatDate(me.currentPeriodEnd) })
-              : me.cancelAtPeriodEnd
-                ? interpolate(t("billing.willCancel"), { date: formatDate(me.currentPeriodEnd) })
-                : interpolate(t("billing.willRenew"), { date: formatDate(me.currentPeriodEnd) })}
+            {interpolate(t("billing.willEnd"), { date: formatDate(me.currentPeriodEnd) })}
           </span>
-          {!isBankPlan && me.cancelAtPeriodEnd && (
-            <Button
-              loading={busyCode === "resume"}
-              variant="warning"
-              size="sm"
-              onClick={resume}
-              className="whitespace-nowrap"
-            >
-              {t("billing.resumeSubscription")}
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Payment method */}
-      {me?.paymentMethod && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded bg-gray-800 text-gray-200 text-[10px] font-bold tracking-wider">
-              {cardBrandIcon(me.paymentMethod.brand)}
-            </span>
-            <div>
-              <p className="text-sm text-white font-medium">•••• {me.paymentMethod.last4}</p>
-              <p className="text-[11px] text-gray-500">
-                {interpolate(t("billing.expires"), {
-                  date: `${String(me.paymentMethod.expMonth).padStart(2, "0")}/${me.paymentMethod.expYear}`,
-                })}
-              </p>
-            </div>
-          </div>
-          <span className="text-[10px] text-gray-600 uppercase tracking-wider">{t("billing.defaultPayment")}</span>
         </div>
       )}
 
@@ -384,53 +246,23 @@ export default function BillingPanel() {
               </details>
 
               {isCurrent ? (
-                isFree ? (
-                  <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
-                    {t("billing.currentPlan")}
-                  </button>
-                ) : isBankPlan ? (
-                  <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
-                    {t("billing.currentPlan")}
-                  </button>
-                ) : me?.cancelAtPeriodEnd ? (
-                  <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
-                    {t("billing.cancellationScheduled")}
-                  </button>
-                ) : (
-                  <Button
-                    loading={busyCode === "cancel"}
-                    variant="dangerOutline"
-                    onClick={cancel}
-                    fullWidth
-                  >
-                    {t("billing.cancelSubscription")}
-                  </Button>
-                )
+                <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
+                  {t("billing.currentPlan")}
+                </button>
               ) : isFree ? (
                 <button disabled className={`w-full bg-gray-800 text-gray-500 text-sm font-semibold py-2 rounded-lg cursor-default ${focusRing}`}>
                   {t("billing.defaultBadge")}
                 </button>
               ) : (
                 <div className="space-y-2">
-                  {methods.cardPaymentsEnabled && (
-                    <Button
-                      loading={busyCode === plan.code}
-                      variant="primary"
-                      onClick={() => upgrade(plan.code)}
-                      fullWidth
-                    >
-                      {interpolate(t("billing.payWithCard"), { price: formatPrice(plan.monthlyPriceCents, plan.currency) })}
-                    </Button>
-                  )}
-                  {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && plan.bankTiers.length > 0 && (
+                  {methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && plan.bankTiers.length > 0 ? (
                     <button
                       onClick={() => { setBankModalPlan(plan); setBankMonths(plan.bankTiers[0]?.months ?? 1); }}
                       className={`w-full border border-purple-500/40 hover:bg-purple-500/10 text-purple-300 text-sm font-semibold py-2 rounded-lg transition-colors ${focusRing}`}
                     >
                       {interpolate(t("billing.payWithBankQr"), { price: formatVnd(plan.monthlyPriceVnd) })}
                     </button>
-                  )}
-                  {!methods.cardPaymentsEnabled && !(methods.bankQrEnabled && plan.monthlyPriceVnd > 0 && plan.bankTiers.length > 0) && (
+                  ) : (
                     <p className="text-xs text-gray-500 text-center py-2">{t("billing.noPaymentMethod")}</p>
                   )}
                 </div>
@@ -535,42 +367,6 @@ export default function BillingPanel() {
                 {bankBusy ? t("billing.generatingQr") : t("billing.continue")}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Billing history (Stripe invoices) */}
-      {me && me.invoices.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">{t("billing.billingHistory")}</h3>
-          <div className="space-y-1.5">
-            {me.invoices.map(inv => {
-              const statusColor =
-                inv.status === "paid" ? "text-green-400 bg-green-500/10 border-green-500/30"
-                : inv.status === "open" ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
-                : inv.status === "void" || inv.status === "uncollectible" ? "text-gray-500 bg-gray-500/10 border-gray-500/30"
-                : "text-blue-400 bg-blue-500/10 border-blue-500/30";
-              return (
-                <div key={inv.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-b-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-xs text-gray-400 w-24 shrink-0">{formatUnixDate(inv.created)}</span>
-                    <span className="text-sm text-white font-medium">
-                      {formatAmount(inv.amountPaid > 0 ? inv.amountPaid : inv.amountDue, inv.currency)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border uppercase ${statusColor}`}>
-                      {inv.status}
-                    </span>
-                    {inv.hostedInvoiceUrl && (
-                      <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300">
-                        {t("billing.view")} →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
