@@ -111,6 +111,9 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 // monthly AI quota — see RateLimitingExtensions for the policy definitions and cluster-safe note.
 builder.Services.AddDResumeRateLimiting(builder.Configuration);
 
+// P0-5: security response headers (HSTS / X-Frame-Options / nosniff / CSP). See SecurityHeadersExtensions.
+builder.Services.AddDResumeSecurityHeaders(builder.Configuration);
+
 builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection("Billing"));
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPlanCatalogService, PlanCatalogService>();
@@ -174,6 +177,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Add security headers first so they're present on every response, including error responses.
+app.UseDResumeSecurityHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("Frontend");
 app.UseDainnUser();
