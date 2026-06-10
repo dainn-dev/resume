@@ -4,6 +4,7 @@ using DResume.Api.Contracts;
 using DResume.Api.Features.CompanyReview;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DResume.Api.Controllers;
 
@@ -23,6 +24,7 @@ public sealed class CompanyReviewController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Search([FromBody] CompanyReviewRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.CompanyName))

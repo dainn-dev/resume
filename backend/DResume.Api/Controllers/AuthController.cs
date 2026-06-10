@@ -5,6 +5,7 @@ using DResume.Api.Contracts;
 using DResume.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DResume.Api.Controllers;
 
@@ -24,6 +25,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("register")]
     [RequiresRecaptcha]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
     {
         var username = string.IsNullOrWhiteSpace(req.Username) ? req.Email : req.Username!;
@@ -38,6 +40,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("login")]
     [RequiresRecaptcha]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
@@ -88,6 +91,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("resend-verification")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest req, CancellationToken ct)
     {
         await _auth.ResendVerificationEmailAsync(req.Email, ct);
@@ -95,6 +99,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req, CancellationToken ct)
     {
         await _auth.ForgotPasswordAsync(req.Email, ct);

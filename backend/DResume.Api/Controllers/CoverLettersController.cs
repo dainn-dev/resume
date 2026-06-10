@@ -7,6 +7,7 @@ using DResume.Api.Data.Entities;
 using DResume.Api.Features.CoverLetter;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
@@ -31,6 +32,7 @@ public sealed class CoverLettersController : ControllerBase
 
     [HttpPost]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Create([FromBody] CoverLetterFormDataDto req, CancellationToken ct)
     {
         var text = await _service.GenerateAsync(req, ct);
@@ -52,6 +54,7 @@ public sealed class CoverLettersController : ControllerBase
     // Decline-offer / reject-candidate email. Gated by the same Cover Letter feature.
     [HttpPost("email")]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> CreateEmail([FromBody] RejectionEmailFormDataDto req, CancellationToken ct)
     {
         var text = await _service.GenerateRejectionAsync(req, ct);
@@ -96,6 +99,7 @@ public sealed class CoverLettersController : ControllerBase
 [Route("api/cover-letter")]
 [Authorize]
 [RequiresFeature(Feature.CoverLetter)]
+[EnableRateLimiting("ai")]
 public sealed class LegacyCoverLetterController : ControllerBase
 {
     private readonly ICoverLetterService _service;
@@ -112,6 +116,7 @@ public sealed class LegacyCoverLetterController : ControllerBase
 
     [HttpPost]
     [ConsumesAiCall]
+    [EnableRateLimiting("ai")]
     public async Task<IActionResult> Create([FromBody] CoverLetterFormDataDto req, CancellationToken ct)
     {
         var text = await _service.GenerateAsync(req, ct);

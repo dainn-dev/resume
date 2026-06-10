@@ -39,18 +39,7 @@ interface Plan {
     companyReviewEnabled: boolean;
     priorityQueue: boolean;
   };
-  activeStripePriceId: string | null;
   updatedAt: string | null;
-}
-
-interface StripePrice {
-  stripePriceId: string;
-  unitAmountCents: number;
-  currency: string;
-  lookupKey: string | null;
-  active: boolean;
-  isDefault: boolean;
-  created: string;
 }
 
 function formatPrice(cents: number, currency: string) {
@@ -74,8 +63,6 @@ export default function AdminPlansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Plan | null>(null);
-  const [prices, setPrices] = useState<Record<string, StripePrice[]>>({});
-  const [migCounts, setMigCounts] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
 
@@ -98,14 +85,6 @@ export default function AdminPlansPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-
-  async function loadPrices(code: string) {
-    try {
-      const res = await fetch(`/api/admin/plans/${code}/prices`);
-      const json = await res.json();
-      if (json.success) setPrices(prev => ({ ...prev, [code]: json.data as StripePrice[] }));
-    } catch { /* ignore */ }
-  }
 
   async function savePlan(p: Plan) {
     setBusy("save");
@@ -132,74 +111,6 @@ export default function AdminPlansPage() {
       setEditing(null);
       await load();
     } catch (err) { alert(err instanceof Error ? err.message : "Save failed."); }
-    finally { setBusy(null); }
-  }
-
-  async function changePrice(code: string, newDollarStr: string) {
-    const dollars = parseFloat(newDollarStr);
-    if (isNaN(dollars) || dollars <= 0) { alert("Enter a valid price > 0"); return; }
-    const cents = Math.round(dollars * 100);
-    if (!confirm(`Create a new Stripe price of ${formatPrice(cents, "usd")} for ${code}? Old price stays active for existing subscribers.`)) return;
-    setBusy(`price-${code}`);
-    try {
-      const res = await fetch(`/api/admin/plans/${code}/price`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monthlyPriceCents: cents }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Failed.");
-      await load();
-      await loadPrices(code);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
-    finally { setBusy(null); }
-  }
-
-  async function archivePrice(code: string, priceId: string) {
-    if (!confirm("Archive this Stripe price? Existing subscriptions on this price continue but no new checkouts will use it.")) return;
-    setBusy(`arch-${priceId}`);
-    try {
-      const res = await fetch(`/api/admin/plans/${code}/prices/${priceId}/archive`, { method: "POST" });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Failed.");
-      await loadPrices(code);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
-    finally { setBusy(null); }
-  }
-
-  async function loadMigrationPreview(code: string) {
-    try {
-      const res = await fetch(`/api/admin/plans/${code}/migration-preview`);
-      const json = await res.json();
-      if (json.success) setMigCounts(prev => ({ ...prev, [code]: json.data.subscribersOnOldPrices ?? 0 }));
-    } catch { /* ignore */ }
-  }
-
-  async function migrateSubscribers(code: string) {
-    const count = migCounts[code] ?? 0;
-    if (count === 0) { alert("No active subscriptions on old prices."); return; }
-    if (!confirm(`Migrate ${count} active subscriber(s) of ${code} to the current default price?\n\n• New price takes effect at each user's NEXT renewal (no immediate charge).\n• Each user gets an email notification.\n• This cannot be undone in bulk — would have to set new default + migrate again.`)) return;
-    setBusy(`mig-${code}`);
-    try {
-      const res = await fetch(`/api/admin/plans/${code}/migrate-to-default`, { method: "POST" });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Migration failed.");
-      alert(`Migrated: ${json.data.migrated}\nFailed: ${json.data.failed}${json.data.failed > 0 ? `\n\nFailed IDs:\n${json.data.failedSubscriptionIds.join("\n")}` : ""}`);
-      await loadMigrationPreview(code);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
-    finally { setBusy(null); }
-  }
-
-  async function setDefault(code: string, priceId: string) {
-    if (!confirm("Set this as the default price for new checkouts? Plan's display price will update to this amount.")) return;
-    setBusy(`def-${priceId}`);
-    try {
-      const res = await fetch(`/api/admin/plans/${code}/prices/${priceId}/set-default`, { method: "POST" });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Failed.");
-      await load();
-      await loadPrices(code);
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed."); }
     finally { setBusy(null); }
   }
 
@@ -263,7 +174,7 @@ export default function AdminPlansPage() {
       <AdminNav />
       <div>
         <h1 className="text-2xl font-bold text-white">Plans</h1>
-        <p className="text-gray-400 text-sm mt-1">Edit plan info, limits, and Stripe prices.</p>
+        <p className="text-gray-400 text-sm mt-1">Edit plan info, limits, and bank-transfer pricing.</p>
       </div>
 
       {plans.map(p => (
@@ -272,7 +183,7 @@ export default function AdminPlansPage() {
             <div>
               <h2 className="text-lg font-bold text-white">{p.name}<span className="ml-2 text-xs font-mono text-gray-500">({p.code})</span></h2>
               <p className="text-xs text-gray-400 mt-1">{p.description}</p>
-              <p className="text-[10px] text-gray-600 mt-1 font-mono">{p.lookupKey} · default Stripe price: {p.activeStripePriceId ?? "—"}</p>
+              <p className="text-[10px] text-gray-600 mt-1 font-mono">{p.lookupKey}</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-white">{formatPrice(p.monthlyPriceCents, p.currency)}</p>
@@ -300,51 +211,7 @@ export default function AdminPlansPage() {
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setEditing(p)} className={`text-xs bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/40 px-3 py-1.5 rounded-lg ${focusRing}`}>Edit info & limits</button>
-            {p.code !== "Free" && (
-              <PriceForm planCode={p.code} currentCents={p.monthlyPriceCents} onChange={changePrice} busy={busy === `price-${p.code}`} />
-            )}
-            <Button variant="secondary" size="sm" onClick={() => loadPrices(p.code)}>
-              {prices[p.code] ? "Refresh prices" : "Show Stripe prices"}
-            </Button>
-            {p.code !== "Free" && (
-              <Button variant="secondary" size="sm" onClick={() => loadMigrationPreview(p.code)}>
-                {migCounts[p.code] !== undefined ? `Refresh count (${migCounts[p.code]} on old prices)` : "Check migration"}
-              </Button>
-            )}
-            {p.code !== "Free" && migCounts[p.code] !== undefined && migCounts[p.code] > 0 && (
-              <button onClick={() => migrateSubscribers(p.code)} disabled={busy === `mig-${p.code}`}
-                className={`text-xs bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50 ${focusRing}`}>
-                {busy === `mig-${p.code}` ? "Migrating…" : `Migrate ${migCounts[p.code]} subscriber(s) → default price`}
-              </button>
-            )}
           </div>
-
-          {/* Stripe prices list */}
-          {prices[p.code] && (
-            <div className="mt-4 bg-gray-800/40 rounded-lg p-3">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2 tracking-wider">Stripe prices ({prices[p.code].length})</h3>
-              <div className="space-y-1.5">
-                {prices[p.code].map(sp => (
-                  <div key={sp.stripePriceId} className="flex items-center justify-between border-b border-gray-800 last:border-0 py-1.5 text-sm">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {sp.isDefault && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-500/20 text-green-300 border border-green-500/40">DEFAULT</span>}
-                      {!sp.active && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-700 text-gray-400 border border-gray-600">ARCHIVED</span>}
-                      <span className="text-white font-medium">{formatPrice(sp.unitAmountCents, sp.currency)}</span>
-                      <span className="text-gray-500 font-mono text-[10px] truncate">{sp.stripePriceId}</span>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {sp.active && !sp.isDefault && (
-                        <Button variant="link" onClick={() => setDefault(p.code, sp.stripePriceId)} loading={busy === `def-${sp.stripePriceId}`} className="text-[10px]">Set default</Button>
-                      )}
-                      {sp.active && (
-                        <button onClick={() => archivePrice(p.code, sp.stripePriceId)} disabled={busy === `arch-${sp.stripePriceId}`} className={`text-[10px] text-amber-400 hover:text-amber-300 px-2 py-1 rounded disabled:opacity-50 ${focusRing}`}>Archive</button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Bank-transfer duration tiers */}
           {p.code !== "Free" && (
@@ -380,19 +247,6 @@ function Toggle({ label, on }: { label: string; on: boolean }) {
       <p className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</p>
       <p className={`text-sm font-semibold ${on ? "text-green-300" : "text-gray-500"}`}>{on ? "✓ Enabled" : "✗ Off"}</p>
     </div>
-  );
-}
-
-function PriceForm({ planCode, currentCents, onChange, busy }: { planCode: string; currentCents: number; onChange: (code: string, dollar: string) => void; busy: boolean }) {
-  const [val, setVal] = useState((currentCents / 100).toFixed(2));
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); onChange(planCode, val); }} className="flex gap-1 items-center">
-      <span className="text-xs text-gray-500">$</span>
-      <input type="number" step="0.01" min="0.01" value={val} onChange={(e) => setVal(e.target.value)} className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white" />
-      <button type="submit" disabled={busy} className={`text-xs bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 border border-amber-500/40 px-3 py-1.5 rounded-lg disabled:opacity-50 ${focusRing}`}>
-        {busy ? "…" : "Update price"}
-      </button>
-    </form>
   );
 }
 
@@ -577,7 +431,7 @@ function EditModal({ plan, onClose, onSave, busy }: { plan: Plan; onClose: () =>
           </Field>
           {plan.code !== "Free" && (
             <Field label="Monthly price (VND) — base for bank transfer" labelClassName="block text-xs text-gray-400 mb-1"
-              hint={`${formatVnd(p.monthlyPriceVnd)} / month. Stripe (USD) price is changed separately.`}>
+              hint={`${formatVnd(p.monthlyPriceVnd)} / month. Bank-transfer totals derive from this.`}>
               <input type="number" min="0" step="1000" value={p.monthlyPriceVnd}
                 onChange={(e) => setP({ ...p, monthlyPriceVnd: Number(e.target.value) })}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white" />

@@ -3,12 +3,14 @@ using DResume.Api.Contracts;
 using DResume.Api.Features.Translation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DResume.Api.Controllers;
 
 [ApiController]
 [Route("api/translate")]
 [AllowAnonymous]
+[EnableRateLimiting("ai")]
 public sealed class TranslationController : ControllerBase
 {
     private readonly ITranslationService _service;

@@ -1,0 +1,39 @@
+name: dresume-frontend
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dresume-frontend
+    ports:
+      - "3005:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      # When running alongside backend compose (shared network), frontend can call backend via service name.
+      # If backend is on host instead, override with http://host.docker.internal:5267
+      DRESUME_API_URL: http://api:5267
+      # Google OAuth client ID — used server-side to build the consent-screen URL ("Login with Google").
+      # Non-secret; the client secret lives only in the backend. Provide via .env.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      # Portfolio wildcard base domain. Read at runtime by middleware.ts (server-side) to map
+      # <sub>.dainn.online -> /portfolio/<sub>. Client components fall back to "dainn.online";
+      # to change the client default you must rebuild with NEXT_PUBLIC_PORTFOLIO_BASE_DOMAIN set.
+      PORTFOLIO_BASE_DOMAIN: ${PORTFOLIO_BASE_DOMAIN:-dainn.online}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - dresume-backend_default
+      - default
+
+# Connect to backend's network so frontend can reach `api` service by name.
+# Backend compose creates network `dresume-backend_default` by default.
+networks:
+  dresume-backend_default:
+    external: true

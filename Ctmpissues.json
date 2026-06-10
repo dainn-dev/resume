@@ -1,0 +1,57 @@
+{
+  "has_more": false,
+  "issues": [
+    {
+      "assignee_id": "8e91e845-8e9c-47f0-a15a-f6dd817dd855",
+      "assignee_type": "agent",
+      "created_at": "2026-06-10T11:33:10Z",
+      "creator_id": "8e91e845-8e9c-47f0-a15a-f6dd817dd855",
+      "creator_type": "agent",
+      "description": "## Parent\nDAI-55 — Production-readiness gap analysis cho dResume (đối tượng chỉ người Việt → bỏ Stripe).\n\n## Mục tiêu\nĐọc source code hiện tại của dResume (monorepo: `resume/` Next.js 14 frontend + `backend/` .NET 8 API) và đưa ra **first-pass gap analysis** để đưa nền tảng lên production-ready SaaS cho thị trường Việt Nam. **Không cần Stripe** — chuyển hoàn toàn sang luồng thanh toán nội địa đã có sẵn trong codebase.\n\n## Bối cảnh đã xác nhận (từ PM recon)\n- Billing hiện tại **chạy song song 2 đường**: Stripe (`Billing/StripePriceManager.cs`, `StripeCatalogSeeder.cs`, `PlanWebhookHandler.cs`, NuGet `DainnStripe`) **và** bank-transfer nội địa đã có sẵn: `Billing/BankPaymentService.cs`, `BankPricingService.cs`, `Controllers/BankPaymentController.cs`, `AdminBankController.cs`, các migration `AddBankPricingTiers`, `AddBankTierPromoColumns`.\n- Plan gating qua `[RequiresPlan]` / `[RequiresFeature]` → HTTP 402; quota AI qua `ConsumesAiCallAttribute` + `UsageService`.\n- AI provider đã DB-driven (`AiProviderService`, round-robin/failover) — proxy qua open-claude.com.\n- Response envelope `ApiResult\u003cT\u003e`; auth JWT (cookie-based ở FE); PII đã có cột encrypt (`EncryptPiiColumns` migration).\n\n## Phạm vi phân tích (deliverable)\n1. **Stripe removal impact map**: liệt kê mọi điểm phụ thuộc Stripe (code, DI trong `Program.cs`, config `appsettings.json`, webhook, FE checkout, env vars Docker/Dokploy). Xác nhận luồng bank-payment đã đủ thay thế chưa, thiếu gì (plan upgrade/downgrade, gia hạn, hoàn tiền, ghi nhận giao dịch, đối soát admin).\n2. **Production-readiness gaps** theo các trục, mỗi gap ghi rõ severity (P0/P1/P2) + bằng chứng (file/đường dẫn):\n   - Security: input validation, authz bypass, secrets/JWT config, rate limiting, CORS, encrypt PII.\n   - Reliability/cluster-safe: in-memory state (cần Redis?), idempotency cho payment/webhook, retry.\n   - Observability: logging có cấu trúc, health checks, error tracking, audit.\n   - Data: migrations, backup/restore, index, jsonb usage.\n   - Deploy: Docker/compose prod, env var inventory cho Dokploy, secrets management.\n   - i18n/UX: EN/VI bilingual đầy đủ chưa, các trang gated.\n3. **Đề xuất decomposition**: danh sách child task (P0 trước) kèm owner đề xuất (Backend/Frontend/QA), acceptance criteria và evidence cần có. PM sẽ dùng để tạo issue thực thi.\n\n## Acceptance criteria\n- Gap analysis post dưới dạng comment trên issue này, có severity + tham chiếu file cụ thể.\n- Có mục riêng \"Stripe removal plan\" với checklist các điểm phải gỡ và xác nhận bank-payment thay thế.\n- Có backlog đề xuất (P0/P1/P2) đủ chi tiết để PM cắt thành child issue và giao Dev/QA.\n- KHÔNG sửa code trong issue này — đây là planning/analysis.\n\n## Owner\nBusiness Analyst (first-pass). PM Delivery Lead sẽ review và route bước tiếp theo.",
+      "due_date": null,
+      "id": "33a46878-dce8-4e88-8bbb-d6ef08833b0a",
+      "identifier": "DAI-57",
+      "labels": [],
+      "metadata": {},
+      "number": 57,
+      "parent_issue_id": "117cd523-a411-44ce-bce7-8ba64fb771a5",
+      "position": -1,
+      "priority": "none",
+      "project_id": "aa76ec87-26a2-4b13-b689-4238dd943d15",
+      "start_date": null,
+      "status": "in_progress",
+      "title": "DAI-55: BA production-readiness gap analysis cho dResume (bo Stripe, thi truong VN)",
+      "updated_at": "2026-06-10T11:47:17Z",
+      "workspace_id": "36c7eac2-109f-4e1e-85bf-d49cac621cb4"
+    },
+    {
+      "assignee_id": "8e91e845-8e9c-47f0-a15a-f6dd817dd855",
+      "assignee_type": "agent",
+      "created_at": "2026-06-10T11:13:55Z",
+      "creator_id": "03fb25b0-c71e-4d0e-ac04-e9210989ad7f",
+      "creator_type": "member",
+      "description": "## Mục tiêu\n\nĐọc source code hiện tại của dResume và phân tích khoảng cách để đưa nền tảng trở thành một sản phẩm SaaS production-ready.  \nĐối tượng chỉ là người Việt nên không cần dùng Stripe nữa",
+      "due_date": null,
+      "id": "117cd523-a411-44ce-bce7-8ba64fb771a5",
+      "identifier": "DAI-55",
+      "labels": [],
+      "metadata": {
+        "pipeline_status": "ba_analysis_in_progress",
+        "waiting_on": "DAI-57 (BA production-readiness gap analysis)"
+      },
+      "number": 55,
+      "parent_issue_id": null,
+      "position": -1,
+      "priority": "none",
+      "project_id": "aa76ec87-26a2-4b13-b689-4238dd943d15",
+      "start_date": null,
+      "status": "in_progress",
+      "title": "Handoff check: the updated squad instructions now explicitly require each agent to comment deliverables on completion, and require PM Delivery Lead to monitor sub-issue completion and route the next step. Please continue the workflow from the completed analysis.",
+      "updated_at": "2026-06-10T11:33:21Z",
+      "workspace_id": "36c7eac2-109f-4e1e-85bf-d49cac621cb4"
+    }
+  ],
+  "limit": 50,
+  "offset": 0,
+  "total": 2
+}

@@ -48,8 +48,6 @@ services:
       ASPNETCORE_URLS: http://+:5267
       DainnUser__Database__ConnectionString: "Host=postgres;Port=5432;Database=dresume;Username=dresume;Password=dresume"
       Resume__ConnectionString: "Host=postgres;Port=5432;Database=dresume;Username=dresume;Password=dresume"
-      DainnStripe__Database__ConnectionString: "Host=postgres;Port=5432;Database=dresume_stripe;Username=dresume;Password=dresume"
-      ConnectionStrings__DainnStripe: "Host=postgres;Port=5432;Database=dresume_stripe;Username=dresume;Password=dresume"
       DainnUser__Email__SmtpHost: "mailhog"
       DainnUser__Email__SmtpPort: "1025"
       Cors__AllowedOrigins__0: "http://localhost:3000"

@@ -1,0 +1,40 @@
+# Wildcard reverse proxy for DResume portfolio subdomains.
+#
+# Routes:
+#   dresume.dainn.online (the app) + *.dainn.online (portfolios)  -> Next.js frontend (app:3000)
+#   /api/*                                                         -> .NET backend  (api:5267)
+# The app host (dresume) is reserved in the Next.js middleware so it serves the app, not a
+# portfolio; all other *.dainn.online labels render the matching portfolio.
+#
+# Wildcard TLS is provisioned automatically via the ACME DNS-01 challenge, which needs a
+# DNS-provider plugin baked into the Caddy image and an API token. Example below uses Cloudflare;
+# swap the `dns` directive + plugin for your provider (see https://caddyserver.com/download).
+#
+# Required env (passed to the caddy container): DNS_API_TOKEN
+# Required DNS: an A record for  *.dainn.online  AND  dainn.online  -> server public IP.
+
+{
+	# email used for the Let's Encrypt account / cert expiry notices
+	email admin@dainn.online
+}
+
+dresume.dainn.online, dainn.online, *.dainn.online {
+	tls {
+		dns cloudflare {env.DNS_API_TOKEN}
+		resolvers 1.1.1.1
+	}
+
+	# Backend API — forwarded first so it wins over the catch-all frontend route.
+	handle /api/* {
+		reverse_proxy api:5267
+	}
+
+	# Everything else (the main app AND every portfolio subdomain) -> Next.js.
+	# Caddy forwards the original Host header by default, which the Next.js middleware
+	# reads to map <sub>.dainn.online -> /portfolio/<sub>.
+	handle {
+		reverse_proxy app:3000
+	}
+
+	encode gzip zstd
+}
