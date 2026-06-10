@@ -34,6 +34,11 @@ var builder = WebApplication.CreateBuilder(args);
 // committed appsettings.json. Optional so deployments relying on env vars are unaffected.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
+// Fail-fast: refuse to start if security-critical config (JWT secret, SMTP host) is
+// missing or unsafe. Runs after all config sources (incl. env vars / Local.json) are
+// wired and before the host is built, so a misconfigured instance never comes up.
+StartupConfigValidator.Validate(builder.Configuration, builder.Environment);
+
 // P0-3: PII field encryption is mandatory. Refuse to start when Encryption:Key is missing or
 // invalid so resume rawtext and bank account numbers are never silently persisted as plaintext.
 AesFieldEncryptor.EnsureKeyConfigured(builder.Configuration);
