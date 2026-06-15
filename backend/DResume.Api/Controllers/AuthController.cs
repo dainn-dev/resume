@@ -1,11 +1,13 @@
 using DainnUser.Core.Interfaces.Services;
 using DainnUser.Core.Models.Authentication;
+using DainnUser.Infrastructure.Data;
 using DResume.Api.Common;
 using DResume.Api.Contracts;
 using DResume.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 
 namespace DResume.Api.Controllers;
 
@@ -16,11 +18,13 @@ public sealed class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _auth;
     private readonly ISocialLoginService _social;
+    private readonly DainnUserDbContext _userDb;
 
-    public AuthController(IAuthenticationService auth, ISocialLoginService social)
+    public AuthController(IAuthenticationService auth, ISocialLoginService social, DainnUserDbContext userDb)
     {
         _auth = auth;
         _social = social;
+        _userDb = userDb;
     }
 
     [HttpPost("register")]
@@ -47,7 +51,7 @@ public sealed class AuthController : ControllerBase
         var ua = Request.Headers.UserAgent.ToString();
         var rememberDevice = Request.Headers["X-Remember-Device-Token"].ToString();
         var result = await _auth.LoginAsync(req.Email, req.Password, ip, ua, rememberDevice, ct);
-        return Ok(ApiResult.Ok(ToResponse(result)));
+        return Ok(ApiResult.Ok(await ToResponseAsync(result, ct)));
     }
 
     [HttpPost("google")]
@@ -56,7 +60,7 @@ public sealed class AuthController : ControllerBase
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
         var ua = Request.Headers.UserAgent.ToString();
         var result = await _social.LoginWithGoogleAsync(req.AuthorizationCode, req.CallbackUrl, ip, ua, ct);
-        return Ok(ApiResult.Ok(ToResponse(result)));
+        return Ok(ApiResult.Ok(await ToResponseAsync(result, ct)));
     }
 
     [HttpPost("refresh")]
@@ -65,7 +69,7 @@ public sealed class AuthController : ControllerBase
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
         var ua = Request.Headers.UserAgent.ToString();
         var result = await _auth.RefreshTokenAsync(req.RefreshToken, ip, ua, ct);
-        return Ok(ApiResult.Ok(ToResponse(result)));
+        return Ok(ApiResult.Ok(await ToResponseAsync(result, ct)));
     }
 
     [HttpPost("logout")]
@@ -119,16 +123,58 @@ public sealed class AuthController : ControllerBase
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
         var ua = Request.Headers.UserAgent.ToString();
         var result = await _auth.CompleteTwoFactorLoginAsync(req.UserId, req.Code, req.RememberDevice, ip, ua, ct);
-        return Ok(ApiResult.Ok(ToResponse(result)));
+        return Ok(ApiResult.Ok(await ToResponseAsync(result, ct)));
     }
 
-    private static AuthResponse ToResponse(LoginResult r) => new(
-        r.AccessToken,
-        r.RefreshToken,
-        r.AccessTokenExpiresAt,
-        r.RefreshTokenExpiresAt,
-        r.SessionId,
-        r.User,
-        r.RequiresTwoFactor,
-        r.TwoFactorUserId);
+    private async Task<AuthResponse> ToResponseAsync(LoginResult r, CancellationToken ct)
+    {
+        var isAdmin = false;
+        if (r.User is not null)
+        {
+            var userId = ExtractUserId(r.User);
+            if (userId.HasValue)
+                isAdmin = await IsAdminAsync(userId.Value, ct);
+        }
+        return new AuthResponse(
+            r.AccessToken,
+            r.RefreshToken,
+            r.AccessTokenExpiresAt,
+            r.RefreshTokenExpiresAt,
+            r.SessionId,
+            r.User,
+            r.RequiresTwoFactor,
+            r.TwoFactorUserId,
+            isAdmin);
+    }
+
+    private static Guid? ExtractUserId(object user)
+    {
+        var prop = user.GetType().GetProperty("Id") ?? user.GetType().GetProperty("id");
+        var raw = prop?.GetValue(user);
+        return raw switch
+        {
+            Guid g => g,
+            string s when Guid.TryParse(s, out var g) => g,
+            _ => null
+        };
+    }
+
+    private async Task<bool> IsAdminAsync(Guid userId, CancellationToken ct)
+    {
+        var conn = _userDb.Database.GetDbConnection();
+        await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT EXISTS(" +
+            "SELECT 1 FROM \"UserRoles\" ur " +
+            "INNER JOIN \"Roles\" r ON r.\"Id\" = ur.\"RoleId\" " +
+            "WHERE ur.\"UserId\" = @id AND r.\"Name\" = 'Administrator'" +
+            ")";
+        var p = cmd.CreateParameter();
+        p.ParameterName = "@id";
+        p.Value = userId;
+        cmd.Parameters.Add(p);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is bool b && b;
+    }
 }

@@ -37,7 +37,7 @@ export default function NavBar({ onMenuClick }: { onMenuClick: () => void }) {
 
         <div className="flex items-center gap-3">
           {mounted && <LanguageSwitcher />}
-          {mounted && user?.email === "admin@dainn.online" && (
+          {mounted && user?.isAdmin && (
             <Link
               href="/admin/analytics"
               className={`text-amber-400 hover:text-amber-300 text-xs font-semibold border border-amber-500/40 hover:border-amber-500 px-2.5 py-1 rounded-lg transition-colors ${focusRing}`}

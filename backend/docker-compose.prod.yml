@@ -1,28 +1,4 @@
 name: dresume-backend
-
-# Production compose: real SMTP, no MailHog, ASPNETCORE_ENVIRONMENT=Production.
-# Run with:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-#
-# Required .env.prod variables:
-#   POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
-#   JWT_SECRET             base64 secret (>=64 bytes) for signing JWTs  (REQUIRED)
-#   ANTHROPIC_API_KEY      key for the Anthropic-compatible AI endpoint (REQUIRED)
-#   GOOGLE_CLIENT_ID       Google OAuth client ID     (required for "Login with Google")
-#   GOOGLE_CLIENT_SECRET   Google OAuth client secret (required for "Login with Google")
-#   ENCRYPTION_KEY         base64-encoded 32-byte key for PII field encryption at rest (REQUIRED)
-#                          generate with:  openssl rand -base64 32
-#                          ⚠ back this up — losing it makes all encrypted PII unrecoverable
-#   BANK_WEBHOOK_SECRET    secret used to verify bank-QR payment webhooks
-#   SMTP_HOST              SMTP server (e.g. smtp.sendgrid.net, email-smtp.us-east-1.amazonaws.com)
-#   SMTP_PORT              587 (STARTTLS) or 465 (SSL)
-#   SMTP_USERNAME          From your SMTP provider
-#   SMTP_PASSWORD          From your SMTP provider
-#   SMTP_ENABLE_SSL        true / false
-#   FROM_EMAIL             noreply@yourdomain.com
-#   FROM_NAME              DResume
-#   FRONTEND_ORIGIN        https://app.yourdomain.com  (for CORS + email links)
-#   PORTFOLIO_BASE_DOMAIN  dainn.online  (wildcard portfolio subdomain base; CORS + links)
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -34,42 +10,35 @@ services:
     volumes:
       - dresume-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
-    # Do NOT expose 5432 publicly in production — only internal network
-
   api:
     build:
       context: ./DResume.Api
       dockerfile: Dockerfile
     container_name: dresume-api
     ports:
-      - "5267:5267"
+      - 5267:5267
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5267
-      DainnUser__Database__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-      Resume__ConnectionString: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
-      # Auth — JWT signing secret (REQUIRED, else token signing fails)
+      DainnUser__Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Resume__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       DainnUser__Jwt__Secret: ${JWT_SECRET}
-      # PII field encryption at rest (REQUIRED — back up this key, loss = unrecoverable data)
       Encryption__Key: ${ENCRYPTION_KEY}
-      # AI — Anthropic-compatible API key (REQUIRED, else all AI features fail)
       Anthropic__ApiKey: ${ANTHROPIC_API_KEY}
-      # Auth — Google OAuth (for "Login with Google"). Secret stays backend-only.
       DainnUser__GoogleClientId: ${GOOGLE_CLIENT_ID}
       DainnUser__GoogleClientSecret: ${GOOGLE_CLIENT_SECRET}
-      # Billing — disable the 2,000₫ test plan in production
       Billing__TestPlanEnabled: "false"
-      # Billing — bank QR webhook verification secret
       Billing__BankWebhookSecret: ${BANK_WEBHOOK_SECRET}
-      # Real SMTP — replace MailHog
       DainnUser__Email__SmtpHost: ${SMTP_HOST}
       DainnUser__Email__SmtpPort: ${SMTP_PORT}
       DainnUser__Email__SmtpUsername: ${SMTP_USERNAME}
@@ -78,18 +47,17 @@ services:
       DainnUser__Email__FromEmail: ${FROM_EMAIL}
       DainnUser__Email__FromName: ${FROM_NAME}
       Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
-      # Portfolio wildcard subdomains — allows CORS from any <sub>.${PORTFOLIO_BASE_DOMAIN}
-      # and is used to build absolute portfolio links. e.g. dainn.online
       Portfolio__BaseDomain: ${PORTFOLIO_BASE_DOMAIN}
-      # Uploaded resume files — persisted to a named volume so they survive redeploys
       Storage__UploadsPath: /app/uploads
     volumes:
       - ./DResume.Api/appsettings.json:/app/appsettings.json:ro
       - dresume-dp-keys:/root/.aspnet/DataProtection-Keys
       - dresume-uploads:/app/uploads
     restart: unless-stopped
-
 volumes:
-  dresume-pg:
-  dresume-dp-keys:
-  dresume-uploads:
+  dresume-pg: null
+  dresume-dp-keys: null
+  dresume-uploads: null
+networks:
+  dokploy-network:
+    external: true

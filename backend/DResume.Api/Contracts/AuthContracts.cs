@@ -38,4 +38,5 @@ public sealed record AuthResponse(
     Guid? SessionId,
     object? User,
     bool RequiresTwoFactor,
-    Guid? TwoFactorUserId);
+    Guid? TwoFactorUserId,
+    bool IsAdmin);

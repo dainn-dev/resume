@@ -17,7 +17,7 @@ public sealed class RequiresAdminAttribute : Attribute, IAsyncActionFilter
         }
 
         var plans = context.HttpContext.RequestServices.GetRequiredService<IPlanService>();
-        if (!plans.IsAdmin())
+        if (!await plans.IsAdminAsync(context.HttpContext.RequestAborted))
         {
             context.Result = new ObjectResult(new ApiResult<object>(false, null, "Admin access required.")) { StatusCode = 403 };
             return;

@@ -11,6 +11,7 @@ interface BackendAuth {
     user: { id?: string; email?: string; firstName?: string; lastName?: string; displayName?: string } | null;
     requiresTwoFactor: boolean;
     twoFactorUserId: string | null;
+    isAdmin: boolean;
   };
   error?: string;
 }
@@ -34,9 +35,10 @@ export async function POST(request: Request) {
 
   const user = auth.user ?? {};
   const displayName = user.displayName || user.firstName || user.email?.split("@")[0] || "";
+  const isAdmin = auth.isAdmin === true;
   const response = NextResponse.json({
     success: true,
-    user: { id: user.id, name: displayName, email: user.email },
+    user: { id: user.id, name: displayName, email: user.email, isAdmin },
   });
 
   const accessExpires = new Date(auth.accessTokenExpiresAt);
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
       path: "/",
     });
   }
-  response.cookies.set(USER_INFO_COOKIE, JSON.stringify({ id: user.id, name: displayName, email: user.email }), {
+  response.cookies.set(USER_INFO_COOKIE, JSON.stringify({ id: user.id, name: displayName, email: user.email, isAdmin }), {
     httpOnly: false,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

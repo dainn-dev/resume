@@ -1,3 +1,4 @@
+using DainnUser.Infrastructure.Data;
 using DResume.Api.Common;
 using DResume.Api.Data;
 using DResume.Api.Data.Entities;
@@ -26,29 +27,43 @@ public interface IPlanService
         string? note,
         CancellationToken ct = default);
     Task<UserSubscription?> FindByStripeSubscriptionAsync(string subscriptionId, CancellationToken ct = default);
-    bool IsAdmin();
+    Task<bool> IsAdminAsync(CancellationToken ct = default);
 }
 
 public sealed class PlanService : IPlanService
 {
     private readonly ResumeDbContext _db;
+    private readonly DainnUserDbContext _userDb;
     private readonly ICurrentUser _current;
     private readonly IPlanCatalogService _catalog;
-    private readonly HashSet<string> _adminEmails;
 
-    public PlanService(ResumeDbContext db, ICurrentUser current, IConfiguration config, IPlanCatalogService catalog)
+    public PlanService(ResumeDbContext db, DainnUserDbContext userDb, ICurrentUser current, IPlanCatalogService catalog)
     {
         _db = db;
+        _userDb = userDb;
         _current = current;
         _catalog = catalog;
-        _adminEmails = config.GetSection("Admin:Emails")
-            .Get<string[]>()
-            ?.ToHashSet(StringComparer.OrdinalIgnoreCase)
-            ?? [];
     }
 
-    public bool IsAdmin() =>
-        _current.Email is not null && _adminEmails.Contains(_current.Email);
+    public async Task<bool> IsAdminAsync(CancellationToken ct = default)
+    {
+        if (_current.UserId is null) return false;
+        var conn = _userDb.Database.GetDbConnection();
+        await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT EXISTS(" +
+            "SELECT 1 FROM \"UserRoles\" ur " +
+            "INNER JOIN \"Roles\" r ON r.\"Id\" = ur.\"RoleId\" " +
+            "WHERE ur.\"UserId\" = @id AND r.\"Name\" = 'Administrator'" +
+            ")";
+        var p = cmd.CreateParameter();
+        p.ParameterName = "@id";
+        p.Value = _current.UserId.Value;
+        cmd.Parameters.Add(p);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is bool b && b;
+    }
 
     public async Task<UserSubscription> GetOrCreateAsync(Guid userId, CancellationToken ct = default)
     {
@@ -63,7 +78,6 @@ public sealed class PlanService : IPlanService
         }
         catch (DbUpdateException)
         {
-            // Race: another concurrent call inserted the row first. Detach our duplicate and re-fetch.
             _db.Entry(sub).State = EntityState.Detached;
             return await _db.UserSubscriptions.FirstAsync(x => x.UserId == userId, ct);
         }
@@ -71,7 +85,7 @@ public sealed class PlanService : IPlanService
 
     public async Task<PlanDefinition> GetCurrentPlanAsync(Guid userId, CancellationToken ct = default)
     {
-        if (IsAdmin()) return await _catalog.GetAsync(PlanCode.Premium, ct);
+        if (await IsAdminAsync(ct)) return await _catalog.GetAsync(PlanCode.Premium, ct);
 
         var sub = await GetOrCreateAsync(userId, ct);
         var isActive = sub.Status is "active" or "trialing";

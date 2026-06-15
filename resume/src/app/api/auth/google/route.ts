@@ -12,6 +12,7 @@ interface BackendAuth {
     user: { id?: string; email?: string; firstName?: string; lastName?: string; displayName?: string } | null;
     requiresTwoFactor: boolean;
     twoFactorUserId: string | null;
+    isAdmin: boolean;
   };
   error?: string;
 }
@@ -30,8 +31,6 @@ function readCookie(request: Request, name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-// POST /api/auth/google — exchanges the Google authorization code for a DResume session.
-// Verifies the anti-CSRF state, forwards the code to the backend, and sets the auth cookies.
 export async function POST(request: Request) {
   const { code, state } = await request.json().catch(() => ({}));
 
@@ -43,7 +42,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Invalid or expired sign-in state. Please try again." }, { status: 400 });
   }
 
-  // redirect_uri must exactly match the one used in /start (Google enforces this on token exchange).
   const callbackUrl = `${publicOrigin(request)}/auth/google/callback`;
   const res = await callBackend<BackendAuth>("/api/auth/google", {
     method: "POST",
@@ -57,9 +55,10 @@ export async function POST(request: Request) {
   const auth = res.data.data;
   const user = auth.user ?? {};
   const displayName = user.displayName || user.firstName || user.email?.split("@")[0] || "";
+  const isAdmin = auth.isAdmin === true;
   const response = NextResponse.json({
     success: true,
-    user: { id: user.id, name: displayName, email: user.email },
+    user: { id: user.id, name: displayName, email: user.email, isAdmin },
   });
 
   const accessExpires = new Date(auth.accessTokenExpiresAt);
@@ -81,14 +80,13 @@ export async function POST(request: Request) {
       path: "/",
     });
   }
-  response.cookies.set(USER_INFO_COOKIE, JSON.stringify({ id: user.id, name: displayName, email: user.email }), {
+  response.cookies.set(USER_INFO_COOKIE, JSON.stringify({ id: user.id, name: displayName, email: user.email, isAdmin }), {
     httpOnly: false,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     expires: refreshExpires ?? accessExpires,
     path: "/",
   });
-  // One-time state cookie has served its purpose.
   response.cookies.set(GOOGLE_OAUTH_STATE_COOKIE, "", { maxAge: 0, path: "/" });
 
   return response;
