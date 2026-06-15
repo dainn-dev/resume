@@ -49,7 +49,8 @@ public sealed class PlanService : IPlanService
     {
         if (_current.UserId is null) return false;
         var conn = _userDb.Database.GetDbConnection();
-        await conn.OpenAsync(ct);
+        if (conn.State != System.Data.ConnectionState.Open)
+            await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText =
             "SELECT EXISTS(" +

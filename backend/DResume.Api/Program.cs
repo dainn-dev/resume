@@ -217,6 +217,20 @@ await using (var scope = app.Services.CreateAsyncScope())
         await EnsureDainnUserSchemaAsync(dainnDb, app.Logger);
     }
 
+    // Ensure the 'Administrator' role exists (DainnUser does not auto-seed roles via CreateTablesAsync).
+    if (dainnDb is not null)
+    {
+        try
+        {
+            await dainnDb.Database.ExecuteSqlRawAsync("""
+                INSERT INTO "Roles" ("Id", "Name", "Description", "Permissions", "CreatedAt")
+                SELECT gen_random_uuid(), 'Administrator', 'System administrator with full access', '', NOW()
+                WHERE NOT EXISTS (SELECT 1 FROM "Roles" WHERE "Name" = 'Administrator')
+                """);
+        }
+        catch (Exception ex) { app.Logger.LogWarning(ex, "Could not seed Administrator role."); }
+    }
+
     // Seed admin accounts
     var adminEmails = builder.Configuration.GetSection("Admin:Emails").Get<string[]>() ?? [];
     var adminPassword = builder.Configuration["Admin:DefaultPassword"];
@@ -247,6 +261,25 @@ await using (var scope = app.Services.CreateAsyncScope())
                     "UPDATE public.\"Users\" SET \"EmailVerified\" = true WHERE \"Email\" = {0}", email);
             }
             catch { /* Column may not exist or already verified */ }
+
+            // Assign the Administrator role to this email (idempotent — skipped if already assigned).
+            try
+            {
+                await dainnDb.Database.ExecuteSqlRawAsync("""
+                    INSERT INTO "UserRoles" ("UserId", "RoleId", "AssignedAt")
+                    SELECT u."Id", r."Id", NOW()
+                    FROM "Users" u
+                    CROSS JOIN "Roles" r
+                    WHERE u."Email" = {0}
+                      AND r."Name" = 'Administrator'
+                      AND NOT EXISTS (
+                        SELECT 1 FROM "UserRoles" ur
+                        WHERE ur."UserId" = u."Id" AND ur."RoleId" = r."Id"
+                      )
+                    """, email);
+                app.Logger.LogInformation("Administrator role assigned to: {Email}", email);
+            }
+            catch (Exception ex) { app.Logger.LogWarning(ex, "Could not assign Administrator role to {Email}.", email); }
         }
     }
 }

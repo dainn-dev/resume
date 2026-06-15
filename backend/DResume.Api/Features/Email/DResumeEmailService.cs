@@ -9,23 +9,37 @@ namespace DResume.Api.Features.Email;
 
 public sealed class DResumeEmailService : IEmailService
 {
-    private readonly DainnUserDbContext _db;
+    // Use a scope factory instead of a direct DainnUserDbContext injection so that the user-lookup
+    // query in SendEmailVerificationAsync runs on its own DbContext instance. DainnUser's
+    // RegisterAsync() holds the shared scoped DbContext inside an active transaction when it calls
+    // IEmailService, so querying the same DbContext concurrently throws InvalidOperationException.
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _config;
+    private readonly ILogger<DResumeEmailService> _logger;
 
-    public DResumeEmailService(DainnUserDbContext db, IConfiguration config)
+    public DResumeEmailService(IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<DResumeEmailService> logger)
     {
-        _db = db;
+        _scopeFactory = scopeFactory;
         _config = config;
+        _logger = logger;
     }
 
     public async Task SendEmailVerificationAsync(string email, string name, string token, CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
-        if (user is null) return;
+        // Resolve user.Id in a fresh scope so we don't conflict with the caller's DbContext.
+        Guid? userId = null;
+        await using (var scope = _scopeFactory.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<DainnUserDbContext>();
+            var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, ct);
+            userId = user?.Id;
+        }
+
+        if (userId is null) return;
 
         var frontendUrl = _config["Cors:AllowedOrigins:0"] ?? "http://localhost:3000";
         var encodedToken = Uri.EscapeDataString(token);
-        var verifyUrl = $"{frontendUrl}/verify-email?userId={user.Id}&token={encodedToken}";
+        var verifyUrl = $"{frontendUrl}/verify-email?userId={userId}&token={encodedToken}";
 
         var html = $"""
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #111827; color: #e5e7eb; padding: 0; border-radius: 12px; overflow: hidden;">
@@ -127,6 +141,7 @@ public sealed class DResumeEmailService : IEmailService
         using var client = new SmtpClient(host, port)
         {
             EnableSsl = enableSsl,
+            Timeout = 15_000,
             Credentials = string.IsNullOrEmpty(username)
                 ? null
                 : new NetworkCredential(username, password)
@@ -141,6 +156,14 @@ public sealed class DResumeEmailService : IEmailService
         };
         msg.To.Add(to);
 
-        await client.SendMailAsync(msg);
+        try
+        {
+            await client.SendMailAsync(msg);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SMTP send to {To} failed (host={Host}:{Port}).", to, host, port);
+            throw;
+        }
     }
 }

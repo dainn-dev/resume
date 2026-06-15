@@ -6,4 +6,5 @@ obj/
 .git/
 *.md
 appsettings.Development.json
+appsettings.Local.json
 Data/Migrations/*.cs.bak

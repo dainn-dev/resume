@@ -50,6 +50,9 @@ services:
       Resume__ConnectionString: "Host=postgres;Port=5432;Database=dresume;Username=dresume;Password=dresume"
       DainnUser__Email__SmtpHost: "mailhog"
       DainnUser__Email__SmtpPort: "1025"
+      DainnUser__Jwt__Secret: "${DAINNUSER_JWT_SECRET}"
+      Encryption__Key: "${ENCRYPTION_KEY}"
+      Anthropic__ApiKey: "${ANTHROPIC_API_KEY}"
       Cors__AllowedOrigins__0: "http://localhost:3000"
       Cors__AllowedOrigins__1: "http://localhost:3005"
       # Uploaded resume files persisted to a named volume (survive redeploys)

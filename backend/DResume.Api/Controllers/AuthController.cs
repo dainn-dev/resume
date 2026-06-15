@@ -162,7 +162,8 @@ public sealed class AuthController : ControllerBase
     private async Task<bool> IsAdminAsync(Guid userId, CancellationToken ct)
     {
         var conn = _userDb.Database.GetDbConnection();
-        await conn.OpenAsync(ct);
+        if (conn.State != System.Data.ConnectionState.Open)
+            await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText =
             "SELECT EXISTS(" +

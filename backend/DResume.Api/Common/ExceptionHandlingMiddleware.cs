@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Mail;
 using System.Text.Json;
 using DainnUser.Core.Exceptions;
 using DResume.Api.Billing;
@@ -90,6 +91,11 @@ public sealed class ExceptionHandlingMiddleware
         catch (InvalidVerificationCodeException ex)
         {
             await WriteAsync(ctx, HttpStatusCode.BadRequest, ex.Message);
+        }
+        catch (SmtpException ex)
+        {
+            _logger.LogError(ex, "Email delivery failed on {Path}", ctx.Request.Path);
+            await WriteAsync(ctx, HttpStatusCode.ServiceUnavailable, "Email delivery failed. Please try again later.");
         }
         catch (InvalidOperationException ex)
         {
