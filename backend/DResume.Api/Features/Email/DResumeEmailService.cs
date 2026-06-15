@@ -1,5 +1,6 @@
-using System.Net;
-using System.Net.Mail;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DainnUser.Core.Entities;
 using DainnUser.Core.Interfaces.Services;
 using DainnUser.Infrastructure.Data;
@@ -9,10 +10,13 @@ namespace DResume.Api.Features.Email;
 
 public sealed class DResumeEmailService : IEmailService
 {
-    // Use a scope factory instead of a direct DainnUserDbContext injection so that the user-lookup
-    // query in SendEmailVerificationAsync runs on its own DbContext instance. DainnUser's
-    // RegisterAsync() holds the shared scoped DbContext inside an active transaction when it calls
-    // IEmailService, so querying the same DbContext concurrently throws InvalidOperationException.
+    private static readonly HttpClient _http = new() { BaseAddress = new Uri("https://api.resend.com") };
+    private static readonly JsonSerializerOptions _json = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _config;
     private readonly ILogger<DResumeEmailService> _logger;
@@ -26,7 +30,6 @@ public sealed class DResumeEmailService : IEmailService
 
     public async Task SendEmailVerificationAsync(string email, string name, string token, CancellationToken ct = default)
     {
-        // Resolve user.Id in a fresh scope so we don't conflict with the caller's DbContext.
         Guid? userId = null;
         await using (var scope = _scopeFactory.CreateAsyncScope())
         {
@@ -60,7 +63,7 @@ public sealed class DResumeEmailService : IEmailService
             </div>
             """;
 
-        await SendSmtpAsync(email, "Verify Your Email — DResume", html);
+        await SendViaResendAsync(email, "Verify Your Email — DResume", html, ct);
     }
 
     public Task SendPasswordResetAsync(string email, string name, string token, CancellationToken ct = default)
@@ -86,7 +89,7 @@ public sealed class DResumeEmailService : IEmailService
             </div>
             """;
 
-        return SendSmtpAsync(email, "Reset Your Password — DResume", html);
+        return SendViaResendAsync(email, "Reset Your Password — DResume", html, ct);
     }
 
     public Task SendPasswordChangedNotificationAsync(string email, string name, CancellationToken ct = default)
@@ -97,7 +100,7 @@ public sealed class DResumeEmailService : IEmailService
               <p style="margin: 0 0 16px;">Hello {name}, your password was successfully changed. If you didn't make this change, please contact support immediately.</p>
             </div>
             """;
-        return SendSmtpAsync(email, "Password Changed — DResume", html);
+        return SendViaResendAsync(email, "Password Changed — DResume", html, ct);
     }
 
     public Task SendAccountLockoutNotificationAsync(string email, string name, DateTime lockoutEnd, CancellationToken ct = default)
@@ -108,7 +111,7 @@ public sealed class DResumeEmailService : IEmailService
               <p style="margin: 0 0 16px;">Hello {name}, your account has been temporarily locked due to too many failed login attempts. It will be unlocked at {lockoutEnd:g} UTC.</p>
             </div>
             """;
-        return SendSmtpAsync(email, "Account Locked — DResume", html);
+        return SendViaResendAsync(email, "Account Locked — DResume", html, ct);
     }
 
     public Task SendTwoFactorCodeAsync(string email, string name, string code, CancellationToken ct = default)
@@ -121,49 +124,65 @@ public sealed class DResumeEmailService : IEmailService
               <p style="margin: 16px 0 0; color: #6b7280; font-size: 12px;">This code will expire in 10 minutes.</p>
             </div>
             """;
-        return SendSmtpAsync(email, "Your Verification Code — DResume", html);
+        return SendViaResendAsync(email, "Your Verification Code — DResume", html, ct);
     }
 
     public Task SendEmailAsync(string to, string? replyTo, string subject, string htmlBody, IEnumerable<EmailAttachment>? attachments = null, CancellationToken ct = default)
-        => SendSmtpAsync(to, subject, htmlBody);
+        => SendViaResendAsync(to, subject, htmlBody, ct);
 
-    private async Task SendSmtpAsync(string to, string subject, string htmlBody)
+    private async Task SendViaResendAsync(string to, string subject, string htmlBody, CancellationToken ct = default)
     {
         var section = _config.GetSection("DainnUser:Email");
-        var host = section["SmtpHost"] ?? "localhost";
-        var port = int.Parse(section["SmtpPort"] ?? "1025");
+        var apiKey = section["SmtpPassword"] ?? "";
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogWarning("Resend API key not configured — skipping email to {To}.", to);
+            return;
+        }
+
         var fromEmail = section["FromEmail"] ?? "noreply@dresume.local";
         var fromName = section["FromName"] ?? "DResume";
-        var username = section["SmtpUsername"] ?? "";
-        var password = section["SmtpPassword"] ?? "";
-        var enableSsl = bool.Parse(section["EnableSsl"] ?? "false");
 
-        using var client = new SmtpClient(host, port)
+        var body = new ResendEmailPayload
         {
-            EnableSsl = enableSsl,
-            Timeout = 15_000,
-            Credentials = string.IsNullOrEmpty(username)
-                ? null
-                : new NetworkCredential(username, password)
-        };
-
-        var msg = new MailMessage
-        {
-            From = new MailAddress(fromEmail, fromName),
+            From = $"{fromName} <{fromEmail}>",
+            To = [to],
             Subject = subject,
-            Body = htmlBody,
-            IsBodyHtml = true
+            Html = htmlBody,
         };
-        msg.To.Add(to);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/emails")
+        {
+            Headers = { Authorization = new("Bearer", apiKey) },
+            Content = JsonContent.Create(body, options: _json),
+        };
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
         try
         {
-            await client.SendMailAsync(msg);
+            var response = await _http.SendAsync(request, linkedCts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Resend API error ({Status}): {Error}", (int)response.StatusCode, error);
+                response.EnsureSuccessStatusCode();
+            }
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            _logger.LogError(ex, "SMTP send to {To} failed (host={Host}:{Port}).", to, host, port);
+            if (!ct.IsCancellationRequested)
+                _logger.LogWarning("Resend API request to {To} timed out.", to);
             throw;
         }
+    }
+
+    private sealed record ResendEmailPayload
+    {
+        [JsonPropertyName("from")] public required string From { get; init; }
+        [JsonPropertyName("to")] public required string[] To { get; init; }
+        [JsonPropertyName("subject")] public required string Subject { get; init; }
+        [JsonPropertyName("html")] public required string Html { get; init; }
     }
 }
