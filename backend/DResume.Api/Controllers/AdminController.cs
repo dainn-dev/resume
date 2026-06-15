@@ -460,6 +460,76 @@ public sealed class AdminController : ControllerBase
         return new string(chars);
     }
 
+    [HttpDelete("users/{id:guid}")]
+    public async Task<IActionResult> DeleteUser(Guid id, [FromServices] IPortfolioService portfolioService, CancellationToken ct)
+    {
+        if (_current.UserId == id)
+            return BadRequest(ApiResult.Fail("Cannot delete your own account."));
+
+        var user = await _userDb.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
+            ?? throw new KeyNotFoundException("User not found.");
+
+        // Guard: never delete another admin
+        var conn = _userDb.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+            await conn.OpenAsync(ct);
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText =
+                "SELECT 1 FROM \"UserRoles\" ur " +
+                "INNER JOIN \"Roles\" r ON r.\"Id\" = ur.\"RoleId\" " +
+                "WHERE ur.\"UserId\" = @id AND r.\"Name\" = 'Administrator'";
+            var p = cmd.CreateParameter();
+            p.ParameterName = "id";
+            p.Value = id;
+            cmd.Parameters.Add(p);
+            if (await cmd.ExecuteScalarAsync(ct) is not null)
+                return BadRequest(ApiResult.Fail("Cannot delete an administrator account."));
+        }
+
+        var email = user.Email;
+
+        // Delete resume-related data (order matters: children before parents)
+        var resumeIds = await _resumeDb.Resumes.Where(r => r.UserId == id).Select(r => r.Id).ToListAsync(ct);
+        if (resumeIds.Count > 0)
+            await _resumeDb.ResumeAnalyses.Where(a => resumeIds.Contains(a.ResumeId)).ExecuteDeleteAsync(ct);
+
+        await _resumeDb.Resumes.Where(r => r.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.JobMatches.Where(j => j.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.CoverLetters.Where(c => c.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.CareerCoachSessions.Where(c => c.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.InterviewCoachSessions.Where(i => i.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.SalaryEstimates.Where(s => s.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.ResumeBuilds.Where(rb => rb.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.AiUsages.Where(a => a.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.BankPayments.Where(b => b.UserId == id).ExecuteDeleteAsync(ct);
+        await _resumeDb.BugReports.Where(b => b.UserId == id).ExecuteDeleteAsync(ct);
+
+        // Calendar: tasks → milestones → goals
+        var goalIds = await _resumeDb.CalendarGoals.Where(g => g.UserId == id).Select(g => g.Id).ToListAsync(ct);
+        if (goalIds.Count > 0)
+        {
+            var milestoneIds = await _resumeDb.CalendarMilestones.Where(m => goalIds.Contains(m.GoalId)).Select(m => m.Id).ToListAsync(ct);
+            if (milestoneIds.Count > 0)
+                await _resumeDb.CalendarTasks.Where(t => milestoneIds.Contains(t.MilestoneId)).ExecuteDeleteAsync(ct);
+            await _resumeDb.CalendarMilestones.Where(m => goalIds.Contains(m.GoalId)).ExecuteDeleteAsync(ct);
+            await _resumeDb.CalendarGoals.Where(g => goalIds.Contains(g.Id)).ExecuteDeleteAsync(ct);
+        }
+
+        await _resumeDb.UserSubscriptions.Where(s => s.UserId == id).ExecuteDeleteAsync(ct);
+
+        // Portfolio (may not exist — swallow not-found)
+        try { await portfolioService.DeleteAsync(id, ct); } catch (KeyNotFoundException) { }
+
+        // Remove from DainnUser: clean up roles then remove the user entity
+        await _userDb.Database.ExecuteSqlRawAsync(
+            "DELETE FROM \"UserRoles\" WHERE \"UserId\" = {0}", id);
+        _userDb.Users.Remove(user);
+        await _userDb.SaveChangesAsync(ct);
+
+        return Ok(ApiResult.Ok(new { deleted = true, userId = id, email }));
+    }
+
     [HttpDelete("resumes/{resumeId:guid}")]
     public async Task<IActionResult> DeleteResume(Guid resumeId, CancellationToken ct)
     {

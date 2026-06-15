@@ -54,6 +54,7 @@ export default function AdminUserDetailPage() {
 
   const [grantDuration, setGrantDuration] = useState(12);
   const [grantNote, setGrantNote] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   async function grantPlan(planCode: string) {
     const durationText = grantDuration === 0 ? "forever (no expiration)" : `${grantDuration} month${grantDuration > 1 ? "s" : ""}`;
@@ -102,6 +103,23 @@ export default function AdminUserDetailPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Failed to reset.");
       setResetResult(json.data);
+    } catch (err) { setError(err instanceof Error ? err.message : "An error occurred."); }
+    finally { setBusy(null); }
+  }
+
+  async function deleteAccount() {
+    if (!deleteConfirm) { setDeleteConfirm(true); return; }
+    if (!confirm(`PERMANENTLY DELETE account "${data?.user.email}"?\n\nThis removes ALL resumes, analyses, sessions, subscription, and the user record. This action CANNOT be undone.`)) {
+      setDeleteConfirm(false);
+      return;
+    }
+    setBusy("delete-account");
+    setDeleteConfirm(false);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Failed to delete account.");
+      router.push("/admin/users");
     } catch (err) { setError(err instanceof Error ? err.message : "An error occurred."); }
     finally { setBusy(null); }
   }
@@ -322,6 +340,40 @@ export default function AdminUserDetailPage() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Danger zone */}
+      <div className="bg-red-950/20 border border-red-500/30 rounded-2xl p-6">
+        <h2 className="text-sm font-semibold text-red-400 mb-1">Danger zone</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Permanently deletes this account and ALL associated data (resumes, analyses, subscription, sessions). This cannot be undone.
+        </p>
+        {deleteConfirm ? (
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-red-300 font-semibold">Click again to confirm deletion</span>
+            <button
+              onClick={deleteAccount}
+              disabled={busy === "delete-account"}
+              className={`text-xs font-bold px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors disabled:opacity-50 ${focusRing}`}
+            >
+              {busy === "delete-account" ? "Deleting…" : "Yes, delete permanently"}
+            </button>
+            <button
+              onClick={() => setDeleteConfirm(false)}
+              className={`text-xs text-gray-400 hover:text-gray-200 rounded ${focusRing}`}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={deleteAccount}
+            disabled={busy === "delete-account"}
+            className={`text-xs font-semibold px-4 py-2 rounded-lg border border-red-500/40 hover:bg-red-500/10 text-red-400 transition-colors disabled:opacity-50 ${focusRing}`}
+          >
+            Delete account
+          </button>
         )}
       </div>
 
